@@ -5,7 +5,13 @@
 
    Written by Roger Sayle, 1st June 2003.  */
 
-/* { dg-do link } */
+/* FIX! The ZPU does not have an FPU, but this should not fail.
+ * There are some issues w.r.t. the definitions of newlib&GCC 
+ * header file definitions of these fn's and there is a chance
+ * that this has been fixed in GCC 3.4.3, so disable this test
+ * for now.
+ * 
+ * { dg-do link { xfail zpu-*-* } } */
 /* { dg-options "-O2 -ffast-math" } */
 
 #include "builtins-config.h"

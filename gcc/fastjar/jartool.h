@@ -1,6 +1,9 @@
-/* $Id: jartool.h,v 1.4 2000/08/24 15:23:35 cory Exp $
+/* $Id: jartool.h 119 2004-10-05 20:38:42Z oyvind $
 
-   $Log: jartool.h,v $
+   $Log$
+   Revision 1.1  2004/10/05 20:31:35  oyvind
+   	* added GCC to repository
+
    Revision 1.4  2000/08/24 15:23:35  cory
    Set version number since I think we can let this one out.
 

@@ -13,7 +13,7 @@
    Currently known targets with this problem: all ARM; PA32 ("hppa*.*"
    matches "hppa2.0w" but not "hppa64"); PPC if string instructions
    are enabled (notably under AIX); S/390; Xtensa.  */
-/* { dg-final { scan-assembler-not "L\\\$?C\[^A-Z\]" { xfail arm-*-* strongarm-*-* xscale-*-* hppa-*-* hppa*.*-*-* powerpc*-*-aix* s390*-*-* xtensa-*-* } } } */
+/* { dg-final { scan-assembler-not "L\\\$?C\[^A-Z\]" { xfail arm-*-* strongarm-*-* xscale-*-* hppa-*-* hppa*.*-*-* powerpc*-*-aix* s390*-*-* xtensa-*-* zpu-*-* } } } */
 
 #define I (__extension__ 1.0iF)
 

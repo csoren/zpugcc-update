@@ -1,4 +1,4 @@
-# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p6 from Makefile.am
 
 # Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
@@ -103,8 +103,7 @@ toolexeclibdir = @toolexeclibdir@
 
 AUTOMAKE_OPTIONS = foreign
 
-noinst_HEADERS = gc.h gc_backptr.h gc_local_alloc.h \
-  gc_pthread_redirects.h gc_cpp.h
+noinst_HEADERS = gc.h gc_backptr.h gc_local_alloc.h   gc_pthread_redirects.h gc_cpp.h
 
 CONFIG_CLEAN_FILES = 
 HEADERS =  $(noinst_HEADERS)
@@ -114,7 +113,7 @@ DIST_COMMON =  Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gtar
+TAR = tar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:

@@ -578,6 +578,9 @@ case "${target}" in
   m32r-*-*)
     noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
+  zpu-*-*)
+    noconfigdirs="$noconfigdirs target-libiberty ${libgcj}"
+    ;;
   m68hc11-*-*|m6811-*-*|m68hc12-*-*|m6812-*-*)
     noconfigdirs="$noconfigdirs target-libiberty target-libstdc++-v3 ${libgcj}"
     ;;

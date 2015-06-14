@@ -1,6 +1,9 @@
-/* $Id: zipfile.h,v 1.1.1.1 1999/12/06 03:09:11 toast Exp $
+/* $Id: zipfile.h 119 2004-10-05 20:38:42Z oyvind $
 
-   $Log: zipfile.h,v $
+   $Log$
+   Revision 1.1  2004/10/05 20:31:35  oyvind
+   	* added GCC to repository
+
    Revision 1.1.1.1  1999/12/06 03:09:11  toast
    initial checkin..
 

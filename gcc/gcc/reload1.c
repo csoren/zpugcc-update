@@ -3195,9 +3195,10 @@ eliminate_regs_in_insn (rtx insn, int replace)
 
   for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS]; ep++)
     {
+#if !ALLOW_REF_TO_SP_IN_CHANGE_SP_INSN
       if (ep->previous_offset != ep->offset && ep->ref_outside_mem)
 	ep->can_eliminate = 0;
-
+#endif
       ep->ref_outside_mem = 0;
 
       if (ep->previous_offset != ep->offset)
@@ -3427,6 +3428,18 @@ update_eliminables (HARD_REG_SET *pset)
       if (ep->can_eliminate && ep->from == FRAME_POINTER_REGNUM
 	  && ep->to != HARD_FRAME_POINTER_REGNUM)
 	frame_pointer_needed = 0;
+	
+	/* ZPU kludge!
+	 * 
+	 * if the arg pointer relies on the frame pointer, we musn't eliminate
+	 * the frame pointer 
+	 * 
+	 * DANGER! this relies on ARG_POINTER_REGNUM eliminations being listed *after*
+	 * FRAME_POINTER_REGNUM eliminations.
+	 */
+      if (!ep->can_eliminate && ep->from == ARG_POINTER_REGNUM
+	  && ep->to == STACK_POINTER_REGNUM)
+	frame_pointer_needed = 1;
 
       if (! ep->can_eliminate && ep->can_eliminate_previous)
 	{

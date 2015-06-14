@@ -328,6 +328,8 @@ alloc_qty (int regno, enum machine_mode mode, int size, int birth)
 int
 local_alloc (void)
 {
+/* ZPU: commenting out the code below disables register allocation  */
+#if 1
   int i;
   int max_qty;
   basic_block b;
@@ -432,6 +434,9 @@ local_alloc (void)
   free (reg_next_in_qty);
 
   return recorded_label_ref;
+#else
+	return 0;
+#endif
 }
 
 /* Used for communication between the following two functions: contains

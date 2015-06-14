@@ -1321,6 +1321,16 @@ m32rle-*-linux*)
 		thread_file='posix'
 	fi
 	;;
+# Zylin ZPU
+zpu-*-*)
+	tm_file="dbxelf.h elfos.h zpu/zpu.h"
+	tm_p_file="zpu/zpu-protos.h"
+	md_file="zpu/zpu.md"
+	out_file="zpu/zpu.c"
+	extra_modes=zpu/zpu-modes.def
+	tmake_file="zpu/t-zpu-gas"
+	use_fixproto=yes
+        ;;
 # m68hc11 and m68hc12 share the same machine description.
 m68hc11-*-*|m6811-*-*)
 	tm_file="dbxelf.h elfos.h m68hc11/m68hc11.h"

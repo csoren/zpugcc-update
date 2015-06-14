@@ -3,7 +3,7 @@
 // Written by David Megginson
 // NO WARRANTY!  This class is in the Public Domain.
 
-// $Id: XMLReader.java,v 1.3.2.5 2002/01/29 21:34:14 dbrownell Exp $
+// $Id: XMLReader.java 119 2004-10-05 20:38:42Z oyvind $
 
 package org.xml.sax;
 

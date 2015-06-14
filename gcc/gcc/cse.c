@@ -44,6 +44,8 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "target.h"
 #include "params.h"
 
+#include <stdio.h>
+
 /* The basic idea of common subexpression elimination is to go
    through the code, keeping a record of expressions that would
    have the same value at the current scan point, and replacing
@@ -7600,6 +7602,13 @@ dead_libcall_p (rtx insn, int *counts)
    move dead invariants out of loops or make givs for dead quantities.  The
    remaining passes of the compilation are also sped up.  */
 
+void dumpInsn(rtx insn)
+{
+  fprintf(stderr, "Debug output\n");
+  print_rtl(stderr, insn);
+}
+
+
 int
 delete_trivially_dead_insns (rtx insns, int nreg)
 {
@@ -7634,6 +7643,7 @@ delete_trivially_dead_insns (rtx insns, int nreg)
 	  int live_insn = 0;
 
 	  prev = prev_real_insn (insn);
+	  
 
 	  /* Don't delete any insns that are part of a libcall block unless
 	     we can delete the whole libcall block.

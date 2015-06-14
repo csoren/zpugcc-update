@@ -27,7 +27,7 @@
    <math.h> would work too, but the GLIBC math inlines cause us to
    generate inferior code, which causes the test to fail, so it is
    not safe to include <math.h>.  */
-#include <limits.h>
+#include <sys/types.h>
 #ifdef _NEWLIB_VERSION
 #else
 #define HAVE_C99_RUNTIME

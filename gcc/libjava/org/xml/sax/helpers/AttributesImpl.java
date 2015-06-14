@@ -3,7 +3,7 @@
 // Written by David Megginson
 // NO WARRANTY!  This class is in the public domain.
 
-// $Id: AttributesImpl.java,v 1.6.2.3 2002/01/29 21:34:14 dbrownell Exp $
+// $Id: AttributesImpl.java 119 2004-10-05 20:38:42Z oyvind $
 
 
 package org.xml.sax.helpers;

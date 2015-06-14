@@ -2805,7 +2805,9 @@ emit_move_insn (rtx x, rtx y)
   x = protect_from_queue (x, 1);
   y = protect_from_queue (y, 0);
 
-  if (mode == BLKmode || (GET_MODE (y) != mode && GET_MODE (y) != VOIDmode))
+  if (mode == BLKmode)
+    abort ();
+  if ((GET_MODE (y) != mode && GET_MODE (y) != VOIDmode))
     abort ();
 
   /* Never force constant_p_rtx to memory.  */

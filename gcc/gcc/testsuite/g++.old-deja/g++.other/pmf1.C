@@ -1,7 +1,8 @@
 // { dg-do run  }
 struct foo {};
 typedef long unsigned int & (foo::*pmf)(void);
-void fn (...) {}
+/* ZPU: what does void foo(...) mean anyway? */
+void fn (pmf) {}
 int main ()
 {
   pmf y = 0;

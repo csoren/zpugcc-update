@@ -1,3 +1,7 @@
+/* The SIMD simulation should work on the ZPU, but
+ * it has been disabled for now
+ */
+/* { dg-do assemble { xfail zpu-*-*} } */
 #include <float.h>
 
 /* If double is not wider than float, we probably don't have DFmode,

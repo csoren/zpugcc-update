@@ -1,6 +1,9 @@
-/* $Id: pushback.c,v 1.2 2000/12/14 18:45:35 ghazi Exp $
+/* $Id: pushback.c 119 2004-10-05 20:38:42Z oyvind $
 
-   $Log: pushback.c,v $
+   $Log$
+   Revision 1.1  2004/10/05 20:31:35  oyvind
+   	* added GCC to repository
+
    Revision 1.2  2000/12/14 18:45:35  ghazi
    Warning fixes:
 

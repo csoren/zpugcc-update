@@ -271,6 +271,11 @@ case $basic_machine in
 	| z8k)
 		basic_machine=$basic_machine-unknown
 		;;
+	zpu)
+		# Zylin ZPU
+		basic_machine=$basic_machine-unknown
+		os=-none
+		;;
 	m6811 | m68hc11 | m6812 | m68hc12)
 		# Motorola 68HC11/12.
 		basic_machine=$basic_machine-unknown

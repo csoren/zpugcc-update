@@ -571,6 +571,8 @@ global_alloc (FILE *file)
       if (file)
 	dump_conflicts (file);
 
+/* ZPU: commenting out the code below disables register allocation  */
+#if 1
       /* Try allocating them, one by one, in that order,
 	 except for parameters marked with reg_live_length[regno] == -2.  */
 
@@ -590,7 +592,7 @@ global_alloc (FILE *file)
 	    if (reg_alternate_class (allocno[allocno_order[i]].reg) != NO_REGS)
 	      find_reg (allocno_order[i], 0, 1, 0, 0);
 	  }
-
+#endif
       free (allocno_order);
     }
 

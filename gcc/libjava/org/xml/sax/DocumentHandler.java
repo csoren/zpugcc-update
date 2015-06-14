@@ -1,7 +1,7 @@
 // SAX document handler.
 // http://www.saxproject.org
 // No warranty; no copyright -- use this as you will.
-// $Id: DocumentHandler.java,v 1.3.2.3 2002/01/29 21:34:14 dbrownell Exp $
+// $Id: DocumentHandler.java 119 2004-10-05 20:38:42Z oyvind $
 
 package org.xml.sax;
 

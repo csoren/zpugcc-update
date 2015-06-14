@@ -1,3 +1,5 @@
+/* the ZPU does not support floating point. */
+/* { dg-do assemble { xfail zpu-*-*} } */
 /* Copyright (C) 2002  Free Software Foundation.
 
    Ensure that fabs(x) < 0.0 optimization is working.

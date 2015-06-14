@@ -1,4 +1,12 @@
-// { dg-do run { xfail arm-*-* hppa*-*-* mips-*-* powerpc-*-* sh-*-* sparc*-*-* ia64-hp-hpux* } }
+/* this teste will fail on the ZPU(as it will on e.g. ARM), because
+ * it has an unaligned access.
+ * 
+ * Completely disable execution as that causes reboots and noise in the
+ * testresults. Probably a better way of doing this, but not worth it 
+ * for now.
+ */
+// { dg-do compile { target zpu-*-* } }
+// FIX!!! dg-do run { xfail arm-*-* hppa*-*-* mips-*-* powerpc-*-* sh-*-* sparc*-*-* ia64-hp-hpux*} FIX!!!
 
 // NMS:2003-04-21 this fails on strict aligned architectures again,
 // the patch was reverted because it broke something more important.

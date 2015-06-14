@@ -1,6 +1,9 @@
-/* $Id: compress.h,v 1.1 2000/12/09 03:08:23 apbianco Exp $
+/* $Id: compress.h 119 2004-10-05 20:38:42Z oyvind $
 
-   $Log: compress.h,v $
+   $Log$
+   Revision 1.1  2004/10/05 20:31:34  oyvind
+   	* added GCC to repository
+
    Revision 1.1  2000/12/09 03:08:23  apbianco
    2000-12-08  Alexandre Petit-Bianco  <apbianco@cygnus.com>
 

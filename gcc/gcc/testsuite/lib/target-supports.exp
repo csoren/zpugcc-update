@@ -202,7 +202,8 @@ proc check_profiling_available { test_what } {
 	     || [istarget xscale*-*-elf]
 	     || [istarget cris-*-*]
 	     || [istarget h8300-*-*] 
-	     || [istarget *-*-windiss] } {
+	     || [istarget *-*-windiss]
+	     || [istarget zpu-*-*] } {
 	    set profiling_available_saved 0
 	} else {
 	    set profiling_available_saved 1
