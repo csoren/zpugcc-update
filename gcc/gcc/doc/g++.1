@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "GCC 1"
-.TH GCC 1 "2004-09-06" "gcc-3.4.2" "GNU"
+.TH GCC 1 "2004-11-05" "gcc-3.4.3" "GNU"
 .SH "NAME"
 gcc \- GNU project C and C++ compiler
 .SH "SYNOPSIS"
@@ -3823,8 +3823,8 @@ Enabled at levels \fB\-O2\fR, \fB\-O3\fR.
 .IX Item "-freorder-functions"
 Reorder basic blocks in the compiled function in order to reduce number of
 taken branches and improve code locality. This is implemented by using special
-subsections \f(CW\*(C`text.hot\*(C'\fR for most frequently executed functions and
-\&\f(CW\*(C`text.unlikely\*(C'\fR for unlikely executed functions.  Reordering is done by
+subsections \f(CW\*(C`.text.hot\*(C'\fR for most frequently executed functions and
+\&\f(CW\*(C`.text.unlikely\*(C'\fR for unlikely executed functions.  Reordering is done by
 the linker so object file format must support named sections and linker must
 place them in a reasonable way.
 .Sp
@@ -10476,8 +10476,8 @@ localization information that allow \s-1GCC\s0 to work with different
 national conventions.  \s-1GCC\s0 inspects the locale categories
 \&\fB\s-1LC_CTYPE\s0\fR and \fB\s-1LC_MESSAGES\s0\fR if it has been configured to do
 so.  These locale categories can be set to any value supported by your
-installation.  A typical value is \fBen_UK\fR for English in the United
-Kingdom.
+installation.  A typical value is \fBen_GB.UTF\-8\fR for English in the United
+Kingdom encoded in \s-1UTF\-8\s0.
 .Sp
 The \fB\s-1LC_CTYPE\s0\fR environment variable specifies character
 classification.  \s-1GCC\s0 uses it to determine the character boundaries in

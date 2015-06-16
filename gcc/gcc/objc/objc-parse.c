@@ -4704,7 +4704,7 @@ case 473:
     break;}
 case 476:
 #line 2117 "objc/objc-parse.y"
-{ if (current_function_decl == 0)
+{ if (last_tree == NULL)
 		    {
 		      error ("braced-group within expression allowed only inside a function");
 		      YYERROR;

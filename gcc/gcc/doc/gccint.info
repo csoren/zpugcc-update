@@ -1,5 +1,5 @@
 This is doc/gccint.info, produced by makeinfo version 4.7 from
-/home/mitchell/gcc-3.4.2/gcc-3.4.2/gcc/doc/gccint.texi.
+/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/doc/gccint.texi.
 
    Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
@@ -57,7 +57,7 @@ Introduction
 
 This manual documents the internals of the GNU compilers, including how
 to port them to new targets and some information about how to write
-front ends for new languages.  It corresponds to GCC version 3.4.2.
+front ends for new languages.  It corresponds to GCC version 3.4.3.
 The use of the GNU compilers is documented in a separate manual.  *Note
 Introduction: (gcc)Top.
 
@@ -13526,6 +13526,24 @@ You can control the compilation driver.
      If this macro is not defined, the GCC driver provides a default
      that passes the string `-lgcc' to the linker.
 
+     By default, if `ENABLE_SHARED_LIBGCC' is defined, the
+     `LIBGCC_SPEC' is not directly used by the driver program but is
+     instead modified to refer to different versions of `libgcc.a'
+     depending on the values of the command line flags `-static',
+     `-shared', `-static-libgcc', and `-shared-libgcc'.
+
+ -- Macro: USE_LD_AS_NEEDED
+     A macro that controls the modifications to `LIBGCC_SPEC'.  If
+     nonzero, a spec will be generated that uses -as-needed and the
+     shared libgcc in place of the static exception handler library,
+     when linking without any of `-static', `-static-libgcc', or
+     `-shared-libgcc'.
+
+ -- Macro: LINK_EH_SPEC
+     If defined, this C string constant is added to `LINK_SPEC'.  When
+     `USE_LD_AS_NEEDED' is zero or undefined, it also affects the
+     modifications to `LIBGCC_SPEC'.
+
  -- Macro: STARTFILE_SPEC
      Another C string constant used much like `LINK_SPEC'.  The
      difference between the two is that `STARTFILE_SPEC' is used at the
@@ -15955,6 +15973,14 @@ Here is the basic stack layout.
      register, but an alternate column needs to be used for signal
      frames.
 
+ -- Macro: DWARF_ZERO_REG
+     A C expression whose value is an integer giving a DWARF 2 register
+     number that is considered to always have the value zero.  This
+     should only be defined if the target has an architected zero
+     register, and someone decided it was a good idea to use that
+     register number to terminate the stack backtrace.  New ports
+     should avoid this.
+
  -- Macro: INCOMING_FRAME_SP_OFFSET
      A C expression whose value is an integer giving the offset, in
      bytes, from the value of the stack pointer register to the top of
@@ -17214,7 +17240,8 @@ treat leaf functions specially.  The C variable
      `DELAY_SLOTS_FOR_EPILOGUE'.
 
  -- Target Hook: void TARGET_ASM_OUTPUT_MI_THUNK (FILE *FILE, tree
-          THUNK_FNDECL, HOST_WIDE_INT DELTA, tree FUNCTION)
+          THUNK_FNDECL, HOST_WIDE_INT DELTA, HOST_WIDE_INT
+          VCALL_OFFSET, tree FUNCTION)
      A function that outputs the assembler code for a thunk function,
      used to implement C++ virtual function calls with multiple
      inheritance.  The thunk acts as a wrapper around a virtual
@@ -17228,7 +17255,13 @@ treat leaf functions specially.  The C variable
      prologue, e.g. `%o0' on a sparc.  The addition must preserve the
      values of all other incoming arguments.
 
-     After the addition, emit code to jump to FUNCTION, which is a
+     Then, if VCALL_OFFSET is nonzero, an additional adjustment should
+     be made after adding `delta'.  In particular, if P is the adjusted
+     pointer, the following adjustment should be made:
+
+          p += (*((ptrdiff_t **)p))[vcall_offset/sizeof(ptrdiff_t)]
+
+     After the additions, emit code to jump to FUNCTION, which is a
      `FUNCTION_DECL'.  This is a direct pure jump, not a call, and does
      not touch the return address.  Hence returning from FUNCTION will
      return to whoever called the current `thunk'.
@@ -17248,18 +17281,14 @@ treat leaf functions specially.  The C variable
      that calls FUNCTION instead of jumping to it.  The generic
      approach does not support varargs.
 
- -- Target Hook: void TARGET_ASM_OUTPUT_MI_VCALL_THUNK (FILE *FILE,
-          tree THUNK_FNDECL, HOST_WIDE_INT DELTA, int VCALL_OFFSET,
-          tree FUNCTION)
-     A function like `TARGET_ASM_OUTPUT_MI_THUNK', except that if
-     VCALL_OFFSET is nonzero, an additional adjustment should be made
-     after adding `delta'.  In particular, if P is the adjusted
-     pointer, the following adjustment should be made:
-
-          p += (*((ptrdiff_t **)p))[vcall_offset/sizeof(ptrdiff_t)]
-
-     If this function is defined, it will always be used in place of
-     `TARGET_ASM_OUTPUT_MI_THUNK'.
+ -- Target Hook: bool TARGET_ASM_CAN_OUTPUT_MI_THUNK (tree
+          THUNK_FNDECL, HOST_WIDE_INT DELTA, HOST_WIDE_INT
+          VCALL_OFFSET, tree FUNCTION)
+     A function that returns true if TARGET_ASM_OUTPUT_MI_THUNK would
+     be able to output the assembler code for the thunk function
+     specified by the arguments it is passed, and false otherwise.  In
+     the latter case, the generic approach will be used by the C++
+     front end, with the limitations previously exposed.
 
 
 File: gccint.info,  Node: Profiling,  Next: Tail Calls,  Prev: Function Entry,  Up: Stack and Calling
@@ -24746,7 +24775,7 @@ Index
                                                              (line   48)
 * andM3 instruction pattern:             Standard Names.     (line  167)
 * APPLY_RESULT_SIZE:                     Scalar Return.      (line   85)
-* ARG_POINTER_CFA_OFFSET:                Frame Layout.       (line  154)
+* ARG_POINTER_CFA_OFFSET:                Frame Layout.       (line  162)
 * ARG_POINTER_REGNUM:                    Frame Registers.    (line   41)
 * ARG_POINTER_REGNUM and virtual registers: Regs and Memory. (line   65)
 * arg_pointer_rtx:                       Frame Registers.    (line   85)
@@ -25365,6 +25394,7 @@ Index
 * DWARF_FRAME_REGISTERS:                 Frame Registers.    (line   93)
 * DWARF_FRAME_REGNUM:                    Frame Registers.    (line  125)
 * DWARF_REG_TO_UNWIND_COLUMN:            Frame Registers.    (line  117)
+* DWARF_ZERO_REG:                        Frame Layout.       (line  143)
 * DYNAMIC_CHAIN_ADDRESS:                 Frame Layout.       (line   83)
 * E in constraint:                       Simple Constraints. (line   77)
 * earlyclobber operand:                  Modifiers.          (line   25)
@@ -25385,7 +25415,7 @@ Index
 * EMPTY_CLASS_EXPR:                      Function Bodies.    (line    6)
 * EMPTY_FIELD_BOUNDARY:                  Storage Layout.     (line  237)
 * ENABLE_EXECUTE_STACK:                  Trampolines.        (line  111)
-* ENDFILE_SPEC:                          Driver.             (line  195)
+* ENDFILE_SPEC:                          Driver.             (line  213)
 * endianness:                            Portability.        (line   21)
 * enum machine_mode:                     Machine Modes.      (line    6)
 * enum reg_class:                        Register Classes.   (line   65)
@@ -25424,7 +25454,7 @@ Index
 * EXTRA_MEMORY_CONSTRAINT:               Register Classes.   (line  460)
 * EXTRA_SECTION_FUNCTIONS:               Sections.           (line  102)
 * EXTRA_SECTIONS:                        Sections.           (line   97)
-* EXTRA_SPECS:                           Driver.             (line  222)
+* EXTRA_SPECS:                           Driver.             (line  240)
 * extv instruction pattern:              Standard Names.     (line  506)
 * extzv instruction pattern:             Standard Names.     (line  520)
 * F in constraint:                       Simple Constraints. (line   82)
@@ -25678,9 +25708,9 @@ Index
 * in_struct, in subreg:                  Flags.              (line  212)
 * in_text:                               Sections.           (line   96)
 * include:                               Including Patterns. (line    6)
-* INCLUDE_DEFAULTS:                      Driver.             (line  402)
+* INCLUDE_DEFAULTS:                      Driver.             (line  420)
 * inclusive-or, bitwise:                 Arithmetic.         (line  137)
-* INCOMING_FRAME_SP_OFFSET:              Frame Layout.       (line  143)
+* INCOMING_FRAME_SP_OFFSET:              Frame Layout.       (line  151)
 * INCOMING_REGNO:                        Register Basics.    (line   98)
 * INCOMING_RETURN_ADDR_RTX:              Frame Layout.       (line  123)
 * INDEX_REG_CLASS:                       Register Classes.   (line  118)
@@ -25689,7 +25719,7 @@ Index
 * INIT_CUMULATIVE_ARGS:                  Register Arguments. (line  138)
 * INIT_CUMULATIVE_INCOMING_ARGS:         Register Arguments. (line  166)
 * INIT_CUMULATIVE_LIBCALL_ARGS:          Register Arguments. (line  159)
-* INIT_ENVIRONMENT:                      Driver.             (line  341)
+* INIT_ENVIRONMENT:                      Driver.             (line  359)
 * INIT_EXPANDERS:                        Per-Function Data.  (line   39)
 * INIT_EXPR:                             Expression trees.   (line    6)
 * init_machine_status:                   Per-Function Data.  (line   45)
@@ -25845,11 +25875,12 @@ Index
 * library subroutine names:              Library Calls.      (line    6)
 * LIBRARY_PATH_ENV:                      Misc.               (line  492)
 * LIMIT_RELOAD_CLASS:                    Register Classes.   (line  213)
-* LINK_COMMAND_SPEC:                     Driver.             (line  285)
-* LINK_ELIMINATE_DUPLICATE_LDIRECTORIES: Driver.             (line  295)
-* LINK_GCC_C_SEQUENCE_SPEC:              Driver.             (line  281)
-* LINK_LIBGCC_SPECIAL:                   Driver.             (line  267)
-* LINK_LIBGCC_SPECIAL_1:                 Driver.             (line  274)
+* LINK_COMMAND_SPEC:                     Driver.             (line  303)
+* LINK_EH_SPEC:                          Driver.             (line  200)
+* LINK_ELIMINATE_DUPLICATE_LDIRECTORIES: Driver.             (line  313)
+* LINK_GCC_C_SEQUENCE_SPEC:              Driver.             (line  299)
+* LINK_LIBGCC_SPECIAL:                   Driver.             (line  285)
+* LINK_LIBGCC_SPECIAL_1:                 Driver.             (line  292)
 * LINK_SPEC:                             Driver.             (line  163)
 * linkage:                               Function Basics.    (line    6)
 * list:                                  Containers.         (line    6)
@@ -25860,7 +25891,7 @@ Index
 * local register allocation:             Passes.             (line  322)
 * LOCAL_ALIGNMENT:                       Storage Layout.     (line  226)
 * LOCAL_CLASS_P:                         Classes.            (line   66)
-* LOCAL_INCLUDE_DIR:                     Driver.             (line  348)
+* LOCAL_INCLUDE_DIR:                     Driver.             (line  366)
 * LOCAL_LABEL_PREFIX:                    Instruction Output. (line  125)
 * LOCAL_REGNO:                           Register Basics.    (line  112)
 * LOG_LINKS:                             Insns.              (line  286)
@@ -25937,11 +25968,11 @@ Index
 * mcount:                                Profiling.          (line   12)
 * MD_ASM_CLOBBERS:                       Misc.               (line  481)
 * MD_CAN_REDIRECT_BRANCH:                Misc.               (line  599)
-* MD_EXEC_PREFIX:                        Driver.             (line  316)
+* MD_EXEC_PREFIX:                        Driver.             (line  334)
 * MD_FALLBACK_FRAME_STATE_FOR:           Exception Handling. (line   94)
 * MD_HANDLE_UNWABI:                      Exception Handling. (line  112)
-* MD_STARTFILE_PREFIX:                   Driver.             (line  330)
-* MD_STARTFILE_PREFIX_1:                 Driver.             (line  336)
+* MD_STARTFILE_PREFIX:                   Driver.             (line  348)
+* MD_STARTFILE_PREFIX_1:                 Driver.             (line  354)
 * mem:                                   Regs and Memory.    (line  249)
 * mem and /c:                            Flags.              (line   93)
 * mem and /f:                            Flags.              (line   79)
@@ -26004,7 +26035,7 @@ Index
 * modifiers in constraints:              Modifiers.          (line    6)
 * MODIFY_EXPR:                           Expression trees.   (line    6)
 * MODIFY_JNI_METHOD_CALL:                Misc.               (line  642)
-* MODIFY_TARGET_NAME:                    Driver.             (line  357)
+* MODIFY_TARGET_NAME:                    Driver.             (line  375)
 * modM3 instruction pattern:             Standard Names.     (line  167)
 * MOVE_BY_PIECES_P:                      Costs.              (line  104)
 * MOVE_MAX:                              Misc.               (line  128)
@@ -26023,7 +26054,7 @@ Index
 * mult, canonicalization of:             Insn Canonicalizations.
                                                              (line   21)
 * MULT_EXPR:                             Expression trees.   (line    6)
-* MULTILIB_DEFAULTS:                     Driver.             (line  301)
+* MULTILIB_DEFAULTS:                     Driver.             (line  319)
 * MULTILIB_DIRNAMES:                     Target Fragment.    (line   64)
 * MULTILIB_EXCEPTIONS:                   Target Fragment.    (line   84)
 * MULTILIB_EXTRA_OPTS:                   Target Fragment.    (line   96)
@@ -26385,7 +26416,7 @@ Index
 * regular expressions:                   Processor pipeline description.
                                                              (line    6)
 * relative costs:                        Costs.              (line    6)
-* RELATIVE_PREFIX_NOT_LINKDIR:           Driver.             (line  311)
+* RELATIVE_PREFIX_NOT_LINKDIR:           Driver.             (line  329)
 * reload pass:                           Regs and Memory.    (line  148)
 * reload_completed:                      Standard Names.     (line  676)
 * reload_in instruction pattern:         Standard Names.     (line  101)
@@ -26593,10 +26624,10 @@ Index
 * STACK_SAVEAREA_MODE:                   Storage Layout.     (line  362)
 * STACK_SIZE_MODE:                       Storage Layout.     (line  374)
 * standard pattern names:                Standard Names.     (line    6)
-* STANDARD_INCLUDE_COMPONENT:            Driver.             (line  397)
-* STANDARD_INCLUDE_DIR:                  Driver.             (line  389)
-* STANDARD_STARTFILE_PREFIX:             Driver.             (line  323)
-* STARTFILE_SPEC:                        Driver.             (line  187)
+* STANDARD_INCLUDE_COMPONENT:            Driver.             (line  415)
+* STANDARD_INCLUDE_DIR:                  Driver.             (line  407)
+* STANDARD_STARTFILE_PREFIX:             Driver.             (line  341)
+* STARTFILE_SPEC:                        Driver.             (line  205)
 * STARTING_FRAME_OFFSET:                 Frame Layout.       (line   39)
 * STARTING_FRAME_OFFSET and virtual registers: Regs and Memory.
                                                              (line   74)
@@ -26673,9 +26704,9 @@ Index
 * SYMBOL_REF_USED:                       Flags.              (line  222)
 * SYMBOL_REF_WEAK:                       Flags.              (line  227)
 * symbolic label:                        Sharing.            (line   20)
-* SYSROOT_HEADERS_SUFFIX_SPEC:           Driver.             (line  216)
-* SYSROOT_SUFFIX_SPEC:                   Driver.             (line  211)
-* SYSTEM_INCLUDE_DIR:                    Driver.             (line  380)
+* SYSROOT_HEADERS_SUFFIX_SPEC:           Driver.             (line  234)
+* SYSROOT_SUFFIX_SPEC:                   Driver.             (line  229)
+* SYSTEM_INCLUDE_DIR:                    Driver.             (line  398)
 * t-TARGET:                              Target Fragment.    (line    6)
 * tablejump instruction pattern:         Standard Names.     (line  743)
 * tag:                                   GTY Options.        (line   75)
@@ -26697,6 +26728,7 @@ Index
 * TARGET_ASM_ALIGNED_TI_OP:              Data Output.        (line   11)
 * TARGET_ASM_ASSEMBLE_VISIBILITY:        Label Output.       (line  219)
 * TARGET_ASM_BYTE_OP:                    Data Output.        (line    7)
+* TARGET_ASM_CAN_OUTPUT_MI_THUNK:        Function Entry.     (line  242)
 * TARGET_ASM_CLOSE_PAREN:                Data Output.        (line  128)
 * TARGET_ASM_CONSTRUCTOR:                Macros for Initialization.
                                                              (line   69)
@@ -26722,8 +26754,7 @@ Index
 * TARGET_ASM_INTERNAL_LABEL:             Label Output.       (line  265)
 * TARGET_ASM_NAMED_SECTION:              File Framework.     (line   99)
 * TARGET_ASM_OPEN_PAREN:                 Data Output.        (line  127)
-* TARGET_ASM_OUTPUT_MI_THUNK:            Function Entry.     (line  199)
-* TARGET_ASM_OUTPUT_MI_VCALL_THUNK:      Function Entry.     (line  235)
+* TARGET_ASM_OUTPUT_MI_THUNK:            Function Entry.     (line  200)
 * TARGET_ASM_SELECT_RTX_SECTION:         Sections.           (line  144)
 * TARGET_ASM_SELECT_SECTION:             Sections.           (line  118)
 * TARGET_ASM_UNALIGNED_DI_OP:            Data Output.        (line   14)
@@ -26833,7 +26864,7 @@ Index
 * TEXT_SECTION_ASM_OP:                   Sections.           (line   18)
 * TFmode:                                Machine Modes.      (line   84)
 * THEN_CLAUSE:                           Function Bodies.    (line    6)
-* THREAD_MODEL_SPEC:                     Driver.             (line  202)
+* THREAD_MODEL_SPEC:                     Driver.             (line  220)
 * THROW_EXPR:                            Expression trees.   (line    6)
 * THUNK_DECL:                            Declarations.       (line    6)
 * THUNK_DELTA:                           Declarations.       (line    6)
@@ -26986,6 +27017,7 @@ Index
 * us_truncate:                           Conversions.        (line   49)
 * use:                                   Side Effects.       (line  155)
 * USE_C_ALLOCA:                          Host Misc.          (line   19)
+* USE_LD_AS_NEEDED:                      Driver.             (line  193)
 * USE_LOAD_POST_DECREMENT:               Costs.              (line  143)
 * USE_LOAD_POST_INCREMENT:               Costs.              (line  138)
 * USE_LOAD_PRE_DECREMENT:                Costs.              (line  153)
@@ -27082,206 +27114,206 @@ Index
 
 
 Tag Table:
-Node: Top2068
-Node: Contributing4676
-Node: Portability5419
-Node: Interface7210
-Node: Libgcc10629
-Node: Integer library routines12384
-Node: Soft float library routines19069
-Node: Exception handling routines28533
-Node: Miscellaneous routines29628
-Node: Languages30011
-Node: Source Tree31562
-Node: Configure Terms32180
-Node: Top Level35150
-Node: gcc Directory37277
-Node: Subdirectories38246
-Node: Configuration40555
-Node: Config Fragments41275
-Node: System Config42619
-Node: Configuration Files43563
-Node: Build46251
-Node: Makefile46663
-Node: Library Files50845
-Node: Headers51407
-Node: Documentation53394
-Node: Texinfo Manuals54195
-Node: Man Page Generation56329
-Node: Miscellaneous Docs58250
-Node: Front End59607
-Node: Front End Directory63376
-Node: Front End Config68715
-Node: Back End71462
-Node: Testsuites74798
-Node: Test Idioms75532
-Node: Ada Tests79109
-Node: C Tests80398
-Node: libgcj Tests84755
-Node: gcov Testing86187
-Node: profopt Testing89184
-Node: compat Testing90632
-Node: Passes93983
-Node: Trees117549
-Node: Deficiencies120279
-Node: Tree overview120516
-Node: Macros and Functions124661
-Node: Identifiers124807
-Node: Containers126336
-Node: Types127492
-Node: Scopes140115
-Node: Namespaces140879
-Node: Classes143695
-Node: Declarations148305
-Node: Functions154368
-Node: Function Basics156780
-Node: Function Bodies163539
-Node: Attributes177441
-Node: Expression trees178684
-Node: RTL204578
-Node: RTL Objects206681
-Node: RTL Classes210574
-Node: Accessors215200
-Node: Special Accessors217600
-Node: Flags221468
-Node: Machine Modes237787
-Node: Constants246525
-Node: Regs and Memory252493
-Node: Arithmetic265546
-Node: Comparisons273250
-Node: Bit-Fields277385
-Node: Vector Operations278813
-Node: Conversions280437
-Node: RTL Declarations283754
-Node: Side Effects284573
-Node: Incdec300442
-Node: Assembler303786
-Node: Insns305318
-Node: Calls330557
-Node: Sharing333161
-Node: Reading RTL336271
-Node: Machine Desc337264
-Node: Overview339546
-Node: Patterns341595
-Node: Example345035
-Node: RTL Template346476
-Node: Output Template358951
-Node: Output Statement362943
-Node: Constraints366924
-Node: Simple Constraints367865
-Node: Multi-Alternative380254
-Node: Class Preferences383103
-Node: Modifiers383997
-Node: Machine Constraints387771
-Node: Standard Names409985
-Ref: prologue instruction pattern454577
-Ref: epilogue instruction pattern455070
-Node: Pattern Ordering457521
-Node: Dependent Patterns458757
-Node: Jump Patterns461579
-Node: Looping Patterns467338
-Node: Insn Canonicalizations471953
-Node: Expander Definitions475780
-Node: Insn Splitting483924
-Node: Including Patterns493547
-Node: Peephole Definitions495343
-Node: define_peephole496602
-Node: define_peephole2502964
-Node: Insn Attributes506041
-Node: Defining Attributes507147
-Node: Expressions509176
-Node: Tagging Insns515780
-Node: Attr Example520148
-Node: Insn Lengths522530
-Node: Constant Attributes525603
-Node: Delay Slots526774
-Node: Processor pipeline description530012
-Node: Old pipeline description533968
-Node: Automaton pipeline description539703
-Node: Comparison of the two descriptions554614
-Node: Conditional Execution556612
-Node: Constant Definitions559475
-Node: Target Macros561060
-Node: Target Structure563893
-Node: Driver565162
-Node: Run-time Target585968
-Node: Per-Function Data596558
-Node: Storage Layout599328
-Node: Type Layout623682
-Node: Escape Sequences634728
-Node: Registers635605
-Node: Register Basics636535
-Node: Allocation Order642420
-Node: Values in Registers643865
-Node: Leaf Functions649188
-Node: Stack Registers652006
-Node: Register Classes653124
-Node: Stack and Calling678500
-Node: Frame Layout679005
-Node: Exception Handling686614
-Node: Stack Checking692532
-Node: Frame Registers696165
-Node: Elimination702771
-Node: Stack Arguments706802
-Node: Register Arguments714771
-Node: Scalar Return727448
-Node: Aggregate Return732221
-Node: Caller Saves735561
-Node: Function Entry736739
-Node: Profiling749374
-Node: Tail Calls751032
-Node: Varargs751866
-Node: Trampolines759806
-Node: Library Calls766594
-Node: Addressing Modes770710
-Node: Condition Code781714
-Node: Costs789849
-Node: Scheduling801601
-Node: Sections817452
-Node: PIC827973
-Node: Assembler Format830819
-Node: File Framework831898
-Node: Data Output837970
-Node: Uninitialized Data845403
-Node: Label Output850935
-Node: Initialization870036
-Node: Macros for Initialization876030
-Node: Instruction Output882323
-Node: Dispatch Tables891319
-Node: Exception Region Output893955
-Node: Alignment Output898453
-Node: Debugging Info902597
-Node: All Debuggers903267
-Node: DBX Options906122
-Node: DBX Hooks911436
-Node: File Names and DBX915051
-Node: SDB and DWARF916375
-Node: VMS Debug920093
-Node: Floating Point920663
-Node: Mode Switching925490
-Node: Target Attributes929415
-Node: MIPS Coprocessors933310
-Node: PCH Target934892
-Node: Misc936150
-Node: Host Config970517
-Node: Host Common971579
-Node: Filesystem973755
-Node: Host Misc977310
-Node: Fragments979507
-Node: Target Fragment980706
-Node: Host Fragment986134
-Node: Collect2987578
-Node: Header Dirs990135
-Node: Type Information991565
-Node: GTY Options992623
-Node: GGC Roots1001076
-Node: Files1001785
-Node: Funding1004637
-Node: GNU Project1007145
-Node: Copying1007796
-Node: GNU Free Documentation License1026975
-Node: Contributors1049380
-Node: Option Index1076913
-Node: Index1079096
+Node: Top2076
+Node: Contributing4684
+Node: Portability5427
+Node: Interface7218
+Node: Libgcc10637
+Node: Integer library routines12392
+Node: Soft float library routines19077
+Node: Exception handling routines28541
+Node: Miscellaneous routines29636
+Node: Languages30019
+Node: Source Tree31570
+Node: Configure Terms32188
+Node: Top Level35158
+Node: gcc Directory37285
+Node: Subdirectories38254
+Node: Configuration40563
+Node: Config Fragments41283
+Node: System Config42627
+Node: Configuration Files43571
+Node: Build46259
+Node: Makefile46671
+Node: Library Files50853
+Node: Headers51415
+Node: Documentation53402
+Node: Texinfo Manuals54203
+Node: Man Page Generation56337
+Node: Miscellaneous Docs58258
+Node: Front End59615
+Node: Front End Directory63384
+Node: Front End Config68723
+Node: Back End71470
+Node: Testsuites74806
+Node: Test Idioms75540
+Node: Ada Tests79117
+Node: C Tests80406
+Node: libgcj Tests84763
+Node: gcov Testing86195
+Node: profopt Testing89192
+Node: compat Testing90640
+Node: Passes93991
+Node: Trees117557
+Node: Deficiencies120287
+Node: Tree overview120524
+Node: Macros and Functions124669
+Node: Identifiers124815
+Node: Containers126344
+Node: Types127500
+Node: Scopes140123
+Node: Namespaces140887
+Node: Classes143703
+Node: Declarations148313
+Node: Functions154376
+Node: Function Basics156788
+Node: Function Bodies163547
+Node: Attributes177449
+Node: Expression trees178692
+Node: RTL204586
+Node: RTL Objects206689
+Node: RTL Classes210582
+Node: Accessors215208
+Node: Special Accessors217608
+Node: Flags221476
+Node: Machine Modes237795
+Node: Constants246533
+Node: Regs and Memory252501
+Node: Arithmetic265554
+Node: Comparisons273258
+Node: Bit-Fields277393
+Node: Vector Operations278821
+Node: Conversions280445
+Node: RTL Declarations283762
+Node: Side Effects284581
+Node: Incdec300450
+Node: Assembler303794
+Node: Insns305326
+Node: Calls330565
+Node: Sharing333169
+Node: Reading RTL336279
+Node: Machine Desc337272
+Node: Overview339554
+Node: Patterns341603
+Node: Example345043
+Node: RTL Template346484
+Node: Output Template358959
+Node: Output Statement362951
+Node: Constraints366932
+Node: Simple Constraints367873
+Node: Multi-Alternative380262
+Node: Class Preferences383111
+Node: Modifiers384005
+Node: Machine Constraints387779
+Node: Standard Names409993
+Ref: prologue instruction pattern454585
+Ref: epilogue instruction pattern455078
+Node: Pattern Ordering457529
+Node: Dependent Patterns458765
+Node: Jump Patterns461587
+Node: Looping Patterns467346
+Node: Insn Canonicalizations471961
+Node: Expander Definitions475788
+Node: Insn Splitting483932
+Node: Including Patterns493555
+Node: Peephole Definitions495351
+Node: define_peephole496610
+Node: define_peephole2502972
+Node: Insn Attributes506049
+Node: Defining Attributes507155
+Node: Expressions509184
+Node: Tagging Insns515788
+Node: Attr Example520156
+Node: Insn Lengths522538
+Node: Constant Attributes525611
+Node: Delay Slots526782
+Node: Processor pipeline description530020
+Node: Old pipeline description533976
+Node: Automaton pipeline description539711
+Node: Comparison of the two descriptions554622
+Node: Conditional Execution556620
+Node: Constant Definitions559483
+Node: Target Macros561068
+Node: Target Structure563901
+Node: Driver565170
+Node: Run-time Target586814
+Node: Per-Function Data597404
+Node: Storage Layout600174
+Node: Type Layout624528
+Node: Escape Sequences635574
+Node: Registers636451
+Node: Register Basics637381
+Node: Allocation Order643266
+Node: Values in Registers644711
+Node: Leaf Functions650034
+Node: Stack Registers652852
+Node: Register Classes653970
+Node: Stack and Calling679346
+Node: Frame Layout679851
+Node: Exception Handling687849
+Node: Stack Checking693767
+Node: Frame Registers697400
+Node: Elimination704006
+Node: Stack Arguments708037
+Node: Register Arguments716006
+Node: Scalar Return728683
+Node: Aggregate Return733456
+Node: Caller Saves736796
+Node: Function Entry737974
+Node: Profiling750813
+Node: Tail Calls752471
+Node: Varargs753305
+Node: Trampolines761245
+Node: Library Calls768033
+Node: Addressing Modes772149
+Node: Condition Code783153
+Node: Costs791288
+Node: Scheduling803040
+Node: Sections818891
+Node: PIC829412
+Node: Assembler Format832258
+Node: File Framework833337
+Node: Data Output839409
+Node: Uninitialized Data846842
+Node: Label Output852374
+Node: Initialization871475
+Node: Macros for Initialization877469
+Node: Instruction Output883762
+Node: Dispatch Tables892758
+Node: Exception Region Output895394
+Node: Alignment Output899892
+Node: Debugging Info904036
+Node: All Debuggers904706
+Node: DBX Options907561
+Node: DBX Hooks912875
+Node: File Names and DBX916490
+Node: SDB and DWARF917814
+Node: VMS Debug921532
+Node: Floating Point922102
+Node: Mode Switching926929
+Node: Target Attributes930854
+Node: MIPS Coprocessors934749
+Node: PCH Target936331
+Node: Misc937589
+Node: Host Config971956
+Node: Host Common973018
+Node: Filesystem975194
+Node: Host Misc978749
+Node: Fragments980946
+Node: Target Fragment982145
+Node: Host Fragment987573
+Node: Collect2989017
+Node: Header Dirs991574
+Node: Type Information993004
+Node: GTY Options994062
+Node: GGC Roots1002515
+Node: Files1003224
+Node: Funding1006076
+Node: GNU Project1008584
+Node: Copying1009235
+Node: GNU Free Documentation License1028414
+Node: Contributors1050819
+Node: Option Index1078352
+Node: Index1080535
 
 End Tag Table

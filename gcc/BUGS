@@ -318,7 +318,7 @@ B b((0,A()),A(1));
 
 return A();
 
-          This  problem  occured  in  a  number  of  variants;  in  throw
+          This  problem  occurred  in  a  number  of  variants;  in throw
           statements,   people   also   frequently   put  the  object  in
           parentheses.
      _________________________________________________________________

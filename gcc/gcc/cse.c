@@ -85,11 +85,12 @@ Registers and "quantity numbers":
    `reg_qty' records what quantity a register is currently thought
    of as containing.
 
-   All real quantity numbers are greater than or equal to `max_reg'.
-   If register N has not been assigned a quantity, reg_qty[N] will equal N.
+   All real quantity numbers are greater than or equal to zero.
+   If register N has not been assigned a quantity, reg_qty[N] will
+   equal -N - 1, which is always negative.
 
-   Quantity numbers below `max_reg' do not exist and none of the `qty_table'
-   entries should be referenced with an index below `max_reg'.
+   Quantity numbers below zero do not exist and none of the `qty_table'
+   entries should be referenced with a negative index.
 
    We also maintain a bidirectional chain of registers for each
    quantity number.  The `qty_table` members `first_reg' and `last_reg',
@@ -541,7 +542,7 @@ struct table_elt
 /* Determine if the quantity number for register X represents a valid index
    into the qty_table.  */
 
-#define REGNO_QTY_VALID_P(N) (REG_QTY (N) != (int) (N))
+#define REGNO_QTY_VALID_P(N) (REG_QTY (N) >= 0)
 
 static struct table_elt *table[HASH_SIZE];
 
@@ -945,7 +946,7 @@ get_cse_reg_info (unsigned int regno)
       p->reg_tick = 1;
       p->reg_in_table = -1;
       p->subreg_ticked = -1;
-      p->reg_qty = regno;
+      p->reg_qty = -regno - 1;
       p->regno = regno;
       p->next = cse_reg_info_used_list;
       cse_reg_info_used_list = p;
@@ -969,7 +970,7 @@ new_basic_block (void)
 {
   int i;
 
-  next_qty = max_reg;
+  next_qty = 0;
 
   /* Clear out hash table state for this pass.  */
 
@@ -1115,7 +1116,7 @@ delete_reg_equiv (unsigned int reg)
   int p, n;
 
   /* If invalid, do nothing.  */
-  if (q == (int) reg)
+  if (! REGNO_QTY_VALID_P (reg))
     return;
 
   ent = &qty_table[q];
@@ -1132,7 +1133,7 @@ delete_reg_equiv (unsigned int reg)
   else
     ent->first_reg = n;
 
-  REG_QTY (reg) = reg;
+  REG_QTY (reg) = -reg - 1;
 }
 
 /* Remove any invalid expressions from the hash table
@@ -1736,7 +1737,7 @@ merge_equiv_classes (struct table_elt *class1, struct table_elt *class2)
 
 	  if (GET_CODE (exp) == REG)
 	    {
-	      need_rehash = (unsigned) REG_QTY (REGNO (exp)) != REGNO (exp);
+	      need_rehash = REGNO_QTY_VALID_P (REGNO (exp));
 	      delete_reg_equiv (REGNO (exp));
 	    }
 
@@ -3870,6 +3871,10 @@ fold_rtx (rtx x, rtx insn)
       break;
 
     case '<':
+      /* Don't perform any simplifications of vector mode comparisons.  */
+      if (VECTOR_MODE_P (mode))
+	break;
+
       /* See what items are actually being compared and set FOLDED_ARG[01]
 	 to those values and CODE to the actual comparison code.  If any are
 	 constant, set CONST_ARG0 and CONST_ARG1 appropriately.  We needn't
@@ -7072,8 +7077,6 @@ cse_main (rtx f, int nregs, int after_loop, FILE *file)
       if (max_qty < 500)
 	max_qty = 500;
 
-      max_qty += max_reg;
-
       /* If this basic block is being extended by following certain jumps,
          (see `cse_end_of_basic_block'), we reprocess the code from the start.
          Otherwise, we start after this basic block.  */
@@ -7136,11 +7139,8 @@ cse_basic_block (rtx from, rtx to, struct branch_path *next_branch,
   int num_insns = 0;
   int no_conflict = 0;
 
-  /* This array is undefined before max_reg, so only allocate
-     the space actually needed and adjust the start.  */
-
-  qty_table = xmalloc ((max_qty - max_reg) * sizeof (struct qty_table_elem));
-  qty_table -= max_reg;
+  /* Allocate the space needed by qty_table.  */
+  qty_table = xmalloc (max_qty * sizeof (struct qty_table_elem));
 
   new_basic_block ();
 
@@ -7251,7 +7251,7 @@ cse_basic_block (rtx from, rtx to, struct branch_path *next_branch,
 	{
 	  if (to == 0)
 	    {
-	      free (qty_table + max_reg);
+	      free (qty_table);
 	      return 0;
 	    }
 
@@ -7286,7 +7286,7 @@ cse_basic_block (rtx from, rtx to, struct branch_path *next_branch,
 	  /* If TO was the last insn in the function, we are done.  */
 	  if (insn == 0)
 	    {
-	      free (qty_table + max_reg);
+	      free (qty_table);
 	      return 0;
 	    }
 
@@ -7295,7 +7295,7 @@ cse_basic_block (rtx from, rtx to, struct branch_path *next_branch,
 	  prev = prev_nonnote_insn (to);
 	  if (prev && GET_CODE (prev) == BARRIER)
 	    {
-	      free (qty_table + max_reg);
+	      free (qty_table);
 	      return insn;
 	    }
 
@@ -7346,7 +7346,7 @@ cse_basic_block (rtx from, rtx to, struct branch_path *next_branch,
       && LABEL_NUSES (JUMP_LABEL (insn)) == 1)
     cse_around_loop (JUMP_LABEL (insn));
 
-  free (qty_table + max_reg);
+  free (qty_table);
 
   return to ? NEXT_INSN (to) : 0;
 }
