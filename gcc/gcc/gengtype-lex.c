@@ -1475,7 +1475,7 @@ static char *yy_last_accepting_cpos;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 1 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 #define INITIAL 0
 /* -*- indented-text -*- */
 /* Process source files and output type information.
@@ -1497,7 +1497,7 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
 Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 02111-1307, USA.  */
-#line 23 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 23 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 #include "bconfig.h"
 #include "coretypes.h"
 #include "system.h"
@@ -1682,7 +1682,7 @@ YY_DECL
 	register char *yy_cp = NULL, *yy_bp = NULL;
 	register int yy_act;
 
-#line 56 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 56 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 
 
 #line 1689 "gengtype-lex.c"
@@ -1771,7 +1771,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 58 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 58 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   char *tagstart;
   size_t taglen;
@@ -1806,7 +1806,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 90 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 90 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
 
   char *namestart;
@@ -1836,7 +1836,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 117 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 117 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   char *namestart;
   size_t namelen;
@@ -1855,7 +1855,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 133 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 133 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   char *namestart;
   size_t namelen;
@@ -1874,7 +1874,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 149 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 149 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   char *namestart;
   size_t namelen;
@@ -1893,7 +1893,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 165 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 165 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   char *namestart;
   size_t namelen;
@@ -1915,7 +1915,7 @@ case 7:
 yy_c_buf_p = yy_cp -= 3;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 181 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 181 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   char *tagstart;
   size_t taglen;
@@ -1949,7 +1949,7 @@ case 8:
 yy_c_buf_p = yy_cp -= 3;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 209 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 209 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   BEGIN(in_struct);
   update_lineno (yytext, yyleng);
@@ -1961,7 +1961,7 @@ case 9:
 yy_c_buf_p = yy_cp -= 3;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 215 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 215 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   BEGIN(in_struct);
   update_lineno (yytext, yyleng);
@@ -1971,22 +1971,22 @@ YY_RULE_SETUP
 
 case 10:
 YY_RULE_SETUP
-#line 223 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 223 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { BEGIN(in_struct_comment); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 225 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 225 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { BEGIN(in_yacc_escape); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 227 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 227 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* Used for c-parse.in C/ObjC demarcation.  */
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 229 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 229 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { update_lineno (yytext, yyleng); }
 	YY_BREAK
 case 14:
@@ -1994,7 +1994,7 @@ case 14:
 yy_c_buf_p = yy_cp = yy_bp + 5;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 231 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 231 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* don't care */
 	YY_BREAK
 case 15:
@@ -2002,7 +2002,7 @@ case 15:
 yy_c_buf_p = yy_cp = yy_bp + 3;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 233 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 233 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { return GTY_TOKEN; }
 	YY_BREAK
 case 16:
@@ -2010,7 +2010,7 @@ case 16:
 yy_c_buf_p = yy_cp = yy_bp + 5;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 234 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 234 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { return UNION; }
 	YY_BREAK
 case 17:
@@ -2018,7 +2018,7 @@ case 17:
 yy_c_buf_p = yy_cp = yy_bp + 6;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 235 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 235 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { return STRUCT; }
 	YY_BREAK
 case 18:
@@ -2026,7 +2026,7 @@ case 18:
 yy_c_buf_p = yy_cp = yy_bp + 4;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 236 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 236 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { return ENUM; }
 	YY_BREAK
 case 19:
@@ -2034,12 +2034,12 @@ case 19:
 yy_c_buf_p = yy_cp = yy_bp + 9;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 237 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 237 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { return ALIAS; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 238 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 238 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { return NUM; }
 	YY_BREAK
 case 21:
@@ -2047,7 +2047,7 @@ case 21:
 yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 239 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 239 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { 
   yylval.s = xmemdup (yytext, yyleng, yyleng+1);
   return PARAM_IS;
@@ -2057,10 +2057,10 @@ case 22:
 *yy_cp = yy_hold_char; /* undo effects of setting up yytext */
 yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
-#line 245 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 245 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 case 23:
 YY_RULE_SETUP
-#line 245 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 245 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   size_t len;
 
@@ -2077,7 +2077,7 @@ case 24:
 yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 256 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 256 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   yylval.s = xmemdup (yytext, yyleng, yyleng+1);
   return ID;
@@ -2085,7 +2085,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 261 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 261 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   yylval.s = xmemdup (yytext+1, yyleng-2, yyleng-1);
   return STRING;
@@ -2093,7 +2093,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 265 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 265 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   yylval.s = xmemdup (yytext+1, yyleng-2, yyleng-1);
   return ARRAY;
@@ -2101,7 +2101,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 269 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 269 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   yylval.s = xmemdup (yytext+1, yyleng-1, yyleng);
   return PERCENT_ID;
@@ -2109,7 +2109,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 273 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 273 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   yylval.s = xmemdup (yytext+1, yyleng-2, yyleng);
   return CHAR;
@@ -2117,12 +2117,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 278 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 278 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { return yytext[0]; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 280 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 280 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   if (lexer_toplevel_done)
     {
@@ -2134,7 +2134,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 289 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 289 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   BEGIN(INITIAL);
   return PERCENTPERCENT;
@@ -2142,7 +2142,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 294 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 294 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   error_at_line (&lexer_line, "unexpected character `%s'", yytext);
 }
@@ -2150,26 +2150,26 @@ YY_RULE_SETUP
 
 case 33:
 YY_RULE_SETUP
-#line 299 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 299 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { BEGIN(in_comment); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 300 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 300 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { lexer_line.line++; }
 	YY_BREAK
 case 35:
-#line 302 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 302 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 case 36:
-#line 303 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 303 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 case 37:
 YY_RULE_SETUP
-#line 303 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 303 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* do nothing */
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 304 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 304 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { update_lineno (yytext, yyleng); }
 	YY_BREAK
 case 39:
@@ -2177,20 +2177,20 @@ case 39:
 yy_c_buf_p = yy_cp = yy_bp + 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 305 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 305 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* do nothing */
 	YY_BREAK
 
 case 40:
 YY_RULE_SETUP
-#line 308 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 308 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { lexer_line.line++; }
 	YY_BREAK
 case 41:
-#line 310 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 310 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 case 42:
 YY_RULE_SETUP
-#line 310 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 310 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* do nothing */
 	YY_BREAK
 case 43:
@@ -2198,31 +2198,31 @@ case 43:
 yy_c_buf_p = yy_cp = yy_bp + 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 311 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 311 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* do nothing */
 	YY_BREAK
 
 case 44:
 YY_RULE_SETUP
-#line 313 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 313 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { BEGIN(INITIAL); } 
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 314 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 314 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { BEGIN(in_struct); }
 	YY_BREAK
 
 case 46:
 YY_RULE_SETUP
-#line 317 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 317 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { lexer_line.line++; }
 	YY_BREAK
 case 47:
-#line 319 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 319 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 case 48:
 YY_RULE_SETUP
-#line 319 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 319 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* do nothing */
 	YY_BREAK
 case 49:
@@ -2230,17 +2230,17 @@ case 49:
 yy_c_buf_p = yy_cp = yy_bp + 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 320 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 320 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 /* do nothing */
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 321 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 321 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 { BEGIN(in_struct); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 322 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 322 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   error_at_line (&lexer_line, 
 		 "unterminated %%{; unexpected EOF");
@@ -2248,10 +2248,10 @@ YY_RULE_SETUP
 	YY_BREAK
 
 case 52:
-#line 330 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 330 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 case 53:
 YY_RULE_SETUP
-#line 330 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 330 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 {
   error_at_line (&lexer_line, 
 		 "unterminated comment or string; unexpected EOF");
@@ -2259,7 +2259,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 335 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 335 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
 #line 2266 "gengtype-lex.c"
@@ -3149,7 +3149,7 @@ int main()
 	return 0;
 	}
 #endif
-#line 335 "/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/gengtype-lex.l"
+#line 335 "/scratch/mitchell/gcc-releases/gcc-3.4.4/gcc-3.4.4/gcc/gengtype-lex.l"
 
 
 void
