@@ -278,7 +278,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 37 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 37 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
 
 #define JC1_LITE
 
@@ -386,7 +386,7 @@ void report (void);
 #endif
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 130 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 130 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
 typedef union YYSTYPE {
   char *node;
   struct method_declarator *declarator;
@@ -402,7 +402,7 @@ typedef union YYSTYPE {
 
 
 /* Copy the second part of user declarations.  */
-#line 136 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 136 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
 
 extern int flag_assert;
 
@@ -2492,7 +2492,7 @@ yyreduce:
   switch (yyn)
     {
         case 11:
-#line 231 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 231 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {
 		  /* use preset global here. FIXME */
 		  yyval.node = xstrdup ("int");
@@ -2500,7 +2500,7 @@ yyreduce:
     break;
 
   case 12:
-#line 236 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 236 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {
 		  /* use preset global here. FIXME */
 		  yyval.node = xstrdup ("double");
@@ -2508,7 +2508,7 @@ yyreduce:
     break;
 
   case 13:
-#line 241 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 241 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {
 		  /* use preset global here. FIXME */
 		  yyval.node = xstrdup ("boolean");
@@ -2516,7 +2516,7 @@ yyreduce:
     break;
 
   case 19:
-#line 266 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 266 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {
 	          while (bracket_count-- > 0) 
 		    yyval.node = concat ("[", yyvsp[-1].node, NULL);
@@ -2524,7 +2524,7 @@ yyreduce:
     break;
 
   case 20:
-#line 271 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 271 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {
 	          while (bracket_count-- > 0) 
 		    yyval.node = concat ("[", yyvsp[-1].node, NULL);
@@ -2532,19 +2532,19 @@ yyreduce:
     break;
 
   case 24:
-#line 289 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 289 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
 		  yyval.node = concat (yyvsp[-2].node, ".", yyvsp[0].node, NULL);
 		;}
     break;
 
   case 38:
-#line 321 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 321 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { package_name = yyvsp[-1].node; ;}
     break;
 
   case 46:
-#line 348 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 348 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
 		  if (yyvsp[0].value == PUBLIC_TK)
 		    modifier_value++;
@@ -2555,7 +2555,7 @@ yyreduce:
     break;
 
   case 47:
-#line 356 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 356 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
 		  if (yyvsp[0].value == PUBLIC_TK)
 		    modifier_value++;
@@ -2566,7 +2566,7 @@ yyreduce:
     break;
 
   case 48:
-#line 368 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 368 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
 		  report_class_declaration(yyvsp[-2].node);
 		  modifier_value = 0;
@@ -2574,72 +2574,72 @@ yyreduce:
     break;
 
   case 50:
-#line 374 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 374 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { report_class_declaration(yyvsp[-2].node); ;}
     break;
 
   case 56:
-#line 388 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 388 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 57:
-#line 390 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 390 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 58:
-#line 395 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 395 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { pop_class_context (); ;}
     break;
 
   case 59:
-#line 397 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 397 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { pop_class_context (); ;}
     break;
 
   case 71:
-#line 423 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 423 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 72:
-#line 425 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 425 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { modifier_value = 0; ;}
     break;
 
   case 77:
-#line 441 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 441 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { bracket_count = 0; USE_ABSORBER; ;}
     break;
 
   case 78:
-#line 443 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 443 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++bracket_count; ;}
     break;
 
   case 81:
-#line 454 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 454 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++method_depth; ;}
     break;
 
   case 82:
-#line 456 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 456 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { --method_depth; ;}
     break;
 
   case 83:
-#line 461 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 461 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 85:
-#line 464 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 464 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { modifier_value = 0; ;}
     break;
 
   case 86:
-#line 466 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 466 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
                   report_main_declaration (yyvsp[-1].declarator);
 		  modifier_value = 0;
@@ -2647,7 +2647,7 @@ yyreduce:
     break;
 
   case 87:
-#line 474 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 474 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
 		  struct method_declarator *d;
 		  NEW_METHOD_DECLARATOR (d, yyvsp[-2].node, NULL);
@@ -2656,7 +2656,7 @@ yyreduce:
     break;
 
   case 88:
-#line 480 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 480 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
 		  struct method_declarator *d;
 		  NEW_METHOD_DECLARATOR (d, yyvsp[-3].node, yyvsp[-1].node);
@@ -2665,14 +2665,14 @@ yyreduce:
     break;
 
   case 91:
-#line 491 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 491 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {
 		  yyval.node = concat (yyvsp[-2].node, ",", yyvsp[0].node, NULL);
 		;}
     break;
 
   case 92:
-#line 498 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 498 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { 
 		  USE_ABSORBER;
 		  if (bracket_count)
@@ -2690,7 +2690,7 @@ yyreduce:
     break;
 
   case 93:
-#line 513 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 513 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {
 		  if (bracket_count)
 		    {
@@ -2707,272 +2707,272 @@ yyreduce:
     break;
 
   case 96:
-#line 534 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 534 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 97:
-#line 536 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 536 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 101:
-#line 551 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 551 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 103:
-#line 562 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 562 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { modifier_value = 0; ;}
     break;
 
   case 105:
-#line 567 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 567 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { modifier_value = 0; ;}
     break;
 
   case 106:
-#line 574 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 574 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 107:
-#line 576 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 576 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 114:
-#line 593 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 593 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 115:
-#line 595 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 595 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 118:
-#line 607 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 607 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { report_class_declaration (yyvsp[0].node); modifier_value = 0; ;}
     break;
 
   case 120:
-#line 610 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 610 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { report_class_declaration (yyvsp[0].node); modifier_value = 0; ;}
     break;
 
   case 122:
-#line 613 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 613 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { report_class_declaration (yyvsp[-1].node); modifier_value = 0; ;}
     break;
 
   case 124:
-#line 616 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 616 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { report_class_declaration (yyvsp[-1].node); modifier_value = 0; ;}
     break;
 
   case 128:
-#line 627 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 627 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { pop_class_context (); ;}
     break;
 
   case 129:
-#line 629 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 629 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { pop_class_context (); ;}
     break;
 
   case 152:
-#line 688 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 688 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 153:
-#line 690 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 690 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { modifier_value = 0; ;}
     break;
 
   case 178:
-#line 731 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 731 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 189:
-#line 759 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 759 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 190:
-#line 764 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 764 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 191:
-#line 769 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 769 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 199:
-#line 789 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 789 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 204:
-#line 804 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 804 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 208:
-#line 821 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 821 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 214:
-#line 839 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 839 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 225:
-#line 864 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 864 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 228:
-#line 873 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 873 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 231:
-#line 880 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 880 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 232:
-#line 882 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 882 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 235:
-#line 891 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 891 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 241:
-#line 906 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 906 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 242:
-#line 910 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 910 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 253:
-#line 932 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 932 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 254:
-#line 937 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 937 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 255:
-#line 939 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 939 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 256:
-#line 941 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 941 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 257:
-#line 943 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 943 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 265:
-#line 958 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 958 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { report_class_declaration (anonymous_context); ;}
     break;
 
   case 267:
-#line 961 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 961 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { report_class_declaration (anonymous_context); ;}
     break;
 
   case 269:
-#line 967 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 967 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 283:
-#line 999 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 999 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { bracket_count = 1; ;}
     break;
 
   case 284:
-#line 1001 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1001 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { bracket_count++; ;}
     break;
 
   case 287:
-#line 1014 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1014 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ++complexity; ;}
     break;
 
   case 288:
-#line 1016 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1016 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ++complexity; ;}
     break;
 
   case 289:
-#line 1017 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1017 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 290:
-#line 1018 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1018 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 291:
-#line 1019 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1019 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 292:
-#line 1020 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1020 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 293:
-#line 1025 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1025 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 296:
-#line 1032 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1032 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
   case 343:
-#line 1128 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1128 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 345:
-#line 1134 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1134 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 347:
-#line 1140 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1140 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { ++complexity; ;}
     break;
 
   case 351:
-#line 1154 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1154 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
     { USE_ABSORBER; ;}
     break;
 
@@ -3190,7 +3190,7 @@ yyreturn:
 }
 
 
-#line 1172 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/java/parse-scan.y"
+#line 1172 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse-scan.y"
 
 
 /* Create a new parser context */

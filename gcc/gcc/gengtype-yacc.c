@@ -96,7 +96,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 22 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 22 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
 
 #include "bconfig.h"
 #include "system.h"
@@ -120,7 +120,7 @@
 #endif
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 31 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 31 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
 typedef union YYSTYPE {
   type_p t;
   pair_p p;
@@ -1105,7 +1105,7 @@ yyreduce:
   switch (yyn)
     {
         case 6:
-#line 71 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 71 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 		     new_structure (yyvsp[-5].t->u.s.tag, UNION_P (yyvsp[-5].t), &lexer_line,
 				    yyvsp[-2].p, yyvsp[-4].o);
@@ -1115,12 +1115,12 @@ yyreduce:
     break;
 
   case 7:
-#line 78 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 78 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {;}
     break;
 
   case 8:
-#line 80 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 80 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 		     new_structure (yyvsp[-4].t->u.s.tag, UNION_P (yyvsp[-4].t), &lexer_line,
 				    yyvsp[-1].p, yyvsp[-3].o);
@@ -1129,12 +1129,12 @@ yyreduce:
     break;
 
   case 9:
-#line 86 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 86 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {;}
     break;
 
   case 10:
-#line 90 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 90 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	           note_variable (yyvsp[-1].s, adjust_field_type (yyvsp[-2].t, yyvsp[-3].o), yyvsp[-3].o,
 				  &lexer_line);
@@ -1142,7 +1142,7 @@ yyreduce:
     break;
 
   case 11:
-#line 95 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 95 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	           note_variable (yyvsp[-2].s, create_array (yyvsp[-3].t, yyvsp[-1].s),
 	      		    yyvsp[-4].o, &lexer_line);
@@ -1150,7 +1150,7 @@ yyreduce:
     break;
 
   case 12:
-#line 100 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 100 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	           note_variable (yyvsp[-3].s, create_array (create_array (yyvsp[-4].t, yyvsp[-1].s),
 	      				      yyvsp[-2].s),
@@ -1159,7 +1159,7 @@ yyreduce:
     break;
 
   case 13:
-#line 108 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 108 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	      lexer_toplevel_done = 1;
 	      yyval.t = yyvsp[0].t;
@@ -1167,19 +1167,19 @@ yyreduce:
     break;
 
   case 16:
-#line 120 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 120 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	        note_yacc_type (yyvsp[-4].o, yyvsp[-3].p, yyvsp[-1].p, &lexer_line);
 	      ;}
     break;
 
   case 17:
-#line 126 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 126 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.p = NULL; ;}
     break;
 
   case 18:
-#line 128 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 128 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 		     pair_p p;
 		     for (p = yyvsp[0].p; p->next != NULL; p = p->next)
@@ -1195,7 +1195,7 @@ yyreduce:
     break;
 
   case 19:
-#line 141 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 141 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 		     pair_p p;
 		     type_p newtype = NULL;
@@ -1214,12 +1214,12 @@ yyreduce:
     break;
 
   case 20:
-#line 159 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 159 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.p = NULL; ;}
     break;
 
   case 21:
-#line 161 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 161 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	  pair_p p = xcalloc (1, sizeof (*p));
 	  p->next = yyvsp[-1].p;
@@ -1233,7 +1233,7 @@ yyreduce:
     break;
 
   case 22:
-#line 172 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 172 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	  pair_p p = xcalloc (1, sizeof (*p));
 	  p->next = yyvsp[-1].p;
@@ -1247,12 +1247,12 @@ yyreduce:
     break;
 
   case 23:
-#line 184 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 184 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.p = NULL; ;}
     break;
 
   case 24:
-#line 186 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 186 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	            pair_p p = xmalloc (sizeof (*p));
 		    p->type = adjust_field_type (yyvsp[-5].t, yyvsp[-4].o);
@@ -1265,7 +1265,7 @@ yyreduce:
     break;
 
   case 25:
-#line 196 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 196 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	            pair_p p = xmalloc (sizeof (*p));
 		    p->type = adjust_field_type (create_array (yyvsp[-5].t, yyvsp[-2].s), yyvsp[-4].o);
@@ -1278,7 +1278,7 @@ yyreduce:
     break;
 
   case 26:
-#line 206 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 206 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	            pair_p p = xmalloc (sizeof (*p));
 		    p->type = create_array (create_array (yyvsp[-6].t, yyvsp[-2].s), yyvsp[-3].s);
@@ -1291,22 +1291,22 @@ yyreduce:
     break;
 
   case 30:
-#line 223 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 223 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.t = yyvsp[0].t; ;}
     break;
 
   case 31:
-#line 225 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 225 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.t = resolve_typedef (yyvsp[0].s, &lexer_line); ;}
     break;
 
   case 32:
-#line 227 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 227 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.t = create_pointer (yyvsp[-1].t); ;}
     break;
 
   case 33:
-#line 229 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 229 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	   new_structure (yyvsp[-3].s, 0, &lexer_line, yyvsp[-1].p, NULL);
            yyval.t = find_structure (yyvsp[-3].s, 0);
@@ -1314,12 +1314,12 @@ yyreduce:
     break;
 
   case 34:
-#line 234 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 234 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.t = find_structure (yyvsp[0].s, 0); ;}
     break;
 
   case 35:
-#line 236 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 236 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	   new_structure (yyvsp[-3].s, 1, &lexer_line, yyvsp[-1].p, NULL);
            yyval.t = find_structure (yyvsp[-3].s, 1);
@@ -1327,62 +1327,62 @@ yyreduce:
     break;
 
   case 36:
-#line 241 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 241 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.t = find_structure (yyvsp[0].s, 1); ;}
     break;
 
   case 37:
-#line 243 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 243 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.t = create_scalar_type (yyvsp[0].s, strlen (yyvsp[0].s)); ;}
     break;
 
   case 38:
-#line 245 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 245 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.t = create_scalar_type (yyvsp[-3].s, strlen (yyvsp[-3].s)); ;}
     break;
 
   case 40:
-#line 250 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 250 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { ;}
     break;
 
   case 41:
-#line 252 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 252 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { ;}
     break;
 
   case 42:
-#line 254 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 254 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { ;}
     break;
 
   case 43:
-#line 257 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 257 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.o = NULL; ;}
     break;
 
   case 44:
-#line 258 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 258 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.o = yyvsp[0].o; ;}
     break;
 
   case 45:
-#line 262 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 262 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.o = yyvsp[-2].o; ;}
     break;
 
   case 46:
-#line 266 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 266 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.s = "ptr_alias"; ;}
     break;
 
   case 47:
-#line 268 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 268 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.s = yyvsp[0].s; ;}
     break;
 
   case 48:
-#line 272 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 272 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	     options_p o = xmalloc (sizeof (*o));
 	     o->name = yyvsp[-3].s;
@@ -1392,7 +1392,7 @@ yyreduce:
     break;
 
   case 49:
-#line 279 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 279 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	     options_p o = xmalloc (sizeof (*o));
 	     o->name = yyvsp[-3].s;
@@ -1402,7 +1402,7 @@ yyreduce:
     break;
 
   case 50:
-#line 288 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 288 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	        yyvsp[0].o->next = NULL;
 		yyval.o = yyvsp[0].o;
@@ -1410,7 +1410,7 @@ yyreduce:
     break;
 
   case 51:
-#line 293 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 293 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     {
 	        yyvsp[0].o->next = yyvsp[-2].o;
 		yyval.o = yyvsp[0].o;
@@ -1418,12 +1418,12 @@ yyreduce:
     break;
 
   case 52:
-#line 299 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 299 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.o = NULL; ;}
     break;
 
   case 53:
-#line 300 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 300 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
     { yyval.o = yyvsp[0].o; ;}
     break;
 
@@ -1641,6 +1641,6 @@ yyreturn:
 }
 
 
-#line 302 "/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/gengtype-yacc.y"
+#line 302 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/gengtype-yacc.y"
 
 

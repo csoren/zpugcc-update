@@ -1,5 +1,5 @@
 This is doc/g77.info, produced by makeinfo version 4.8 from
-/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/f/g77.texi.
+/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/f/g77.texi.
 
    Copyright (C) 1995,1996,1997,1998,1999,2000,2001,2002,2003,2004 Free
 Software Foundation, Inc.
@@ -27,7 +27,7 @@ START-INFO-DIR-ENTRY
 * g77: (g77).                  The GNU Fortran compiler.
 END-INFO-DIR-ENTRY
    This file documents the use and the internals of the GNU Fortran
-(`g77') compiler.  It corresponds to the GCC-3.4.4 version of `g77'.
+(`g77') compiler.  It corresponds to the GCC-3.4.6 version of `g77'.
 
    Published by the Free Software Foundation 59 Temple Place - Suite 330
 Boston, MA 02111-1307 USA
@@ -65,7 +65,7 @@ Introduction
 
 This manual documents how to run, install and port `g77', as well as
 its new features and incompatibilities, and how to report bugs.  It
-corresponds to the GCC-3.4.4 version of `g77'.
+corresponds to the GCC-3.4.6 version of `g77'.
 
 * Menu:
 
@@ -2946,7 +2946,7 @@ clarify how they differ from other versions, though this can make
 getting a complete picture of what a particular `egcs' version contains
 somewhat more difficult.
 
-   For information on bugs in the GCC-3.4.4 version of `g77', see *Note
+   For information on bugs in the GCC-3.4.6 version of `g77', see *Note
 Known Bugs In GNU Fortran: Known Bugs.
 
    The following information was last updated on 2004-12-29:
@@ -4277,7 +4277,7 @@ clarify how they differ from other versions, though this can make
 getting a complete picture of what a particular `egcs' version contains
 somewhat more difficult.
 
-   For information on bugs in the GCC-3.4.4 version of `g77', see *Note
+   For information on bugs in the GCC-3.4.6 version of `g77', see *Note
 Known Bugs In GNU Fortran: Known Bugs.
 
    The following information was last updated on 2004-12-29:
@@ -20106,7 +20106,7 @@ File: g77.info,  Node: Known Bugs,  Next: Missing Features,  Prev: But-bugs,  Up
 ==============================
 
    This section identifies bugs that `g77' _users_ might run into in
-the GCC-3.4.4 version of `g77'.  This includes bugs that are actually
+the GCC-3.4.6 version of `g77'.  This includes bugs that are actually
 in the `gcc' back end (GBE) or in `libf2c', because those sets of code
 are at least somewhat under the control of (and necessarily intertwined
 with) `g77', so it isn't worth separating them out.
@@ -20907,10 +20907,11 @@ a GNU system using glibc 2.2 or newer:
        feenableexcept (FE_INVALID|FE_DIVBYZERO|FE_OVERFLOW);
      }
 
-   A convenient trick is to compile this something like:
-     gcc -o libtrapfpe.a trapfpe.c
-   and then use it by adding `-trapfpe' to the `g77' command line when
-linking.
+   Assuming the above source is in file `trapfpe.c', then compile this
+routine as follows:
+     gcc -c trapfpe.c
+   and subsequently use it by adding `trapfpe.o' to the `g77' command
+line when linking.
 
 
 File: g77.info,  Node: Nonportable Conversions,  Next: Large Automatic Arrays,  Prev: Floating-point Exception Handling,  Up: Missing Features
@@ -28356,92 +28357,92 @@ Node: Bit Operations on Floating-point Data749751
 Node: Really Ugly Character Assignments750297
 Node: POSIX Standard750685
 Node: Floating-point Exception Handling750938
-Node: Nonportable Conversions752348
-Node: Large Automatic Arrays752904
-Node: Support for Threads753324
-Node: Enabling Debug Lines753762
-Node: Better Warnings754152
-Node: Gracefully Handle Sensible Bad Code755801
-Node: Non-standard Conversions756558
-Node: Non-standard Intrinsics756914
-Node: Modifying DO Variable757343
-Node: Better Pedantic Compilation758032
-Node: Warn About Implicit Conversions758673
-Node: Invalid Use of Hollerith Constant759273
-Node: Dummy Array Without Dimensioning Dummy759829
-Node: Invalid FORMAT Specifiers760755
-Node: Ambiguous Dialects761169
-Node: Unused Labels761593
-Node: Informational Messages761828
-Node: Uninitialized Variables at Run Time762245
-Node: Portable Unformatted Files762864
-Ref: Portable Unformatted Files-Footnote-1765833
-Node: Better List-directed I/O765861
-Node: Default to Console I/O766779
-Node: Labels Visible to Debugger767440
-Node: Disappointments767854
-Node: Mangling of Names768499
-Node: Multiple Definitions of External Names769360
-Node: Limitation on Implicit Declarations770734
-Node: Non-bugs771029
-Node: Backslash in Constants772161
-Node: Initializing Before Specifying777061
-Node: Context-Sensitive Intrinsicness778214
-Node: Context-Sensitive Constants780121
-Node: Equivalence Versus Equality783088
-Node: Order of Side Effects786142
-Node: Warnings and Errors787881
-Node: Open Questions789286
-Node: Bugs789758
-Node: Bug Criteria790449
-Node: Bug Reporting796593
-Node: Service796961
-Node: Adding Options797427
-Node: Projects802023
-Node: Efficiency802869
-Node: Better Optimization805773
-Node: Simplify Porting809150
-Node: More Extensions810912
-Node: Machine Model814007
-Node: Internals Documentation815300
-Node: Internals Improvements815614
-Node: Better Diagnostics819165
-Node: Front End820089
-Node: Overview of Sources820870
-Node: Overview of Translation Process828155
-Node: g77stripcard832440
-Node: lex.c834928
-Node: sta.c844479
-Node: sti.c844604
-Node: stq.c844729
-Node: stb.c844854
-Node: expr.c844980
-Node: stc.c845108
-Node: std.c845234
-Node: ste.c845359
-Node: Gotchas (Transforming)845503
-Node: TBD (Transforming)853737
-Node: Philosophy of Code Generation856446
-Node: Two-pass Design862357
-Node: Two-pass Code863521
-Node: Why Two Passes864265
-Node: Challenges Posed870318
-Node: Transforming Statements872804
-Node: Statements Needing Temporaries873661
-Node: Transforming DO WHILE876436
-Node: Transforming Iterative DO877610
-Node: Transforming Block IF878450
-Node: Transforming SELECT CASE879821
-Node: Transforming Expressions883029
-Node: Internal Naming Conventions885025
-Node: Diagnostics888031
-Node: CMPAMBIG889432
-Node: EXPIMP895860
-Node: INTGLOB897107
-Node: LEX899362
-Node: GLOBALS904829
-Node: LINKFAIL907504
-Node: Y2KBAD908138
-Node: Keyword Index908499
+Node: Nonportable Conversions752378
+Node: Large Automatic Arrays752934
+Node: Support for Threads753354
+Node: Enabling Debug Lines753792
+Node: Better Warnings754182
+Node: Gracefully Handle Sensible Bad Code755831
+Node: Non-standard Conversions756588
+Node: Non-standard Intrinsics756944
+Node: Modifying DO Variable757373
+Node: Better Pedantic Compilation758062
+Node: Warn About Implicit Conversions758703
+Node: Invalid Use of Hollerith Constant759303
+Node: Dummy Array Without Dimensioning Dummy759859
+Node: Invalid FORMAT Specifiers760785
+Node: Ambiguous Dialects761199
+Node: Unused Labels761623
+Node: Informational Messages761858
+Node: Uninitialized Variables at Run Time762275
+Node: Portable Unformatted Files762894
+Ref: Portable Unformatted Files-Footnote-1765863
+Node: Better List-directed I/O765891
+Node: Default to Console I/O766809
+Node: Labels Visible to Debugger767470
+Node: Disappointments767884
+Node: Mangling of Names768529
+Node: Multiple Definitions of External Names769390
+Node: Limitation on Implicit Declarations770764
+Node: Non-bugs771059
+Node: Backslash in Constants772191
+Node: Initializing Before Specifying777091
+Node: Context-Sensitive Intrinsicness778244
+Node: Context-Sensitive Constants780151
+Node: Equivalence Versus Equality783118
+Node: Order of Side Effects786172
+Node: Warnings and Errors787911
+Node: Open Questions789316
+Node: Bugs789788
+Node: Bug Criteria790479
+Node: Bug Reporting796623
+Node: Service796991
+Node: Adding Options797457
+Node: Projects802053
+Node: Efficiency802899
+Node: Better Optimization805803
+Node: Simplify Porting809180
+Node: More Extensions810942
+Node: Machine Model814037
+Node: Internals Documentation815330
+Node: Internals Improvements815644
+Node: Better Diagnostics819195
+Node: Front End820119
+Node: Overview of Sources820900
+Node: Overview of Translation Process828185
+Node: g77stripcard832470
+Node: lex.c834958
+Node: sta.c844509
+Node: sti.c844634
+Node: stq.c844759
+Node: stb.c844884
+Node: expr.c845010
+Node: stc.c845138
+Node: std.c845264
+Node: ste.c845389
+Node: Gotchas (Transforming)845533
+Node: TBD (Transforming)853767
+Node: Philosophy of Code Generation856476
+Node: Two-pass Design862387
+Node: Two-pass Code863551
+Node: Why Two Passes864295
+Node: Challenges Posed870348
+Node: Transforming Statements872834
+Node: Statements Needing Temporaries873691
+Node: Transforming DO WHILE876466
+Node: Transforming Iterative DO877640
+Node: Transforming Block IF878480
+Node: Transforming SELECT CASE879851
+Node: Transforming Expressions883059
+Node: Internal Naming Conventions885055
+Node: Diagnostics888061
+Node: CMPAMBIG889462
+Node: EXPIMP895890
+Node: INTGLOB897137
+Node: LEX899392
+Node: GLOBALS904859
+Node: LINKFAIL907534
+Node: Y2KBAD908168
+Node: Keyword Index908529
 
 End Tag Table

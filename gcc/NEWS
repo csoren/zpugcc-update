@@ -9,9 +9,17 @@ http://gcc.gnu.org/gcc-3.4/index.html
 
                            GCC 3.4 Release Series
 
-   May 18, 2005
+   November 30, 2005
 
    The [1]GNU project and the GCC developers are pleased to announce the
+   release of GCC 3.4.5.
+
+   This release is a bug-fix release, containing fixes for regressions in
+   GCC 3.4.4 relative to previous releases of GCC.
+
+   May 18, 2005
+
+   The [2]GNU project and the GCC developers are pleased to announce the
    release of GCC 3.4.4.
 
    This release is a bug-fix release, containing fixes for regressions in
@@ -19,7 +27,7 @@ http://gcc.gnu.org/gcc-3.4/index.html
 
    November 4, 2004
 
-   The [2]GNU project and the GCC developers are pleased to announce the
+   The [3]GNU project and the GCC developers are pleased to announce the
    release of GCC 3.4.3.
 
    This release is a bug-fix release, containing fixes for regressions in
@@ -27,7 +35,7 @@ http://gcc.gnu.org/gcc-3.4/index.html
 
    September 6, 2004
 
-   The [3]GNU project and the GCC developers are pleased to announce the
+   The [4]GNU project and the GCC developers are pleased to announce the
    release of GCC 3.4.2.
 
    This release is a bug-fix release, containing fixes for regressions in
@@ -35,7 +43,7 @@ http://gcc.gnu.org/gcc-3.4/index.html
 
    July 1, 2004
 
-   The [4]GNU project and the GCC developers are pleased to announce the
+   The [5]GNU project and the GCC developers are pleased to announce the
    release of GCC 3.4.1.
 
    This release is a bug-fix release, containing fixes for regressions in
@@ -43,29 +51,32 @@ http://gcc.gnu.org/gcc-3.4/index.html
 
    April 18, 2004
 
-   The [5]GNU project and the GCC developers are pleased to announce the
+   The [6]GNU project and the GCC developers are pleased to announce the
    release of GCC 3.4.0.
 
-   The GCC 3.4 release series includes numerous [6]new features,
-   improvements, bug fixes, and other changes, thanks to an [7]amazing
+   The GCC 3.4 release series includes numerous [7]new features,
+   improvements, bug fixes, and other changes, thanks to an [8]amazing
    group of volunteers.
 
 Release History
 
+   GCC 3.4.5
+          November 30, 2005 ([9]changes)
+
    GCC 3.4.4
-          May 18, 2005 ([8]changes)
+          May 18, 2005 ([10]changes)
 
    GCC 3.4.3
-          November 4, 2004 ([9]changes)
+          November 4, 2004 ([11]changes)
 
    GCC 3.4.2
-          September 6, 2004 ([10]changes)
+          September 6, 2004 ([12]changes)
 
    GCC 3.4.1
-          July 1, 2004 ([11]changes)
+          July 1, 2004 ([13]changes)
 
    GCC 3.4.0
-          April 18, 2004 ([12]changes)
+          April 18, 2004 ([14]changes)
 
 References and Acknowledgements
 
@@ -73,33 +84,33 @@ References and Acknowledgements
    supports several other languages aside from C, it now stands for the
    GNU Compiler Collection.
 
-   A list of [13]successful builds is updated as new information becomes
+   A list of [15]successful builds is updated as new information becomes
    available.
 
    The GCC developers would like to thank the numerous people that have
    contributed new features, improvements, bug fixes, and other changes
-   as well as test results to GCC. This [14]amazing group of volunteers
+   as well as test results to GCC. This [16]amazing group of volunteers
    is what makes GCC successful.
 
-   For additional information about GCC please refer to the [15]GCC
-   project web site or contact the [16]GCC development mailing list.
+   For additional information about GCC please refer to the [17]GCC
+   project web site or contact the [18]GCC development mailing list.
 
-   To obtain GCC please use [17]our mirror sites, one of the [18]GNU
-   mirror sites, or [19]our CVS server.
+   To obtain GCC please use [19]our mirror sites, one of the [20]GNU
+   mirror sites, or [21]our CVS server.
      _________________________________________________________________
 
-   Please send FSF & GNU inquiries & questions to [20]gnu@gnu.org. There
-   are also [21]other ways to contact the FSF.
+   Please send FSF & GNU inquiries & questions to [22]gnu@gnu.org. There
+   are also [23]other ways to contact the FSF.
 
-   These pages are maintained by [22]the GCC team.
+   These pages are maintained by [24]the GCC team.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [23]GCC manuals. If that fails, the
-    [24]gcc-help@gcc.gnu.org mailing list might help.
+    pages and the [25]GCC manuals. If that fails, the
+    [26]gcc-help@gcc.gnu.org mailing list might help.
     Please send comments on these web pages and the development of GCC
-    to our developer mailing list at [25]gcc@gnu.org or
-    [26]gcc@gcc.gnu.org. All of our lists have [27]public archives.
+    to our developer mailing list at [27]gcc@gnu.org or
+    [28]gcc@gcc.gnu.org. All of our lists have [29]public archives.
 
    Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
    Floor, Boston, MA 02110, USA.
@@ -107,7 +118,7 @@ References and Acknowledgements
    Verbatim copying and distribution of this entire article is permitted
    in any medium, provided this notice is preserved.
 
-   Last modified 2005-07-11 [28]Valid XHTML 1.0 
+   Last modified 2006-01-18 [30]Valid XHTML 1.0 
 
 References
 
@@ -116,36 +127,38 @@ References
    3. http://www.gnu.org/
    4. http://www.gnu.org/
    5. http://www.gnu.org/
-   6. http://gcc.gnu.org/gcc-3.4/changes.html
-   7. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
-   8. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.4
-   9. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.3
-  10. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.2
-  11. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.1
-  12. http://gcc.gnu.org/gcc-3.4/changes.html
-  13. http://gcc.gnu.org/gcc-3.4/buildstat.html
-  14. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
-  15. http://gcc.gnu.org/index.html
-  16. mailto:gcc@gcc.gnu.org
-  17. http://gcc.gnu.org/mirrors.html
-  18. http://www.gnu.org/order/ftp.html
-  19. http://gcc.gnu.org/cvs.html
-  20. mailto:gnu@gnu.org
-  21. http://www.gnu.org/home.html#ContactInfo
-  22. http://gcc.gnu.org/about.html
-  23. http://gcc.gnu.org/onlinedocs/
-  24. mailto:gcc-help@gcc.gnu.org
-  25. mailto:gcc@gnu.org
-  26. mailto:gcc@gcc.gnu.org
-  27. http://gcc.gnu.org/lists.html
-  28. http://validator.w3.org/check/referer
+   6. http://www.gnu.org/
+   7. http://gcc.gnu.org/gcc-3.4/changes.html
+   8. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
+   9. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.5
+  10. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.4
+  11. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.3
+  12. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.2
+  13. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.1
+  14. http://gcc.gnu.org/gcc-3.4/changes.html
+  15. http://gcc.gnu.org/gcc-3.4/buildstat.html
+  16. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
+  17. http://gcc.gnu.org/index.html
+  18. mailto:gcc@gcc.gnu.org
+  19. http://gcc.gnu.org/mirrors.html
+  20. http://www.gnu.org/order/ftp.html
+  21. http://gcc.gnu.org/cvs.html
+  22. mailto:gnu@gnu.org
+  23. http://www.gnu.org/home.html#ContactInfo
+  24. http://gcc.gnu.org/about.html
+  25. http://gcc.gnu.org/onlinedocs/
+  26. mailto:gcc-help@gcc.gnu.org
+  27. mailto:gcc@gnu.org
+  28. mailto:gcc@gcc.gnu.org
+  29. http://gcc.gnu.org/lists.html
+  30. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.4/changes.html
 
                            GCC 3.4 Release Series
                       Changes, New Features, and Fixes
 
-   The latest release in the 3.4 release series is [1]GCC 3.4.4.
+   The latest release in the 3.4 release series is [1]GCC 3.4.5.
 
    GCC 3.4 has [2]many improvements in the C++ frontend. Before reporting
    a bug, please make sure it's really GCC, and not your code, that is
@@ -1714,18 +1727,201 @@ GCC 3.4.4
    been fixed are not listed here).
      _________________________________________________________________
 
-   Please send FSF & GNU inquiries & questions to [313]gnu@gnu.org. There
-   are also [314]other ways to contact the FSF.
+GCC 3.4.5
 
-   These pages are maintained by [315]the GCC team.
+   This is the [313]list of problem reports (PRs) from GCC's bug tracking
+   system that are known to be fixed in the 3.4.5 release. This list
+   might not be complete (that is, it is possible that some PRs that have
+   been fixed are not listed here).
+
+    Bootstrap issues
+
+     * [314]24688 sco_math fixincl breaks math.h
+
+    C compiler bugs
+
+     * [315]17188 struct Foo { } redefinition
+     * [316]20187 wrong code for ((unsigned char)(unsigned long
+       long)((a?a:1)&(a*b)))?0:1)
+     * [317]21873 infinite warning loop on bad array initializer
+     * [318]21899 enum definition accepts values to be overriden
+     * [319]22061 ICE in find_function_data, in function.c
+     * [320]22308 Failure to diagnose violation of constraint 6.516p2
+     * [321]22458 ICE on missing brace
+     * [322]22589 ICE casting to long long
+     * [323]24101 Segfault with preprocessed source
+
+    C++ compiler and library bugs
+
+     * [324]10611 operations on vector mode not recognized in C++
+     * [325]13377 unexpected behavior of namespace usage directive
+     * [326]16002 Strange error message with new parser
+     * [327]17413 local classes as template argument
+     * [328]17609 spurious error message after using keyword
+     * [329]17618 ICE in cp_convert_to_pointer, in cp/cvt.c
+     * [330]18124 ICE with invalid template template parameter
+     * [331]18155 typedef in template declaration not rejected
+     * [332]18177 ICE with const_cast for undeclared variable
+     * [333]18368 C++ error message regression
+     * [334]16378 ICE when returning a copy of a packed member
+     * [335]18466 int ::i; accepted
+     * [336]18512 ICE on invalid usage of template base class
+     * [337]18454 ICE when returning undefined type
+     * [338]18738 typename not allowed with non-dependent qualified name
+     * [339]18803 rejects access to operator() in template
+     * [340]19004 ICE in uses_template_parms, in cp/pt.c
+     * [341]19208 Spurious error about variably modified type
+     * [342]18253 bad error message / ICE for invalid template parameter
+     * [343]19608 ICE after friend function definition in local class
+     * [344]19884 ICE on explicit instantiation of a non-template
+       constructor
+     * [345]20153 ICE when C++ template function contains anonymous union
+     * [346]20563 Infinite loop in diagnostic (and ice after error
+       message)
+     * [347]20789 ICE with incomplete type in template
+     * [348]21336 Internal compiler error when using custom new operators
+     * [349]21768 ICE in error message due to violation of coding
+       conventions
+     * [350]21853 constness of pointer to data member ignored
+     * [351]21903 Default argument of template function causes a
+       compile-time error
+     * [352]21983 multiple diagnostics
+     * [353]21987 New testsuite failure
+       g++.dg/warn/conversion-function-1.C
+     * [354]22153 ICE on invalid template specialization
+     * [355]22172 Internal compiler error, seg fault.
+     * [356]21286 filebuf::xsgetn vs pipes
+     * [357]22233 ICE with wrong number of template parameters
+     * [358]22508 ICE after invalid operator new
+     * [359]22545 ICE with pointer to class member & user defined
+       conversion operator
+     * [360]23528 Wrong default allocator in ext/hash_map
+     * [361]23550 char_traits requirements/1.cc test bad math
+     * [362]23586 Bad diagnostic for invalid namespace-name
+     * [363]23624 ICE in invert_truthvalue, in fold-const.c
+     * [364]23639 Bad error message: not a member of '<declaration
+       error>'
+     * [365]23797 ICE on typename outside template
+     * [366]23965 Bogus error message: no matching function for call to
+       'foo(<type error>)'
+     * [367]24052 &#`label_decl' not supported by dump_expr#<expression
+       error>
+     * [368]24580 virtual base class cause exception not to be caught
+
+    Problems in generated debug information
+
+     * [369]24267 Bad DWARF for altivec vectors
+
+    Optimizations issues
+
+     * [370]17810 ICE in verify_local_live_at_start
+     * [371]17860 Wrong generated code for loop with varying bound
+     * [372]21709 ICE on compile-time complex NaN
+     * [373]21964 broken tail call at -O2 or more
+     * [374]22167 Strange optimization bug when using -Os
+     * [375]22619 Compilation failure for real_const_1.f and
+       real_const_2.f90
+     * [376]23241 Invalid code generated for comparison of uchar to 255
+     * [377]23478 Miscompilation due to reloading of a var that is also
+       used in EH pad
+     * [378]24470 segmentation fault in cc1plus when compiling with -O
+     * [379]24950 ICE in operand_subword_force
+
+    Precompiled headers problems
+
+     * [380]14400 Cannot compile qt-x11-free-3.3.0
+     * [381]14940 PCH largefile test fails on various platforms
+
+    Preprocessor bugs
+
+     * [382]20239 ICE on empty preprocessed input
+     * [383]15220 "gcc -E -MM -MG" reports missing system headers in
+       source directory
+
+    Testsuite issues
+
+     * [384]19275 gcc.dg/20020919-1.c fails with -fpic/-fPIC on
+       i686-pc-linux-gnu
+
+    Alpha specific
+
+     * [385]21888 bootstrap failure with linker relaxation enabled
+
+    ARM specific
+
+     * [386]15342 [arm-linux]: ICE in verify_local_live_at_start
+     * [387]23985 Memory aliasing information incorrect in inlined memcpy
+
+    ColdFile specific
+
+     * [388]16719 Illegal move of byte into address register causes
+       compiler to ICE
+
+    HPPA specific
+
+     * [389]21723 ICE while building libgfortran
+     * [390]21841 -mhp-ld/-mgnu-ld documentation
+
+    IA-64 specific
+
+     * [391]23644 IA-64 hardware models and configuration options
+       documentation error
+     * [392]24718 Shared libgcc not used for linking by default
+
+    M68000 specific
+
+     * [393]18421 ICE in reload_cse_simplify_operands, in postreload.c
+
+    MIPS specific
+
+     * [394]20621 ICE in change_address_1, in emit-rtl.c
+
+    PowerPC and PowerPC64 specific
+
+     * [395]18583 error on valid code: const
+       __attribute__((altivec(vector__))) doesn't work in arrays
+     * [396]20191 ICE in reload_cse_simplify_operands
+     * [397]22083 AIX: TARGET_C99_FUNCTIONS is wrongly defined
+     * [398]23070 CALL_V4_CLEAR_FP_ARGS flag not properly set
+     * [399]23404 gij trashes args of functions with more than 8 fp args
+     * [400]23539 C & C++ compiler generating misaligned references
+       regardless of compiler flags
+     * [401]24102 floatdisf2_internal2 broken
+     * [402]24465 -mminimal-toc miscompilation of __thread vars
+
+    Solaris specific
+
+     * [403]19933 Problem with define of HUGE_VAL in math_c99
+     * [404]21889 Native Solaris assembler cannot grok DTP-relative debug
+       symbols
+
+    SPARC specific
+
+     * [405]19300 PCH failures on sparc-linux
+     * [406]20301 Assembler labels have a leading "-"
+     * [407]20673 C PCH testsuite assembly comparison failure
+
+    x86 and x86_64 specific
+
+     * [408]18582 ICE with arrays of type V2DF
+     * [409]19340 Compilation SEGFAULTs with -O1 -fschedule-insns2
+       -fsched2-use-traces
+     * [410]21716 ICE in reg-stack.c's swap_rtx_condition
+     * [411]24315 amd64 fails -fpeephole2
+     _________________________________________________________________
+
+   Please send FSF & GNU inquiries & questions to [412]gnu@gnu.org. There
+   are also [413]other ways to contact the FSF.
+
+   These pages are maintained by [414]the GCC team.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [316]GCC manuals. If that fails, the
-    [317]gcc-help@gcc.gnu.org mailing list might help.
+    pages and the [415]GCC manuals. If that fails, the
+    [416]gcc-help@gcc.gnu.org mailing list might help.
     Please send comments on these web pages and the development of GCC
-    to our developer mailing list at [318]gcc@gnu.org or
-    [319]gcc@gcc.gnu.org. All of our lists have [320]public archives.
+    to our developer mailing list at [417]gcc@gnu.org or
+    [418]gcc@gcc.gnu.org. All of our lists have [419]public archives.
 
    Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
    Floor, Boston, MA 02110, USA.
@@ -1733,11 +1929,11 @@ GCC 3.4.4
    Verbatim copying and distribution of this entire article is permitted
    in any medium, provided this notice is preserved.
 
-   Last modified 2005-07-11 [321]Valid XHTML 1.0 
+   Last modified 2005-12-07 [420]Valid XHTML 1.0 
 
 References
 
-   1. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.4
+   1. http://gcc.gnu.org/gcc-3.4/changes.html#3.4.5
    2. http://gcc.gnu.org/gcc-3.4/changes.html#cplusplus
    3. http://gcc.gnu.org/gcc-3.3/changes.html#obsolete_systems
    4. http://gcc.gnu.org/gcc-3.4/changes.html#obsolete_systems
@@ -2049,15 +2245,114 @@ References
  310. http://gcc.gnu.org/PR15747
  311. http://gcc.gnu.org/PR16406
  312. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=3.4.4
- 313. mailto:gnu@gnu.org
- 314. http://www.gnu.org/home.html#ContactInfo
- 315. http://gcc.gnu.org/about.html
- 316. http://gcc.gnu.org/onlinedocs/
- 317. mailto:gcc-help@gcc.gnu.org
- 318. mailto:gcc@gnu.org
- 319. mailto:gcc@gcc.gnu.org
- 320. http://gcc.gnu.org/lists.html
- 321. http://validator.w3.org/check/referer
+ 313. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=3.4.5
+ 314. http://gcc.gnu.org/PR24688
+ 315. http://gcc.gnu.org/PR17188
+ 316. http://gcc.gnu.org/PR20187
+ 317. http://gcc.gnu.org/PR21873
+ 318. http://gcc.gnu.org/PR21899
+ 319. http://gcc.gnu.org/PR22061
+ 320. http://gcc.gnu.org/PR22208
+ 321. http://gcc.gnu.org/PR22458
+ 322. http://gcc.gnu.org/PR22589
+ 323. http://gcc.gnu.org/PR24101
+ 324. http://gcc.gnu.org/PR10611
+ 325. http://gcc.gnu.org/PR13377
+ 326. http://gcc.gnu.org/PR16002
+ 327. http://gcc.gnu.org/PR17413
+ 328. http://gcc.gnu.org/PR17609
+ 329. http://gcc.gnu.org/PR17618
+ 330. http://gcc.gnu.org/PR18124
+ 331. http://gcc.gnu.org/PR18155
+ 332. http://gcc.gnu.org/PR18177
+ 333. http://gcc.gnu.org/PR18368
+ 334. http://gcc.gnu.org/PR18378
+ 335. http://gcc.gnu.org/PR18466
+ 336. http://gcc.gnu.org/PR18512
+ 337. http://gcc.gnu.org/PR18545
+ 338. http://gcc.gnu.org/PR18738
+ 339. http://gcc.gnu.org/PR18803
+ 340. http://gcc.gnu.org/PR19004
+ 341. http://gcc.gnu.org/PR19208
+ 342. http://gcc.gnu.org/PR19253
+ 343. http://gcc.gnu.org/PR19608
+ 344. http://gcc.gnu.org/PR19884
+ 345. http://gcc.gnu.org/PR20153
+ 346. http://gcc.gnu.org/PR20563
+ 347. http://gcc.gnu.org/PR20789
+ 348. http://gcc.gnu.org/PR21336
+ 349. http://gcc.gnu.org/PR21768
+ 350. http://gcc.gnu.org/PR21853
+ 351. http://gcc.gnu.org/PR21903
+ 352. http://gcc.gnu.org/PR21983
+ 353. http://gcc.gnu.org/PR21987
+ 354. http://gcc.gnu.org/PR22153
+ 355. http://gcc.gnu.org/PR22172
+ 356. http://gcc.gnu.org/PR21286
+ 357. http://gcc.gnu.org/PR22233
+ 358. http://gcc.gnu.org/PR22508
+ 359. http://gcc.gnu.org/PR22545
+ 360. http://gcc.gnu.org/PR23528
+ 361. http://gcc.gnu.org/PR23550
+ 362. http://gcc.gnu.org/PR23586
+ 363. http://gcc.gnu.org/PR23624
+ 364. http://gcc.gnu.org/PR23639
+ 365. http://gcc.gnu.org/PR23797
+ 366. http://gcc.gnu.org/PR23965
+ 367. http://gcc.gnu.org/PR24052
+ 368. http://gcc.gnu.org/PR24580
+ 369. http://gcc.gnu.org/PR24267
+ 370. http://gcc.gnu.org/PR17810
+ 371. http://gcc.gnu.org/PR17860
+ 372. http://gcc/gnu.org/PR21709
+ 373. http://gcc.gnu.org/PR21964
+ 374. http://gcc.gnu.org/PR22167
+ 375. http://gcc.gnu.org/PR22619
+ 376. http://gcc.gnu.org/PR23241
+ 377. http://gcc.gnu.org/PR23478
+ 378. http://gcc.gnu.org/PR24470
+ 379. http://gcc.gnu.org/PR24950
+ 380. http://gcc.gnu.org/PR14400
+ 381. http://gcc.gnu.org/PR14940
+ 382. http://gcc.gnu.org/PR20239
+ 383. http://gcc.gnu.org/PR15220
+ 384. http://gcc.gnu.org/PR19275
+ 385. http://gcc.gnu.org/PR21888
+ 386. http://gcc.gnu.org/PR15342
+ 387. http://gcc.gnu.org/PR23985
+ 388. http://gcc.gnu.org/PR16719
+ 389. http://gcc.gnu.org/PR21723
+ 390. http://gcc.gnu.org/PR21841
+ 391. http://gcc.gnu.org/PR23644
+ 392. http://gcc.gnu.org/PR24718
+ 393. http://gcc.gnu.org/PR18421
+ 394. http://gcc.gnu.org/PR20621
+ 395. http://gcc.gnu.org/PR18583
+ 396. http://gcc.gnu.org/PR20191
+ 397. http://gcc.gnu.org/PR22083
+ 398. http://gcc.gnu.org/PR23070
+ 399. http://gcc.gnu.org/PR23404
+ 400. http://gcc.gnu.org/PR23539
+ 401. http://gcc.gnu.org/PR24102
+ 402. http://gcc.gnu.org/PR24465
+ 403. http://gcc.gnu.org/PR19933
+ 404. http://gcc.gnu.org/PR21889
+ 405. http://gcc.gnu.org/PR19300
+ 406. http://gcc.gnu.org/PR20301
+ 407. http://gcc.gnu.org/PR20673
+ 408. http://gcc.gnu.org/PR18582
+ 409. http://gcc.gnu.org/PR19340
+ 410. http://gcc.gnu.org/PR21716
+ 411. http://gcc.gnu.org/PR24315
+ 412. mailto:gnu@gnu.org
+ 413. http://www.gnu.org/home.html#ContactInfo
+ 414. http://gcc.gnu.org/about.html
+ 415. http://gcc.gnu.org/onlinedocs/
+ 416. mailto:gcc-help@gcc.gnu.org
+ 417. mailto:gcc@gnu.org
+ 418. mailto:gcc@gcc.gnu.org
+ 419. http://gcc.gnu.org/lists.html
+ 420. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.3/index.html
 

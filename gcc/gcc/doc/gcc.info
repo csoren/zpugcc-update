@@ -1,5 +1,5 @@
 This is doc/gcc.info, produced by makeinfo version 4.8 from
-/home/gdr/build/gcc-3.4.5/gcc-3.4.5/gcc/doc/gcc.texi.
+/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/doc/gcc.texi.
 
  Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
 1999, 2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
@@ -58,7 +58,7 @@ Introduction
 
 This manual documents how to use the GNU compilers, as well as their
 features and incompatibilities, and how to report bugs.  It corresponds
-to GCC version 3.4.4.  The internals of the GNU compilers, including
+to GCC version 3.4.6.  The internals of the GNU compilers, including
 how to port them to new targets and some information about how to write
 front ends for new languages, are documented in a separate manual.
 *Note Introduction: (gccint)Top.
@@ -24055,9 +24055,12 @@ alphabetical order.
 
    * Peter Gerwinski for various bug fixes and the Pascal front end.
 
-   * Kaveh Ghazi for his direction via the steering committee, amazing
-     work to make `-W -Wall' useful, and continuously testing GCC on a
-     plethora of platforms.
+   * Kaveh R. Ghazi for his direction via the steering committee,
+     amazing work to make `-W -Wall -W* -Werror' useful, and
+     continuously testing GCC on a plethora of platforms.  Kaveh
+     extends his gratitude to the CAIP Center at Rutgers University for
+     providing him with computing resources to work on Free Software
+     since the late 1980s.
 
    * John Gilmore for a donation to the FSF earmarked improving GNU
      Java.
@@ -27593,7 +27596,7 @@ Node: GNU Project966308
 Node: Copying966954
 Node: GNU Free Documentation License986104
 Node: Contributors1008500
-Node: Option Index1036026
-Node: Keyword Index1152167
+Node: Option Index1036216
+Node: Keyword Index1152357
 
 End Tag Table
