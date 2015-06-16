@@ -722,6 +722,7 @@
 #     if (defined (powerpc64) || defined(__powerpc64__))
 #       define ALIGNMENT 8
 #       define CPP_WORDSZ 64
+#       define HBLKSIZE 4096
 #     else
 #       define ALIGNMENT 4
 #     endif
@@ -1750,7 +1751,7 @@
 #   endif
 #   ifdef LINUX
 #     define OS_TYPE "LINUX"
-#     define STACKBOTTOM ((ptr_t) 0x7c000000)
+#     define LINUX_STACKBOTTOM
 #     define USE_GENERIC_PUSH_REGS
 #     define DYNAMIC_LOADING
 #     define SEARCH_FOR_DATA_START
