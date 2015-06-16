@@ -4080,7 +4080,7 @@ case 459:
     break;}
 case 462:
 #line 2060 "c-parse.y"
-{ if (current_function_decl == 0)
+{ if (last_tree == NULL)
 		    {
 		      error ("braced-group within expression allowed only inside a function");
 		      YYERROR;

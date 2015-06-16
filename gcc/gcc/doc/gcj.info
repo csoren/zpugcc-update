@@ -1,5 +1,5 @@
 This is doc/gcj.info, produced by makeinfo version 4.7 from
-/home/mitchell/gcc-3.4.2/gcc-3.4.2/gcc/java/gcj.texi.
+/home/mitchell/scratch/gcc-3.4.3/gcc-3.4.3/gcc/java/gcj.texi.
 
    Copyright (C) 2001, 2002 Free Software Foundation, Inc.
 
@@ -2815,47 +2815,47 @@ for more information.
 
 
 Tag Table:
-Node: Top2581
-Node: Copying3737
-Node: GNU Free Documentation License22905
-Node: Invoking gcj45307
-Node: Input and output files45959
-Node: Input Options47485
-Node: Encodings50633
-Node: Warnings51839
-Node: Code Generation52960
-Ref: Code Generation-Footnote-156625
-Node: Configure-time Options56934
-Node: Compatibility58357
-Node: Limitations58837
-Node: Extensions60419
-Node: Invoking gcjh63017
-Node: Invoking jv-scan65073
-Node: Invoking jcf-dump66114
-Node: Invoking gij66887
-Node: Invoking jv-convert69322
-Node: Invoking rmic70393
-Node: Invoking rmiregistry71769
-Node: About CNI72174
-Node: Basic concepts73470
-Node: Packages76473
-Node: Primitive types78801
-Node: Interfaces80469
-Node: Objects and Classes81380
-Node: Class Initialization83580
-Node: Object allocation85923
-Node: Arrays86906
-Node: Methods89510
-Node: Strings92319
-Node: Mixing with C++93803
-Node: Exception Handling95665
-Node: Synchronization97299
-Node: Invocation99289
-Node: Reflection103377
-Node: System properties103838
-Node: Standard Properties104715
-Node: GNU Classpath Properties109180
-Node: libgcj Runtime Properties110226
-Node: Resources112705
+Node: Top2589
+Node: Copying3745
+Node: GNU Free Documentation License22913
+Node: Invoking gcj45315
+Node: Input and output files45967
+Node: Input Options47493
+Node: Encodings50641
+Node: Warnings51847
+Node: Code Generation52968
+Ref: Code Generation-Footnote-156633
+Node: Configure-time Options56942
+Node: Compatibility58365
+Node: Limitations58845
+Node: Extensions60427
+Node: Invoking gcjh63025
+Node: Invoking jv-scan65081
+Node: Invoking jcf-dump66122
+Node: Invoking gij66895
+Node: Invoking jv-convert69330
+Node: Invoking rmic70401
+Node: Invoking rmiregistry71777
+Node: About CNI72182
+Node: Basic concepts73478
+Node: Packages76481
+Node: Primitive types78809
+Node: Interfaces80477
+Node: Objects and Classes81388
+Node: Class Initialization83588
+Node: Object allocation85931
+Node: Arrays86914
+Node: Methods89518
+Node: Strings92327
+Node: Mixing with C++93811
+Node: Exception Handling95673
+Node: Synchronization97307
+Node: Invocation99297
+Node: Reflection103385
+Node: System properties103846
+Node: Standard Properties104723
+Node: GNU Classpath Properties109188
+Node: libgcj Runtime Properties110234
+Node: Resources112713
 
 End Tag Table
