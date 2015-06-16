@@ -2647,16 +2647,7 @@ make_typename_type (tree context, tree name, tsubst_flags_t complain)
       return error_mark_node;
     }
   my_friendly_assert (TREE_CODE (name) == IDENTIFIER_NODE, 20030802);
-  
-  if (TREE_CODE (context) == NAMESPACE_DECL)
-    {
-      /* We can get here from typename_sub0 in the explicit_template_type
-	 expansion.  Just fail.  */
-      if (complain & tf_error)
-	error ("no class template named `%#T' in `%#T'",
-		  name, context);
-      return error_mark_node;
-    }
+  my_friendly_assert (TYPE_P (context), 20050905);
 
   if (!dependent_type_p (context)
       || currently_open_class (context))
@@ -4919,6 +4910,16 @@ cp_finish_decl (tree decl, tree init, tree asmspec_tree, int flags)
 		     "initialized", decl);
 	      init = NULL_TREE;
 	    }
+	  if (DECL_EXTERNAL (decl) && init)
+	    {
+	      /* The static data member cannot be initialized by a
+		 non-constant when being declared.  */
+	      error ("`%D' cannot be initialized by a non-constant expression"
+		     " when being declared", decl);
+	      DECL_INITIALIZED_IN_CLASS_P (decl) = 0;
+	      init = NULL_TREE;
+	    }
+	  
 	  /* Handle:
 	     
 	     [dcl.init]
@@ -5718,7 +5719,7 @@ grokfndecl (tree ctype,
     }
 
   if (IDENTIFIER_OPNAME_P (DECL_NAME (decl)))
-    grok_op_properties (decl, friendp, /*complain=*/true);
+    grok_op_properties (decl, /*complain=*/true);
 
   if (ctype && decl_function_context (decl))
     DECL_NO_STATIC_CHAIN (decl) = 1;
@@ -5893,6 +5894,7 @@ grokvardecl (tree type,
              tree scope)
 {
   tree decl;
+  tree explicit_scope;
   RID_BIT_TYPE specbits;
 
   my_friendly_assert (!name || TREE_CODE (name) == IDENTIFIER_NODE, 
@@ -5900,7 +5902,9 @@ grokvardecl (tree type,
 
   specbits = *specbits_in;
 
-  /* Compute the scope in which to place the variable.  */
+  /* Compute the scope in which to place the variable, but remember
+     whether or not that scope was explicitly specified by the user.  */
+  explicit_scope = scope;
   if (!scope)
     {
       /* An explicit "extern" specifier indicates a namespace-scope
@@ -5929,8 +5933,8 @@ grokvardecl (tree type,
   else
     decl = build_decl (VAR_DECL, name, type);
 
-  if (scope && TREE_CODE (scope) == NAMESPACE_DECL)
-    set_decl_namespace (decl, scope, 0);
+  if (explicit_scope && TREE_CODE (explicit_scope) == NAMESPACE_DECL)
+    set_decl_namespace (decl, explicit_scope, 0);
   else
     DECL_CONTEXT (decl) = scope;
 
@@ -9004,7 +9008,7 @@ unary_op_p (enum tree_code code)
    errors are issued for invalid declarations.  */
 
 bool
-grok_op_properties (tree decl, int friendp, bool complain)
+grok_op_properties (tree decl, bool complain)
 {
   tree argtypes = TYPE_ARG_TYPES (TREE_TYPE (decl));
   tree argtype;
@@ -9013,6 +9017,7 @@ grok_op_properties (tree decl, int friendp, bool complain)
   enum tree_code operator_code;
   int arity;
   bool ok;
+  tree class_type;
 
   /* Assume that the declaration is valid.  */
   ok = true;
@@ -9023,9 +9028,10 @@ grok_op_properties (tree decl, int friendp, bool complain)
        argtype = TREE_CHAIN (argtype))
     ++arity;
 
-  if (current_class_type == NULL_TREE)
-    friendp = 1;
-
+  class_type = DECL_CONTEXT (decl);
+  if (class_type && !CLASS_TYPE_P (class_type))
+    class_type = NULL_TREE;
+  
   if (DECL_CONV_FN_P (decl))
     operator_code = TYPE_EXPR;
   else
@@ -9053,30 +9059,28 @@ grok_op_properties (tree decl, int friendp, bool complain)
   my_friendly_assert (operator_code != LAST_CPLUS_TREE_CODE, 20000526);
   SET_OVERLOADED_OPERATOR_CODE (decl, operator_code);
 
-  if (! friendp)
-    {
-      switch (operator_code)
-	{
-	case NEW_EXPR:
-	  TYPE_HAS_NEW_OPERATOR (current_class_type) = 1;
-	  break;
+  if (class_type)
+    switch (operator_code)
+      {
+      case NEW_EXPR:
+	TYPE_HAS_NEW_OPERATOR (class_type) = 1;
+	break;
 
-	case DELETE_EXPR:
-	  TYPE_GETS_DELETE (current_class_type) |= 1;
-	  break;
+      case DELETE_EXPR:
+	TYPE_GETS_DELETE (class_type) |= 1;
+	break;
 
-	case VEC_NEW_EXPR:
-	  TYPE_HAS_ARRAY_NEW_OPERATOR (current_class_type) = 1;
-	  break;
+      case VEC_NEW_EXPR:
+	TYPE_HAS_ARRAY_NEW_OPERATOR (class_type) = 1;
+	break;
 
-	case VEC_DELETE_EXPR:
-	  TYPE_GETS_DELETE (current_class_type) |= 2;
-	  break;
+      case VEC_DELETE_EXPR:
+	TYPE_GETS_DELETE (class_type) |= 2;
+	break;
 
-	default:
-	  break;
-	}
-    }
+      default:
+	break;
+      }
 
   if (operator_code == NEW_EXPR || operator_code == VEC_NEW_EXPR)
     TREE_TYPE (decl) = coerce_new_type (TREE_TYPE (decl));
@@ -9130,31 +9134,37 @@ grok_op_properties (tree decl, int friendp, bool complain)
       if (operator_code == CALL_EXPR)
 	return ok;
 
-      if (IDENTIFIER_TYPENAME_P (name) && ! DECL_TEMPLATE_INFO (decl))
+      /* Warn about conversion operators that will never be used.  */
+      if (IDENTIFIER_TYPENAME_P (name) 
+	  && ! DECL_TEMPLATE_INFO (decl)
+	  && warn_conversion
+	  /* Warn only declaring the function; there is no need to
+	     warn again about out-of-class definitions.  */
+	  && class_type == current_class_type)
 	{
 	  tree t = TREE_TYPE (name);
-	  if (! friendp)
+	  int ref = (TREE_CODE (t) == REFERENCE_TYPE);
+	  const char *what = 0;
+	  
+	  if (ref)
+	    t = TYPE_MAIN_VARIANT (TREE_TYPE (t));
+	  
+	  if (TREE_CODE (t) == VOID_TYPE)
+	    what = "void";
+	  else if (class_type)
 	    {
-	      int ref = (TREE_CODE (t) == REFERENCE_TYPE);
-	      const char *what = 0;
-
-	      if (ref)
-		t = TYPE_MAIN_VARIANT (TREE_TYPE (t));
-
-	      if (TREE_CODE (t) == VOID_TYPE)
-	        what = "void";
-	      else if (t == current_class_type)
+	      if (t == class_type)
 		what = "the same type";
 	      /* Don't force t to be complete here.  */
 	      else if (IS_AGGR_TYPE (t)
 		       && COMPLETE_TYPE_P (t)
-		       && DERIVED_FROM_P (t, current_class_type))
+		       && DERIVED_FROM_P (t, class_type))
 		what = "a base class";
-
-	      if (what && warn_conversion)
-		warning ("conversion to %s%s will never use a type conversion operator",
-			 ref ? "a reference to " : "", what);
 	    }
+
+	  if (what)
+	    warning ("conversion to %s%s will never use a type conversion operator",
+		     ref ? "a reference to " : "", what);
 	}
       if (operator_code == COND_EXPR)
 	{
@@ -9325,9 +9335,11 @@ tag_name (enum tag_types code)
     case class_type:
       return "class";
     case union_type:
-      return "union ";
+      return "union";
     case enum_type:
       return "enum";
+    case typename_type:
+      return "typename";
     default:
       abort ();
     }
@@ -9365,7 +9377,8 @@ check_elaborated_type_specifier (enum tag_types tag_code,
      In other words, the only legitimate declaration to use in the
      elaborated type specifier is the implicit typedef created when
      the type is declared.  */
-  if (!DECL_IMPLICIT_TYPEDEF_P (decl))
+  if (!DECL_IMPLICIT_TYPEDEF_P (decl)
+      && tag_code != typename_type)
     {
       error ("using typedef-name `%D' after `%s'", decl, tag_name (tag_code));
       return IS_AGGR_TYPE (type) ? type : error_mark_node;
@@ -9379,7 +9392,8 @@ check_elaborated_type_specifier (enum tag_types tag_code,
     }
   else if (TREE_CODE (type) != RECORD_TYPE
 	   && TREE_CODE (type) != UNION_TYPE
-	   && tag_code != enum_type)
+	   && tag_code != enum_type
+	   && tag_code != typename_type)
     {
       error ("`%T' referred to as `%s'", type, tag_name (tag_code));
       return error_mark_node;
@@ -10301,7 +10315,11 @@ start_function (tree declspecs, tree declarator, tree attrs, int flags)
      class scope, current_class_type will be NULL_TREE until set above
      by push_nested_class.)  */
   if (processing_template_decl)
-    decl1 = push_template_decl (decl1);
+    {
+      tree newdecl1 = push_template_decl (decl1);
+      if (newdecl1 != error_mark_node)
+	decl1 = newdecl1;
+    }
 
   /* We are now in the scope of the function being defined.  */
   current_function_decl = decl1;
