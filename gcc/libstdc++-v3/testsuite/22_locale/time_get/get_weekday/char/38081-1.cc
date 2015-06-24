@@ -1,4 +1,4 @@
-// { dg-require-namedlocale "" }
+// { dg-require-namedlocale "ru_RU.ISO-8859-5" }
 
 // Copyright (C) 2010, 2011 Free Software Foundation
 //

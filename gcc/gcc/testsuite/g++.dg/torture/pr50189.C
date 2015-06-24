@@ -1,4 +1,5 @@
 // { dg-do run }
+// { dg-options "-fstrict-enums" }
 
 extern "C" void abort (void);
 class CCUTILS_KeyedScalarLevelPosition

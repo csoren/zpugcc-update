@@ -29,7 +29,6 @@
 (define_mode_iterator register_modes
   [(SF "ALLOW_RX_FPU_INSNS") (SI "") (HI "") (QI "")])
 
-
 (define_constants
   [
    (SP_REG 0)
@@ -925,6 +924,39 @@
    (set_attr "length"   "3,4,5,6,7,6")]
 )
 
+;; Peepholes to match:
+;;   (set (reg A) (reg B))
+;;   (set (CC) (compare:CC (reg A/reg B) (const_int 0)))
+;; and replace them with the addsi3_flags pattern, using an add
+;; of zero to copy the register and set the condition code bits.
+(define_peephole2
+  [(set (match_operand:SI 0 "register_operand")
+        (match_operand:SI 1 "register_operand"))
+   (set (reg:CC CC_REG)
+        (compare:CC (match_dup 0)
+                    (const_int 0)))]
+  ""
+  [(parallel [(set (match_dup 0)
+		   (plus:SI (match_dup 1) (const_int 0)))
+	      (set (reg:CC_ZSC CC_REG)
+		   (compare:CC_ZSC (plus:SI (match_dup 1) (const_int 0))
+				   (const_int 0)))])]
+)
+
+(define_peephole2
+  [(set (match_operand:SI 0 "register_operand")
+        (match_operand:SI 1 "register_operand"))
+   (set (reg:CC CC_REG)
+        (compare:CC (match_dup 1)
+                    (const_int 0)))]
+  ""
+  [(parallel [(set (match_dup 0)
+		   (plus:SI (match_dup 1) (const_int 0)))
+	      (set (reg:CC_ZSC CC_REG)
+		   (compare:CC_ZSC (plus:SI (match_dup 1) (const_int 0))
+				   (const_int 0)))])]
+)
+
 (define_expand "adddi3"
   [(set (match_operand:DI          0 "register_operand")
 	(plus:DI (match_operand:DI 1 "register_operand")
@@ -1586,7 +1618,7 @@
 		   (memex_commutative:SI (match_dup 0)
 					 (match_dup 2)))
 	      (clobber (reg:CC CC_REG))])]
-  "peep2_regno_dead_p (2, REGNO (operands[0]))"
+  "peep2_regno_dead_p (2, REGNO (operands[0])) && (optimize < 3 || optimize_size)"
   [(parallel [(set:SI (match_dup 2)
 		      (memex_commutative:SI (match_dup 2)
 					    (extend_types:SI (match_dup 1))))
@@ -1600,7 +1632,7 @@
 		   (memex_commutative:SI (match_dup 2)
 					 (match_dup 0)))
 	      (clobber (reg:CC CC_REG))])]
-  "peep2_regno_dead_p (2, REGNO (operands[0]))"
+  "peep2_regno_dead_p (2, REGNO (operands[0])) && (optimize < 3 || optimize_size)"
   [(parallel [(set:SI (match_dup 2)
 		      (memex_commutative:SI (match_dup 2)
 					    (extend_types:SI (match_dup 1))))
@@ -1614,7 +1646,7 @@
 		   (memex_noncomm:SI (match_dup 2)
 				     (match_dup 0)))
 	      (clobber (reg:CC CC_REG))])]
-  "peep2_regno_dead_p (2, REGNO (operands[0]))"
+  "peep2_regno_dead_p (2, REGNO (operands[0])) && (optimize < 3 || optimize_size)"
   [(parallel [(set:SI (match_dup 2)
 		      (memex_noncomm:SI (match_dup 2)
 					(extend_types:SI (match_dup 1))))
@@ -1627,7 +1659,7 @@
    (set (match_operand:SI                               2 "register_operand")
 	(memex_nocc:SI (match_dup 0)
 		       (match_dup 2)))]
-  "peep2_regno_dead_p (2, REGNO (operands[0]))"
+  "peep2_regno_dead_p (2, REGNO (operands[0])) && (optimize < 3 || optimize_size)"
   [(set:SI (match_dup 2)
 	   (memex_nocc:SI (match_dup 2)
 			  (extend_types:SI (match_dup 1))))]
@@ -1639,7 +1671,7 @@
    (set (match_operand:SI                               2 "register_operand")
 	(memex_nocc:SI (match_dup 2)
 		       (match_dup 0)))]
-  "peep2_regno_dead_p (2, REGNO (operands[0]))"
+  "peep2_regno_dead_p (2, REGNO (operands[0])) && (optimize < 3 || optimize_size)"
   [(set:SI (match_dup 2)
 	   (memex_nocc:SI (match_dup 2)
 			  (extend_types:SI (match_dup 1))))]
@@ -1650,7 +1682,7 @@
 	(memex_commutative:SI (match_operand:SI                               1 "register_operand" "%0")
  		              (extend_types:SI (match_operand:small_int_modes 2 "rx_restricted_mem_operand" "Q"))))
    (clobber (reg:CC CC_REG))]
-  ""
+  "(optimize < 3 || optimize_size)"
   "<memex_commutative:op>\t%<extend_types:letter>2, %0"
   [(set_attr "timings" "33")
    (set_attr "length"  "5")] ;; Worst case sceanario.  FIXME: If we defined separate patterns 
@@ -1661,7 +1693,7 @@
 	(memex_noncomm:SI (match_operand:SI                               1 "register_operand" "0")
                           (extend_types:SI (match_operand:small_int_modes 2 "rx_restricted_mem_operand" "Q"))))
    (clobber (reg:CC CC_REG))]
-  ""
+  "(optimize < 3 || optimize_size)"
   "<memex_noncomm:op>\t%<extend_types:letter>2, %0"
   [(set_attr "timings" "33")
    (set_attr "length"  "5")] ;; Worst case sceanario.  FIXME: If we defined separate patterns 
@@ -1671,7 +1703,7 @@
   [(set (match_operand:SI                                              0 "register_operand" "=r")
 	(memex_nocc:SI (match_operand:SI                               1 "register_operand" "%0")
 		       (extend_types:SI (match_operand:small_int_modes 2 "rx_restricted_mem_operand" "Q"))))]
-  ""
+  "(optimize < 3 || optimize_size)"
   "<memex_nocc:op>\t%<extend_types:letter>2, %0"
   [(set_attr "timings" "33")
    (set_attr "length"  "5")] ;; Worst case sceanario.  FIXME: If we defined separate patterns 
@@ -1683,17 +1715,46 @@
    (set (reg:CC CC_REG)
 	(compare:CC (match_operand:SI                   2 "register_operand")
 		    (match_dup 0)))]
-  "peep2_regno_dead_p (2, REGNO (operands[0]))"
+  "peep2_regno_dead_p (2, REGNO (operands[0])) && (optimize < 3 || optimize_size)"
   [(set (reg:CC CC_REG)
 	(compare:CC (match_dup 2)
 		    (extend_types:SI (match_dup 1))))]
+)
+
+;; Convert:
+;;   (set (reg1) (sign_extend (mem))
+;;   (set (reg2) (zero_extend (reg1))
+;; into
+;;   (set (reg2) (zero_extend (mem)))
+(define_peephole2
+  [(set (match_operand:SI                              0 "register_operand")
+	(sign_extend:SI (match_operand:small_int_modes 1 "memory_operand")))
+   (set (match_operand:SI                              2 "register_operand")
+	(zero_extend:SI (match_operand:small_int_modes 3 "register_operand")))]
+  "REGNO (operands[0]) == REGNO (operands[3])
+   && (REGNO (operands[0]) == REGNO (operands[2])
+       || peep2_regno_dead_p (2, REGNO (operands[0])))"
+  [(set (match_dup 2)
+	(zero_extend:SI (match_dup 1)))]
+)
+
+;; Remove the redundant sign extension from:
+;;   (set (reg) (extend (mem)))
+;;   (set (reg) (extend (reg)))
+(define_peephole2
+  [(set (match_operand:SI                               0 "register_operand")
+	(extend_types:SI (match_operand:small_int_modes 1 "memory_operand")))
+   (set (match_dup 0)
+	(extend_types:SI (match_operand:small_int_modes 2 "register_operand")))]
+  "REGNO (operands[0]) == REGNO (operands[2])"
+  [(set (match_dup 0) (extend_types:SI (match_dup 1)))]
 )
 
 (define_insn "*comparesi3_<extend_types:code><small_int_modes:mode>"
   [(set (reg:CC CC_REG)
 	(compare:CC (match_operand:SI                               0 "register_operand" "=r")
 		    (extend_types:SI (match_operand:small_int_modes 1 "rx_restricted_mem_operand" "Q"))))]
-  ""
+  "(optimize < 3 || optimize_size)"
   "cmp\t%<extend_types:letter>1, %0"
   [(set_attr "timings" "33")
    (set_attr "length"  "5")] ;; Worst case sceanario.  FIXME: If we defined separate patterns 
@@ -1790,7 +1851,7 @@
 )
 
 (define_insn "*bitset_in_memory"
-  [(set (match_operand:QI                    0 "memory_operand" "+Q")
+  [(set (match_operand:QI                    0 "rx_restricted_mem_operand" "+Q")
 	(ior:QI (ashift:QI (const_int 1)
 			   (match_operand:QI 1 "nonmemory_operand" "ri"))
 		(match_dup 0)))]
@@ -1811,7 +1872,7 @@
 )
 
 (define_insn "*bitinvert_in_memory"
-  [(set (match_operand:QI 0 "memory_operand" "+Q")
+  [(set (match_operand:QI 0 "rx_restricted_mem_operand" "+Q")
 	(xor:QI (ashift:QI (const_int 1)
 			   (match_operand:QI 1 "nonmemory_operand" "ri"))
 		(match_dup 0)))]
@@ -1834,7 +1895,7 @@
 )
 
 (define_insn "*bitclr_in_memory"
-  [(set (match_operand:QI 0 "memory_operand" "+Q")
+  [(set (match_operand:QI 0 "rx_restricted_mem_operand" "+Q")
 	(and:QI (not:QI
 		  (ashift:QI
 		    (const_int 1)
@@ -2323,16 +2384,6 @@
   "round\t%1, %0"
   [(set_attr "timings" "22,44")   
    (set_attr "length" "3,5")]
-)
-
-;; Saturate to 32-bits
-(define_insn "sat"
-  [(set (match_operand:SI             0 "register_operand" "=r")
-	(unspec:SI [(match_operand:SI 1 "register_operand"  "0")]
-		   UNSPEC_BUILTIN_SAT))]
-  ""
-  "sat\t%0"
-  [(set_attr "length" "2")]
 )
 
 ;;---------- Control Registers ------------------------

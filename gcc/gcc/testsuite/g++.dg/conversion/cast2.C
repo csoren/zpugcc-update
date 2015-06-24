@@ -1,4 +1,3 @@
-// Contributed by Dodji Seketeli <dodji@redhat.com>
 // Origin: PR c++/42260
 // { dg-do compile }
 

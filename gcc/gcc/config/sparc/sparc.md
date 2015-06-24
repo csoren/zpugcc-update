@@ -76,6 +76,7 @@
    (UNSPECV_CAS			8)
    (UNSPECV_SWAP		9)
    (UNSPECV_LDSTUB		10)
+   (UNSPECV_PROBE_STACK_RANGE	11)
   ])
 
 
@@ -104,9 +105,14 @@
    cypress,
    v8,
    supersparc,
-   sparclite,f930,f934,
-   hypersparc,sparclite86x,
-   sparclet,tsc701,
+   hypersparc,
+   leon,
+   sparclite,
+   f930,
+   f934,
+   sparclite86x,
+   sparclet,
+   tsc701,
    v9,
    ultrasparc,
    ultrasparc3,
@@ -339,6 +345,7 @@
 (include "cypress.md")
 (include "supersparc.md")
 (include "hypersparc.md")
+(include "leon.md")
 (include "sparclet.md")
 (include "ultra1_2.md")
 (include "ultra3.md")
@@ -1807,8 +1814,8 @@
 })
 
 (define_insn "*movsf_insn"
-  [(set (match_operand:V32 0 "nonimmediate_operand" "=d,f,*r,*r,*r,f,*r,m,m")
-	(match_operand:V32 1 "input_operand"        "GY,f,*rRY,Q,S,m,m,f,*rGY"))]
+  [(set (match_operand:V32 0 "nonimmediate_operand" "=d,f,  *r,*r,*r,f,*r,m,   m")
+	(match_operand:V32 1 "input_operand"        "GY,f,*rRY, Q, S,m, m,f,*rGY"))]
   "TARGET_FPU
    && (register_operand (operands[0], <V32:MODE>mode)
        || register_or_zero_operand (operands[1], <V32:MODE>mode))"
@@ -1855,8 +1862,8 @@
 ;; when -mno-fpu.
 
 (define_insn "*movsf_insn_no_fpu"
-  [(set (match_operand:SF 0 "nonimmediate_operand" "=r,r,r,r,m")
-	(match_operand:SF 1 "input_operand"    "rR,Q,S,m,rG"))]
+  [(set (match_operand:SF 0 "nonimmediate_operand" "=r,r,r,r, m")
+	(match_operand:SF 1 "input_operand"        "rR,Q,S,m,rG"))]
   "! TARGET_FPU
    && (register_operand (operands[0], SFmode)
        || register_or_zero_operand (operands[1], SFmode))"
@@ -1942,8 +1949,8 @@
 
 ;; Be careful, fmovd does not exist when !v9.
 (define_insn "*movdf_insn_sp32"
-  [(set (match_operand:DF 0 "nonimmediate_operand" "=e,W,U,T,o,e,*r,o,e,o")
-	(match_operand:DF 1 "input_operand"    "W#F,e,T,U,G,e,*rFo,*r,o#F,e"))]
+  [(set (match_operand:DF 0 "nonimmediate_operand" "= e,W,U,T,o,e,  *r, o,  e,o")
+	(match_operand:DF 1 "input_operand"        "W#F,e,T,U,G,e,*rFo,*r,o#F,e"))]
   "TARGET_FPU
    && ! TARGET_V9
    && (register_operand (operands[0], DFmode)
@@ -1963,8 +1970,8 @@
   (set_attr "length" "*,*,*,*,2,2,2,2,2,2")])
 
 (define_insn "*movdf_insn_sp32_no_fpu"
-  [(set (match_operand:DF 0 "nonimmediate_operand" "=U,T,o,r,o")
-	(match_operand:DF 1 "input_operand"    "T,U,G,ro,r"))]
+  [(set (match_operand:DF 0 "nonimmediate_operand" "=U,T,o, r,o")
+	(match_operand:DF 1 "input_operand"        " T,U,G,ro,r"))]
   "! TARGET_FPU
    && ! TARGET_V9
    && (register_operand (operands[0], DFmode)
@@ -1980,8 +1987,8 @@
 
 ;; We have available v9 double floats but not 64-bit integer registers.
 (define_insn "*movdf_insn_sp32_v9"
-  [(set (match_operand:V64 0 "nonimmediate_operand" "=b,e,e,T,W,U,T,f,*r,o")
-        (match_operand:V64 1 "input_operand" "GY,e,W#F,GY,e,T,U,o#F,*roGYDF,*rGYf"))]
+  [(set (match_operand:V64 0 "nonimmediate_operand" "=b,e,  e, T,W,U,T,  f,   *r,    o")
+	(match_operand:V64 1 "input_operand"        "GY,e,W#F,GY,e,T,U,o#F,*roFD,*rGYf"))]
   "TARGET_FPU
    && TARGET_V9
    && ! TARGET_ARCH64
@@ -2003,8 +2010,8 @@
    (set_attr "fptype" "double,double,*,*,*,*,*,*,*,*")])
 
 (define_insn "*movdf_insn_sp32_v9_no_fpu"
-  [(set (match_operand:DF 0 "nonimmediate_operand" "=U,T,T,r,o")
-	(match_operand:DF 1 "input_operand"    "T,U,G,ro,rG"))]
+  [(set (match_operand:DF 0 "nonimmediate_operand" "=U,T,T, r, o")
+	(match_operand:DF 1 "input_operand"        " T,U,G,ro,rG"))]
   "! TARGET_FPU
    && TARGET_V9
    && ! TARGET_ARCH64
@@ -2021,8 +2028,8 @@
 
 ;; We have available both v9 double floats and 64-bit integer registers.
 (define_insn "*movdf_insn_sp64"
-  [(set (match_operand:V64 0 "nonimmediate_operand" "=b,e,e,W,*r,*r,m,*r")
-        (match_operand:V64 1 "input_operand"    "GY,e,W#F,e,*rGY,m,*rGY,DF"))]
+  [(set (match_operand:V64 0 "nonimmediate_operand" "=b,e,  e,W,  *r,*r,   m,*r")
+	(match_operand:V64 1 "input_operand"        "GY,e,W#F,e,*rGY, m,*rGY,FD"))]
   "TARGET_FPU
    && TARGET_ARCH64
    && (register_operand (operands[0], <V64:MODE>mode)
@@ -2041,8 +2048,8 @@
    (set_attr "fptype" "double,double,*,*,*,*,*,*")])
 
 (define_insn "*movdf_insn_sp64_no_fpu"
-  [(set (match_operand:DF 0 "nonimmediate_operand" "=r,r,m")
-        (match_operand:DF 1 "input_operand"    "r,m,rG"))]
+  [(set (match_operand:DF 0 "nonimmediate_operand" "=r,r, m")
+	(match_operand:DF 1 "input_operand"         "r,m,rG"))]
   "! TARGET_FPU
    && TARGET_ARCH64
    && (register_operand (operands[0], DFmode)
@@ -2282,8 +2289,8 @@
 })
 
 (define_insn "*movtf_insn_sp32"
-  [(set (match_operand:TF 0 "nonimmediate_operand" "=b,e,o,U,r")
-	(match_operand:TF 1 "input_operand"    "G,oe,GeUr,o,roG"))]
+  [(set (match_operand:TF 0 "nonimmediate_operand" "=b, e,   o,U,  r")
+	(match_operand:TF 1 "input_operand"        " G,oe,GeUr,o,roG"))]
   "TARGET_FPU
    && ! TARGET_ARCH64
    && (register_operand (operands[0], TFmode)
@@ -2296,8 +2303,8 @@
 ;; when -mno-fpu.
 
 (define_insn "*movtf_insn_sp32_no_fpu"
-  [(set (match_operand:TF 0 "nonimmediate_operand" "=o,U,o,r,o")
-	(match_operand:TF 1 "input_operand"    "G,o,U,roG,r"))]
+  [(set (match_operand:TF 0 "nonimmediate_operand" "=o,U,o,  r,o")
+	(match_operand:TF 1 "input_operand"        " G,o,U,roG,r"))]
   "! TARGET_FPU
    && ! TARGET_ARCH64
    && (register_operand (operands[0], TFmode)
@@ -2306,8 +2313,8 @@
   [(set_attr "length" "4")])
 
 (define_insn "*movtf_insn_sp64"
-  [(set (match_operand:TF 0 "nonimmediate_operand" "=b,e,o,r")
-        (match_operand:TF 1 "input_operand"    "G,oe,Ger,roG"))]
+  [(set (match_operand:TF 0 "nonimmediate_operand" "=b, e,  o,  r")
+	(match_operand:TF 1 "input_operand"         "G,oe,Ger,roG"))]
   "TARGET_FPU
    && TARGET_ARCH64
    && ! TARGET_HARD_QUAD
@@ -2317,8 +2324,8 @@
   [(set_attr "length" "2")])
 
 (define_insn "*movtf_insn_sp64_hq"
-  [(set (match_operand:TF 0 "nonimmediate_operand" "=b,e,e,m,o,r")
-        (match_operand:TF 1 "input_operand"    "G,e,m,e,rG,roG"))]
+  [(set (match_operand:TF 0 "nonimmediate_operand" "=b,e,e,m, o,  r")
+	(match_operand:TF 1 "input_operand"         "G,e,m,e,rG,roG"))]
   "TARGET_FPU
    && TARGET_ARCH64
    && TARGET_HARD_QUAD
@@ -2335,8 +2342,8 @@
    (set_attr "length" "2,*,*,*,2,2")])
 
 (define_insn "*movtf_insn_sp64_no_fpu"
-  [(set (match_operand:TF 0 "nonimmediate_operand" "=r,o")
-        (match_operand:TF 1 "input_operand"    "orG,rG"))]
+  [(set (match_operand:TF 0 "nonimmediate_operand" "=  r, o")
+	(match_operand:TF 1 "input_operand"         "orG,rG"))]
   "! TARGET_FPU
    && TARGET_ARCH64
    && (register_operand (operands[0], TFmode)
@@ -3508,7 +3515,7 @@
     }
 })
 
-(define_insn_and_split "adddi3_insn_sp32"
+(define_insn_and_split "*adddi3_insn_sp32"
   [(set (match_operand:DI 0 "register_operand" "=r")
 	(plus:DI (match_operand:DI 1 "arith_double_operand" "%r")
 		 (match_operand:DI 2 "arith_double_operand" "rHI")))
@@ -3581,7 +3588,7 @@
   "addx\t%r1, %2, %0"
   [(set_attr "type" "ialuX")])
 
-(define_insn_and_split ""
+(define_insn_and_split "*adddi3_extend_sp32"
   [(set (match_operand:DI 0 "register_operand" "=r")
         (plus:DI (zero_extend:DI (match_operand:SI 1 "register_operand" "r"))
                  (match_operand:DI 2 "register_operand" "r")))
@@ -3681,7 +3688,7 @@
     }
 })
 
-(define_insn_and_split "subdi3_insn_sp32"
+(define_insn_and_split "*subdi3_insn_sp32"
   [(set (match_operand:DI 0 "register_operand" "=r")
 	(minus:DI (match_operand:DI 1 "register_operand" "r")
 		  (match_operand:DI 2 "arith_double_operand" "rHI")))
@@ -3753,7 +3760,7 @@
    operands[4] = gen_highpart (SImode, operands[0]);"
   [(set_attr "length" "2")])
 
-(define_insn_and_split ""
+(define_insn_and_split "*subdi3_extend_sp32"
   [(set (match_operand:DI 0 "register_operand" "=r")
       (minus:DI (match_operand:DI 1 "register_operand" "r")
                 (zero_extend:DI (match_operand:SI 2 "register_operand" "r"))))
@@ -5065,7 +5072,7 @@
   [(set (match_operand:DI 0 "register_operand" "=r")
 	(neg:DI (match_operand:DI 1 "register_operand" "r")))
    (clobber (reg:CC 100))]
-  "TARGET_ARCH32"
+  "! TARGET_ARCH64"
   "#"
   "&& reload_completed"
   [(parallel [(set (reg:CC_NOOV 100)
@@ -6359,6 +6366,15 @@
     = adjust_address (operands[0], GET_MODE (operands[0]), SPARC_STACK_BIAS);
 })
 
+(define_insn "probe_stack_range<P:mode>"
+  [(set (match_operand:P 0 "register_operand" "=r")
+	(unspec_volatile:P [(match_operand:P 1 "register_operand" "0")
+			    (match_operand:P 2 "register_operand" "r")]
+			    UNSPECV_PROBE_STACK_RANGE))]
+  ""
+  "* return output_probe_stack_range (operands[0], operands[2]);"
+  [(set_attr "type" "multi")])
+
 ;; Prepare to return any type including a structure value.
 
 (define_expand "untyped_return"
@@ -7414,7 +7430,7 @@
 				     (match_operand 3 "tld_symbolic_operand" "")]
 				    UNSPEC_TLSLDO)
 			 (match_operand:SI 1 "register_operand" "r")))
-	(match_operand:QI 0 "register_operand" "=r"))]
+	(match_operand:QI 0 "register_operand" "r"))]
   "TARGET_TLS && TARGET_ARCH32"
   "stb\t%0, [%1 + %2], %%tldo_add(%3)"
   [(set_attr "type" "store")])
@@ -7424,7 +7440,7 @@
 				     (match_operand 3 "tld_symbolic_operand" "")]
 				    UNSPEC_TLSLDO)
 			 (match_operand:DI 1 "register_operand" "r")))
-	(match_operand:QI 0 "register_operand" "=r"))]
+	(match_operand:QI 0 "register_operand" "r"))]
   "TARGET_TLS && TARGET_ARCH64"
   "stb\t%0, [%1 + %2], %%tldo_add(%3)"
   [(set_attr "type" "store")])
@@ -7434,7 +7450,7 @@
 				     (match_operand 3 "tld_symbolic_operand" "")]
 				    UNSPEC_TLSLDO)
 			 (match_operand:SI 1 "register_operand" "r")))
-	(match_operand:HI 0 "register_operand" "=r"))]
+	(match_operand:HI 0 "register_operand" "r"))]
   "TARGET_TLS && TARGET_ARCH32"
   "sth\t%0, [%1 + %2], %%tldo_add(%3)"
   [(set_attr "type" "store")])
@@ -7444,7 +7460,7 @@
 				     (match_operand 3 "tld_symbolic_operand" "")]
 				    UNSPEC_TLSLDO)
 			 (match_operand:DI 1 "register_operand" "r")))
-	(match_operand:HI 0 "register_operand" "=r"))]
+	(match_operand:HI 0 "register_operand" "r"))]
   "TARGET_TLS && TARGET_ARCH64"
   "sth\t%0, [%1 + %2], %%tldo_add(%3)"
   [(set_attr "type" "store")])
@@ -7454,7 +7470,7 @@
 				     (match_operand 3 "tld_symbolic_operand" "")]
 				    UNSPEC_TLSLDO)
 			 (match_operand:SI 1 "register_operand" "r")))
-	(match_operand:SI 0 "register_operand" "=r"))]
+	(match_operand:SI 0 "register_operand" "r"))]
   "TARGET_TLS && TARGET_ARCH32"
   "st\t%0, [%1 + %2], %%tldo_add(%3)"
   [(set_attr "type" "store")])
@@ -7464,7 +7480,7 @@
 				     (match_operand 3 "tld_symbolic_operand" "")]
 				    UNSPEC_TLSLDO)
 			 (match_operand:DI 1 "register_operand" "r")))
-	(match_operand:SI 0 "register_operand" "=r"))]
+	(match_operand:SI 0 "register_operand" "r"))]
   "TARGET_TLS && TARGET_ARCH64"
   "stw\t%0, [%1 + %2], %%tldo_add(%3)"
   [(set_attr "type" "store")])
@@ -7474,7 +7490,7 @@
 				     (match_operand 3 "tld_symbolic_operand" "")]
 				    UNSPEC_TLSLDO)
 			 (match_operand:DI 1 "register_operand" "r")))
-	(match_operand:DI 0 "register_operand" "=r"))]
+	(match_operand:DI 0 "register_operand" "r"))]
   "TARGET_TLS && TARGET_ARCH64"
   "stx\t%0, [%1 + %2], %%tldo_add(%3)"
   [(set_attr "type" "store")])

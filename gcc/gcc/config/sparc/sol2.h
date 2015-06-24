@@ -119,7 +119,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
    crtend.o%s crtn.o%s"
 
 /* Select a format to encode pointers in exception handling data.  CODE
@@ -195,11 +195,11 @@ along with GCC; see the file COPYING3.  If not see
 #undef TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION sparc_solaris_elf_asm_named_section
 
-/* Solaris/SPARC as uses a non-standard .section/.pushsection syntax.
-   While gas supports it, too, we prefer the standard variant.  */
-#ifndef USE_GAS
+/* And SPARC non-standard pushsection syntax.  */
 #undef PUSHSECTION_FORMAT
-#define PUSHSECTION_FORMAT	"\t.pushsection\t\"%s\"\n"
-#endif
+#define PUSHSECTION_FORMAT "\t.pushsection\t\"%s\"\n"
+
+/* Static stack checking is supported by means of probes.  */
+#define STACK_CHECK_STATIC_BUILTIN 1
 
 #define MD_UNWIND_SUPPORT "config/sparc/sol2-unwind.h"

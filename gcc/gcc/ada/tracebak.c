@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *                     Copyright (C) 2000-2009, AdaCore                     *
+ *                     Copyright (C) 2000-2010, AdaCore                     *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -199,10 +199,24 @@ extern void (*Unlock_Task) (void);
 
   */
 
-/*--------------------------- PPC AIX/Darwin ----------------------------*/
+/*--------------------------- Darwin 8 or newer ----------------------------*/
+#if defined (__APPLE__) \
+    && defined (__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) \
+    && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1040
+ 
+#define USE_GCC_UNWINDER
 
-#if ((defined (_POWER) && defined (_AIX)) || \
-(defined (__ppc__) && defined (__APPLE__)))
+#if defined (__i386__) || defined (__x86_64__)
+#define PC_ADJUST -2
+#elif defined (__ppc__) || defined (__ppc64__)
+#define PC_ADJUST -4
+#else
+#error Unhandled darwin architecture.
+#endif
+
+/*------------------------ PPC AIX/Older Darwin -------------------------*/
+#elif ((defined (_POWER) && defined (_AIX)) \
+       || (defined (__APPLE__)  && defined (__ppc__)))
 
 #define USE_GENERIC_UNWINDER
 
@@ -303,7 +317,14 @@ struct layout
 #define IS_BAD_PTR(ptr) 0
 #endif
 
+/* Starting with GCC 4.6, -fomit-frame-pointer is turned on by default for
+   32-bit x86/Linux as well and DWARF 2 unwind tables are emitted instead.
+   See the x86-64 case below for the drawbacks with this approach.  */
+#if defined (linux) && (__GNUC__ * 10 + __GNUC_MINOR__ > 45)
+#define USE_GCC_UNWINDER
+#else
 #define USE_GENERIC_UNWINDER
+#endif
 
 struct layout
 {
@@ -435,7 +456,7 @@ __gnat_backtrace (void **array,
 {
   struct layout *current;
   void *top_frame;
-  void *top_stack;
+  void *top_stack ATTRIBUTE_UNUSED;
   int cnt = 0;
 
   if (FORCE_CALL)
@@ -486,8 +507,8 @@ __gnat_backtrace (void **array,
 
 #else
 
-/* No target specific implementation and neither USE_GCC_UNWINDER not
-   USE_GCC_UNWINDER defined.  */
+/* No target specific implementation and neither USE_GCC_UNWINDER nor
+   USE_GENERIC_UNWINDER defined.  */
 
 /*------------------------------*
  *-- The dummy implementation --*

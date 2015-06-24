@@ -1,3 +1,82 @@
+2013-02-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/56258
+	* doc/cp-tools.texinfo (Virtual Machine Options): Use just
+	one @gccoptlist instead of 3 separate ones.
+
+2012-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/43620
+	* configure.ac (AM_INIT_AUTOMAKE): Add no-dist.
+	* Makefile.in: Regenerated.
+	* doc/Makefile.in: Regeneated.
+	* doc/api/Makefile.in: Regeneated.
+	* examples/Makefile.in: Regeneated.
+	* external/Makefile.in: Regeneated.
+	* external/jsr166/Makefile.in: Regeneated.
+	* external/relaxngDatatype/Makefile.in: Regeneated.
+	* external/sax/Makefile.in: Regeneated.
+	* external/w3c_dom/Makefile.in: Regeneated.
+	* include/Makefile.in: Regeneated.
+	* lib/Makefile.in: Regeneated.
+	* native/Makefile.in: Regeneated.
+	* native/fdlibm/Makefile.in: Regeneated.
+	* native/jawt/Makefile.in: Regeneated.
+	* native/jni/Makefile.in: Regeneated.
+	* native/jni/classpath/Makefile.in: Regeneated.
+	* native/jni/gconf-peer/Makefile.in: Regeneated.
+	* native/jni/gstreamer-peer/Makefile.in: Regeneated.
+	* native/jni/gtk-peer/Makefile.in: Regeneated.
+	* native/jni/java-io/Makefile.in: Regeneated.
+	* native/jni/java-lang/Makefile.in: Regeneated.
+	* native/jni/java-math/Makefile.in: Regeneated.
+	* native/jni/java-net/Makefile.in: Regeneated.
+	* native/jni/java-nio/Makefile.in: Regeneated.
+	* native/jni/java-util/Makefile.in: Regeneated.
+	* native/jni/midi-alsa/Makefile.in: Regeneated.
+	* native/jni/midi-dssi/Makefile.in: Regeneated.
+	* native/jni/native-lib/Makefile.in: Regeneated.
+	* native/jni/qt-peer/Makefile.in: Regeneated.
+	* native/jni/xmlj/Makefile.in: Regeneated.
+	* native/plugin/Makefile.in: Regeneated.
+	* resource/Makefile.in: Regeneated.
+	* scripts/Makefile.in: Regeneated.
+	* tools/Makefile.in: Regeneated.
+
+2011-11-29  Andreas Tobler  <andreast@fgznet.ch>
+
+	* config.rpath (ld_shlibs): Fix detection of FreeBSD-10 and up.
+	(libname_spec): Likewise.
+	* configure: Regenerate with autoconf -I ../../.
+
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* config.rpath, ltcf-c.sh, ltcf-gcj.sh, ltconfig: Remove
+	handling of freebsd1* which soon would match FreeBSD 10.0.
+	* configure: Regenerate.
+
+2011-01-31  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac (GCJ_JAVAC): Run false rather than no.
+	* configure: Rebuilt.
+
+2011-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* gnu/java/rmi/registry/RegistryImpl.java (version): Update
+	copyright notice dates.
+	* tools/gnu/classpath/tools/orbd/Main.java (run): Likewise.
+
+2010-06-21  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* doc/Makefile.am (POD2MAN): Provide --date from ChangeLog.
+	* doc/Makefile.in: Regenerate.
+
+2010-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* native/jni/midi-alsa/gnu_javax_sound_midi_alsa_AlsaPortDevice.c
+	(Java_gnu_javax_sound_midi_alsa_AlsaPortDevice_run_1receiver_1thread_1):
+	Avoid set but not used warning.
+
 2010-01-09  Jakub Jelinek  <jakub@redhat.com>
 
 	* gnu/java/rmi/registry/RegistryImpl.java (version): Update

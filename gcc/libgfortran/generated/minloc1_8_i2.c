@@ -1,8 +1,8 @@
 /* Implementation of the MINLOC intrinsic
-   Copyright 2002, 2007, 2009 Free Software Foundation, Inc.
+   Copyright 2002, 2007, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
@@ -101,6 +101,7 @@ minloc1_8_i2 (gfc_array_i8 * const restrict retarray,
       alloc_size = sizeof (GFC_INTEGER_8) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
     		   * extent[rank-1];
 
+      retarray->data = internal_malloc_size (alloc_size);
       if (alloc_size == 0)
 	{
 	  /* Make sure we have a zero-sized array.  */
@@ -108,8 +109,6 @@ minloc1_8_i2 (gfc_array_i8 * const restrict retarray,
 	  return;
 
 	}
-      else
-	retarray->data = internal_malloc_size (alloc_size);
     }
   else
     {
@@ -174,6 +173,7 @@ minloc1_8_i2 (gfc_array_i8 * const restrict retarray,
 		    result = (GFC_INTEGER_8)n + 1;
 		  }
 	      }
+	    
 	    *dest = result;
 	  }
       }

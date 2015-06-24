@@ -81,7 +81,7 @@
 ;; type "binary" insns have two input operands (1,2) and one output (0)
 
 (define_attr "type"
-  "move,unary,binary,shift,nullshift,compare,load,store,uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,fpload,fpstore,fpalu,fpcc,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,multi,milli,parallel_branch,fpstore_load,store_fpload"
+  "move,unary,binary,shift,nullshift,compare,load,store,uncond_branch,btable_branch,branch,cbranch,fbranch,call,sibcall,dyncall,fpload,fpstore,fpalu,fpcc,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,multi,milli,sh_func_adrs,parallel_branch,fpstore_load,store_fpload"
   (const_string "binary"))
 
 (define_attr "pa_combine_type"
@@ -123,24 +123,30 @@
 
 ;; For conditional branches.
 (define_attr "in_branch_delay" "false,true"
-  (if_then_else (and (eq_attr "type" "!uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,parallel_branch")
-		     (eq_attr "length" "4"))
+  (if_then_else (and (eq_attr "type" "!uncond_branch,btable_branch,branch,cbranch,fbranch,call,sibcall,dyncall,multi,milli,sh_func_adrs,parallel_branch")
+		     (eq_attr "length" "4")
+		     (eq (symbol_ref "RTX_FRAME_RELATED_P (insn)")
+			 (const_int 0)))
 		(const_string "true")
 		(const_string "false")))
 
 ;; Disallow instructions which use the FPU since they will tie up the FPU
 ;; even if the instruction is nullified.
 (define_attr "in_nullified_branch_delay" "false,true"
-  (if_then_else (and (eq_attr "type" "!uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,fpcc,fpalu,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,parallel_branch")
-		     (eq_attr "length" "4"))
+  (if_then_else (and (eq_attr "type" "!uncond_branch,btable_branch,branch,cbranch,fbranch,call,sibcall,dyncall,multi,milli,sh_func_adrs,fpcc,fpalu,fpmulsgl,fpmuldbl,fpdivsgl,fpdivdbl,fpsqrtsgl,fpsqrtdbl,parallel_branch")
+		     (eq_attr "length" "4")
+		     (eq (symbol_ref "RTX_FRAME_RELATED_P (insn)")
+			 (const_int 0)))
 		(const_string "true")
 		(const_string "false")))
 
 ;; For calls and millicode calls.  Allow unconditional branches in the
 ;; delay slot.
 (define_attr "in_call_delay" "false,true"
-  (cond [(and (eq_attr "type" "!uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,parallel_branch")
-	      (eq_attr "length" "4"))
+  (cond [(and (eq_attr "type" "!uncond_branch,btable_branch,branch,cbranch,fbranch,call,sibcall,dyncall,multi,milli,sh_func_adrs,parallel_branch")
+	      (eq_attr "length" "4")
+	      (eq (symbol_ref "RTX_FRAME_RELATED_P (insn)")
+		  (const_int 0)))
 	   (const_string "true")
 	 (eq_attr "type" "uncond_branch")
 	   (if_then_else (ne (symbol_ref "TARGET_JUMP_IN_DELAY")
@@ -152,6 +158,10 @@
 
 ;; Call delay slot description.
 (define_delay (eq_attr "type" "call")
+  [(eq_attr "in_call_delay" "true") (nil) (nil)])
+
+;; Sibcall delay slot description.
+(define_delay (eq_attr "type" "sibcall")
   [(eq_attr "in_call_delay" "true") (nil) (nil)])
 
 ;; Millicode call delay slot description.
@@ -609,7 +619,7 @@
 ;; to assume have zero latency.
 (define_insn_reservation "Z3" 0
   (and
-    (eq_attr "type" "!load,fpload,store,fpstore,uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,parallel_branch,fpcc,fpalu,fpmulsgl,fpmuldbl,fpsqrtsgl,fpsqrtdbl,fpdivsgl,fpdivdbl,fpstore_load,store_fpload")
+    (eq_attr "type" "!load,fpload,store,fpstore,uncond_branch,btable_branch,branch,cbranch,fbranch,call,sibcall,dyncall,multi,milli,sh_func_adrs,parallel_branch,fpcc,fpalu,fpmulsgl,fpmuldbl,fpsqrtsgl,fpsqrtdbl,fpdivsgl,fpdivdbl,fpstore_load,store_fpload")
     (eq_attr "cpu" "8000"))
   "inm_8000,rnm_8000")
 
@@ -617,7 +627,7 @@
 ;; retirement unit.
 (define_insn_reservation "Z4" 0
   (and
-    (eq_attr "type" "uncond_branch,btable_branch,branch,cbranch,fbranch,call,dyncall,multi,milli,parallel_branch")
+    (eq_attr "type" "uncond_branch,btable_branch,branch,cbranch,fbranch,call,sibcall,dyncall,multi,milli,sh_func_adrs,parallel_branch")
     (eq_attr "cpu" "8000"))
   "inm0_8000+inm1_8000,rnm0_8000+rnm1_8000")
 
@@ -2879,15 +2889,17 @@
   [(set_attr "type" "store")
    (set_attr "length" "4")])
 
-(define_insn ""
-  [(set (match_operand:HI 0 "register_operand" "=r")
-	(plus:HI (match_operand:HI 1 "register_operand" "r")
-		 (match_operand 2 "const_int_operand" "J")))]
+(define_insn "addhi3"
+  [(set (match_operand:HI 0 "register_operand" "=r,r")
+	(plus:HI (match_operand:HI 1 "register_operand" "%r,r")
+		 (match_operand:HI 2 "arith_operand" "r,J")))]
   ""
-  "ldo %2(%1),%0"
-  [(set_attr "type" "binary")
+  "@
+   {addl|add,l} %1,%2,%0
+   ldo %2(%1),%0"
+  [(set_attr "type" "binary,binary")
    (set_attr "pa_combine_type" "addmove")
-   (set_attr "length" "4")])
+   (set_attr "length" "4,4")])
 
 (define_expand "movqi"
   [(set (match_operand:QI 0 "general_operand" "")
@@ -5332,7 +5344,9 @@
   "!TARGET_64BIT"
   "* return output_mul_insn (0, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_insn ""
   [(set (reg:SI 29) (mult:SI (reg:SI 26) (reg:SI 25)))
@@ -5343,7 +5357,9 @@
   "TARGET_64BIT"
   "* return output_mul_insn (0, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_expand "muldi3"
   [(set (match_operand:DI 0 "register_operand" "")
@@ -5434,7 +5450,9 @@
   "*
    return output_div_insn (operands, 0, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_insn ""
   [(set (reg:SI 29)
@@ -5448,7 +5466,9 @@
   "*
    return output_div_insn (operands, 0, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_expand "udivsi3"
   [(set (reg:SI 26) (match_operand:SI 1 "move_src_operand" ""))
@@ -5491,7 +5511,9 @@
   "*
    return output_div_insn (operands, 1, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_insn ""
   [(set (reg:SI 29)
@@ -5505,7 +5527,9 @@
   "*
    return output_div_insn (operands, 1, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_expand "modsi3"
   [(set (reg:SI 26) (match_operand:SI 1 "move_src_operand" ""))
@@ -5544,7 +5568,9 @@
   "*
   return output_mod_insn (0, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_insn ""
   [(set (reg:SI 29) (mod:SI (reg:SI 26) (reg:SI 25)))
@@ -5557,7 +5583,9 @@
   "*
   return output_mod_insn (0, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_expand "umodsi3"
   [(set (reg:SI 26) (match_operand:SI 1 "move_src_operand" ""))
@@ -5596,7 +5624,9 @@
   "*
   return output_mod_insn (1, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 (define_insn ""
   [(set (reg:SI 29) (umod:SI (reg:SI 26) (reg:SI 25)))
@@ -5609,7 +5639,9 @@
   "*
   return output_mod_insn (1, insn);"
   [(set_attr "type" "milli")
-   (set (attr "length") (symbol_ref "attr_length_millicode_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_millicode_call (insn)")))])
 
 ;;- and instructions
 ;; We define DImode `and` so with DImode `not` we can get
@@ -5977,7 +6009,7 @@
 	(neg:DF (match_operand:DF 1 "register_operand" "")))]
   "!TARGET_SOFT_FLOAT"
 {
-  if (TARGET_PA_20 || flag_unsafe_math_optimizations)
+  if (TARGET_PA_20 || !flag_signed_zeros)
     emit_insn (gen_negdf2_fast (operands[0], operands[1]));
   else
     emit_insn (gen_negdf2_slow (operands[0], operands[1]));
@@ -6021,7 +6053,7 @@
 	(neg:SF (match_operand:SF 1 "register_operand" "")))]
   "!TARGET_SOFT_FLOAT"
 {
-  if (TARGET_PA_20 || flag_unsafe_math_optimizations)
+  if (TARGET_PA_20 || !flag_signed_zeros)
     emit_insn (gen_negsf2_fast (operands[0], operands[1]));
   else
     emit_insn (gen_negsf2_slow (operands[0], operands[1]));
@@ -6085,64 +6117,44 @@
 ;; PA 2.0 floating point instructions
 
 ; fmpyfadd patterns
-(define_insn ""
+(define_insn "fmadf4"
   [(set (match_operand:DF 0 "register_operand" "=f")
-	(plus:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
-			  (match_operand:DF 2 "register_operand" "f"))
-		 (match_operand:DF 3 "register_operand" "f")))]
+	(fma:DF (match_operand:DF 1 "register_operand" "f")
+		(match_operand:DF 2 "register_operand" "f")
+		(match_operand:DF 3 "register_operand" "f")))]
   "TARGET_PA_20 && ! TARGET_SOFT_FLOAT"
   "fmpyfadd,dbl %1,%2,%3,%0"
   [(set_attr "type" "fpmuldbl")
    (set_attr "length" "4")])
 
-(define_insn ""
-  [(set (match_operand:DF 0 "register_operand" "=f")
-	(plus:DF (match_operand:DF 1 "register_operand" "f")
-		 (mult:DF (match_operand:DF 2 "register_operand" "f")
-			  (match_operand:DF 3 "register_operand" "f"))))]
-  "TARGET_PA_20 && ! TARGET_SOFT_FLOAT"
-  "fmpyfadd,dbl %2,%3,%1,%0"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "4")])
-
-(define_insn ""
+(define_insn "fmasf4"
   [(set (match_operand:SF 0 "register_operand" "=f")
-	(plus:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
-			  (match_operand:SF 2 "register_operand" "f"))
-		 (match_operand:SF 3 "register_operand" "f")))]
+	(fma:SF (match_operand:SF 1 "register_operand" "f")
+		(match_operand:SF 2 "register_operand" "f")
+		(match_operand:SF 3 "register_operand" "f")))]
   "TARGET_PA_20 && ! TARGET_SOFT_FLOAT"
   "fmpyfadd,sgl %1,%2,%3,%0"
   [(set_attr "type" "fpmulsgl")
    (set_attr "length" "4")])
 
-(define_insn ""
-  [(set (match_operand:SF 0 "register_operand" "=f")
-	(plus:SF (match_operand:SF 1 "register_operand" "f")
-		 (mult:SF (match_operand:SF 2 "register_operand" "f")
-			  (match_operand:SF 3 "register_operand" "f"))))]
-  "TARGET_PA_20 && ! TARGET_SOFT_FLOAT"
-  "fmpyfadd,sgl %2,%3,%1,%0"
-  [(set_attr "type" "fpmulsgl")
-   (set_attr "length" "4")])
-
 ; fmpynfadd patterns
-(define_insn ""
+(define_insn "fnmadf4"
   [(set (match_operand:DF 0 "register_operand" "=f")
-	(minus:DF (match_operand:DF 1 "register_operand" "f")
-		  (mult:DF (match_operand:DF 2 "register_operand" "f")
-			   (match_operand:DF 3 "register_operand" "f"))))]
+	(fma:DF (neg:DF (match_operand:DF 1 "register_operand" "f"))
+		(match_operand:DF 2 "register_operand" "f")
+		(match_operand:DF 3 "register_operand" "f")))]
   "TARGET_PA_20 && ! TARGET_SOFT_FLOAT"
-  "fmpynfadd,dbl %2,%3,%1,%0"
+  "fmpynfadd,dbl %1,%2,%3,%0"
   [(set_attr "type" "fpmuldbl")
    (set_attr "length" "4")])
 
-(define_insn ""
+(define_insn "fnmasf4"
   [(set (match_operand:SF 0 "register_operand" "=f")
-	(minus:SF (match_operand:SF 1 "register_operand" "f")
-		  (mult:SF (match_operand:SF 2 "register_operand" "f")
-			   (match_operand:SF 3 "register_operand" "f"))))]
+	(fma:SF (neg:SF (match_operand:SF 1 "register_operand" "f"))
+		(match_operand:SF 2 "register_operand" "f")
+		(match_operand:SF 3 "register_operand" "f")))]
   "TARGET_PA_20 && ! TARGET_SOFT_FLOAT"
-  "fmpynfadd,sgl %2,%3,%1,%0"
+  "fmpynfadd,sgl %1,%2,%3,%0"
   [(set_attr "type" "fpmulsgl")
    (set_attr "length" "4")])
 
@@ -6162,267 +6174,6 @@
   "fnegabs,sgl %1,%0"
   [(set_attr "type" "fpalu")
    (set_attr "length" "4")])
-
-;; Generating a fused multiply sequence is a win for this case as it will
-;; reduce the latency for the fused case without impacting the plain
-;; multiply case.
-;;
-;; Similar possibilities exist for fnegabs, shadd and other insns which
-;; perform two operations with the result of the first feeding the second.
-(define_insn ""
-  [(set (match_operand:DF 0 "register_operand" "=f")
-	(plus:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
-			  (match_operand:DF 2 "register_operand" "f"))
-		 (match_operand:DF 3 "register_operand" "f")))
-   (set (match_operand:DF 4 "register_operand" "=&f")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[4], operands[1])
-          || reg_overlap_mentioned_p (operands[4], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-;; We want to split this up during scheduling since we want both insns
-;; to schedule independently.
-(define_split
-  [(set (match_operand:DF 0 "register_operand" "")
-	(plus:DF (mult:DF (match_operand:DF 1 "register_operand" "")
-			  (match_operand:DF 2 "register_operand" ""))
-		 (match_operand:DF 3 "register_operand" "")))
-   (set (match_operand:DF 4 "register_operand" "")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 4) (mult:DF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (plus:DF (mult:DF (match_dup 1) (match_dup 2))
-			       (match_dup 3)))]
-  "")
-
-(define_insn ""
-  [(set (match_operand:SF 0 "register_operand" "=f")
-	(plus:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
-			  (match_operand:SF 2 "register_operand" "f"))
-		 (match_operand:SF 3 "register_operand" "f")))
-   (set (match_operand:SF 4 "register_operand" "=&f")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[4], operands[1])
-          || reg_overlap_mentioned_p (operands[4], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-;; We want to split this up during scheduling since we want both insns
-;; to schedule independently.
-(define_split
-  [(set (match_operand:SF 0 "register_operand" "")
-	(plus:SF (mult:SF (match_operand:SF 1 "register_operand" "")
-			  (match_operand:SF 2 "register_operand" ""))
-		 (match_operand:SF 3 "register_operand" "")))
-   (set (match_operand:SF 4 "register_operand" "")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 4) (mult:SF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (plus:SF (mult:SF (match_dup 1) (match_dup 2))
-			       (match_dup 3)))]
-  "")
-
-;; Negating a multiply can be faked by adding zero in a fused multiply-add
-;; instruction.
-(define_insn ""
-  [(set (match_operand:DF 0 "register_operand" "=f")
-	(neg:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
-			 (match_operand:DF 2 "register_operand" "f"))))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  "fmpynfadd,dbl %1,%2,%%fr0,%0"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "4")])
-
-(define_insn ""
-  [(set (match_operand:SF 0 "register_operand" "=f")
-	(neg:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
-			 (match_operand:SF 2 "register_operand" "f"))))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  "fmpynfadd,sgl %1,%2,%%fr0,%0"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "4")])
-
-(define_insn ""
-  [(set (match_operand:DF 0 "register_operand" "=f")
-	(neg:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
-			 (match_operand:DF 2 "register_operand" "f"))))
-   (set (match_operand:DF 3 "register_operand" "=&f")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[3], operands[1])
-          || reg_overlap_mentioned_p (operands[3], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-(define_split
-  [(set (match_operand:DF 0 "register_operand" "")
-	(neg:DF (mult:DF (match_operand:DF 1 "register_operand" "")
-			 (match_operand:DF 2 "register_operand" ""))))
-   (set (match_operand:DF 3 "register_operand" "")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 3) (mult:DF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (neg:DF (mult:DF (match_dup 1) (match_dup 2))))]
-  "")
-
-(define_insn ""
-  [(set (match_operand:SF 0 "register_operand" "=f")
-	(neg:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
-			 (match_operand:SF 2 "register_operand" "f"))))
-   (set (match_operand:SF 3 "register_operand" "=&f")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[3], operands[1])
-          || reg_overlap_mentioned_p (operands[3], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-(define_split
-  [(set (match_operand:SF 0 "register_operand" "")
-	(neg:SF (mult:SF (match_operand:SF 1 "register_operand" "")
-			 (match_operand:SF 2 "register_operand" ""))))
-   (set (match_operand:SF 3 "register_operand" "")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 3) (mult:SF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (neg:SF (mult:SF (match_dup 1) (match_dup 2))))]
-  "")
-
-;; Now fused multiplies with the result of the multiply negated.
-(define_insn ""
-  [(set (match_operand:DF 0 "register_operand" "=f")
-	(plus:DF (neg:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
-				  (match_operand:DF 2 "register_operand" "f")))
-		 (match_operand:DF 3 "register_operand" "f")))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  "fmpynfadd,dbl %1,%2,%3,%0"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "4")])
-
-(define_insn ""
-  [(set (match_operand:SF 0 "register_operand" "=f")
-	(plus:SF (neg:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
-			 (match_operand:SF 2 "register_operand" "f")))
-		 (match_operand:SF 3 "register_operand" "f")))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  "fmpynfadd,sgl %1,%2,%3,%0"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "4")])
-
-(define_insn ""
-  [(set (match_operand:DF 0 "register_operand" "=f")
-	(plus:DF (neg:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
-				  (match_operand:DF 2 "register_operand" "f")))
-		 (match_operand:DF 3 "register_operand" "f")))
-   (set (match_operand:DF 4 "register_operand" "=&f")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[4], operands[1])
-          || reg_overlap_mentioned_p (operands[4], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-(define_split
-  [(set (match_operand:DF 0 "register_operand" "")
-	(plus:DF (neg:DF (mult:DF (match_operand:DF 1 "register_operand" "")
-				  (match_operand:DF 2 "register_operand" "")))
-		 (match_operand:DF 3 "register_operand" "")))
-   (set (match_operand:DF 4 "register_operand" "")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 4) (mult:DF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (plus:DF (neg:DF (mult:DF (match_dup 1) (match_dup 2)))
-			       (match_dup 3)))]
-  "")
-
-(define_insn ""
-  [(set (match_operand:SF 0 "register_operand" "=f")
-	(plus:SF (neg:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
-				  (match_operand:SF 2 "register_operand" "f")))
-		 (match_operand:SF 3 "register_operand" "f")))
-   (set (match_operand:SF 4 "register_operand" "=&f")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[4], operands[1])
-          || reg_overlap_mentioned_p (operands[4], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-(define_split
-  [(set (match_operand:SF 0 "register_operand" "")
-	(plus:SF (neg:SF (mult:SF (match_operand:SF 1 "register_operand" "")
-				  (match_operand:SF 2 "register_operand" "")))
-		 (match_operand:SF 3 "register_operand" "")))
-   (set (match_operand:SF 4 "register_operand" "")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 4) (mult:SF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (plus:SF (neg:SF (mult:SF (match_dup 1) (match_dup 2)))
-			       (match_dup 3)))]
-  "")
-
-(define_insn ""
-  [(set (match_operand:DF 0 "register_operand" "=f")
-	(minus:DF (match_operand:DF 3 "register_operand" "f")
-		  (mult:DF (match_operand:DF 1 "register_operand" "f")
-			   (match_operand:DF 2 "register_operand" "f"))))
-   (set (match_operand:DF 4 "register_operand" "=&f")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[4], operands[1])
-          || reg_overlap_mentioned_p (operands[4], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-(define_split
-  [(set (match_operand:DF 0 "register_operand" "")
-	(minus:DF (match_operand:DF 3 "register_operand" "")
-		  (mult:DF (match_operand:DF 1 "register_operand" "")
-			   (match_operand:DF 2 "register_operand" ""))))
-   (set (match_operand:DF 4 "register_operand" "")
-	(mult:DF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 4) (mult:DF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (minus:DF (match_dup 3)
-				(mult:DF (match_dup 1) (match_dup 2))))]
-  "")
-
-(define_insn ""
-  [(set (match_operand:SF 0 "register_operand" "=f")
-	(minus:SF (match_operand:SF 3 "register_operand" "f")
-		  (mult:SF (match_operand:SF 1 "register_operand" "f")
-			   (match_operand:SF 2 "register_operand" "f"))))
-   (set (match_operand:SF 4 "register_operand" "=&f")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "(! TARGET_SOFT_FLOAT && TARGET_PA_20
-    && ! (reg_overlap_mentioned_p (operands[4], operands[1])
-          || reg_overlap_mentioned_p (operands[4], operands[2])))"
-  "#"
-  [(set_attr "type" "fpmuldbl")
-   (set_attr "length" "8")])
-
-(define_split
-  [(set (match_operand:SF 0 "register_operand" "")
-	(minus:SF (match_operand:SF 3 "register_operand" "")
-		  (mult:SF (match_operand:SF 1 "register_operand" "")
-			   (match_operand:SF 2 "register_operand" ""))))
-   (set (match_operand:SF 4 "register_operand" "")
-	(mult:SF (match_dup 1) (match_dup 2)))]
-  "! TARGET_SOFT_FLOAT && TARGET_PA_20"
-  [(set (match_dup 4) (mult:SF (match_dup 1) (match_dup 2)))
-   (set (match_dup 0) (minus:SF (match_dup 3)
-				(mult:SF (match_dup 1) (match_dup 2))))]
-  "")
 
 (define_insn ""
   [(set (match_operand:DF 0 "register_operand" "=f")
@@ -6460,6 +6211,74 @@
   "! TARGET_SOFT_FLOAT && TARGET_PA_20"
   [(set (match_dup 2) (abs:SF (match_dup 1)))
    (set (match_dup 0) (neg:SF (abs:SF (match_dup 1))))]
+  "")
+
+;; Negating a multiply can be faked by adding zero in a fused multiply-add
+;; instruction if we can ignore the sign of zero.
+(define_insn ""
+  [(set (match_operand:DF 0 "register_operand" "=f")
+	(neg:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
+			 (match_operand:DF 2 "register_operand" "f"))))]
+  "!TARGET_SOFT_FLOAT && TARGET_PA_20 && !flag_signed_zeros"
+  "fmpynfadd,dbl %1,%2,%%fr0,%0"
+  [(set_attr "type" "fpmuldbl")
+   (set_attr "length" "4")])
+
+(define_insn ""
+  [(set (match_operand:SF 0 "register_operand" "=f")
+	(neg:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
+			 (match_operand:SF 2 "register_operand" "f"))))]
+  "!TARGET_SOFT_FLOAT && TARGET_PA_20 && !flag_signed_zeros"
+  "fmpynfadd,sgl %1,%2,%%fr0,%0"
+  [(set_attr "type" "fpmuldbl")
+   (set_attr "length" "4")])
+
+(define_insn ""
+  [(set (match_operand:DF 0 "register_operand" "=f")
+	(neg:DF (mult:DF (match_operand:DF 1 "register_operand" "f")
+			 (match_operand:DF 2 "register_operand" "f"))))
+   (set (match_operand:DF 3 "register_operand" "=&f")
+	(mult:DF (match_dup 1) (match_dup 2)))]
+  "(!TARGET_SOFT_FLOAT && TARGET_PA_20 && !flag_signed_zeros
+    && ! (reg_overlap_mentioned_p (operands[3], operands[1])
+          || reg_overlap_mentioned_p (operands[3], operands[2])))"
+  "#"
+  [(set_attr "type" "fpmuldbl")
+   (set_attr "length" "8")])
+
+(define_split
+  [(set (match_operand:DF 0 "register_operand" "")
+	(neg:DF (mult:DF (match_operand:DF 1 "register_operand" "")
+			 (match_operand:DF 2 "register_operand" ""))))
+   (set (match_operand:DF 3 "register_operand" "")
+	(mult:DF (match_dup 1) (match_dup 2)))]
+  "!TARGET_SOFT_FLOAT && TARGET_PA_20 && !flag_signed_zeros"
+  [(set (match_dup 3) (mult:DF (match_dup 1) (match_dup 2)))
+   (set (match_dup 0) (neg:DF (mult:DF (match_dup 1) (match_dup 2))))]
+  "")
+
+(define_insn ""
+  [(set (match_operand:SF 0 "register_operand" "=f")
+	(neg:SF (mult:SF (match_operand:SF 1 "register_operand" "f")
+			 (match_operand:SF 2 "register_operand" "f"))))
+   (set (match_operand:SF 3 "register_operand" "=&f")
+	(mult:SF (match_dup 1) (match_dup 2)))]
+  "(!TARGET_SOFT_FLOAT && TARGET_PA_20 && !flag_signed_zeros
+    && ! (reg_overlap_mentioned_p (operands[3], operands[1])
+          || reg_overlap_mentioned_p (operands[3], operands[2])))"
+  "#"
+  [(set_attr "type" "fpmuldbl")
+   (set_attr "length" "8")])
+
+(define_split
+  [(set (match_operand:SF 0 "register_operand" "")
+	(neg:SF (mult:SF (match_operand:SF 1 "register_operand" "")
+			 (match_operand:SF 2 "register_operand" ""))))
+   (set (match_operand:SF 3 "register_operand" "")
+	(mult:SF (match_dup 1) (match_dup 2)))]
+  "!TARGET_SOFT_FLOAT && TARGET_PA_20&& !flag_signed_zeros"
+  [(set (match_dup 3) (mult:SF (match_dup 1) (match_dup 2)))
+   (set (match_dup 0) (neg:SF (mult:SF (match_dup 1) (match_dup 2))))]
   "")
 
 ;;- Shift instructions
@@ -6884,6 +6703,20 @@
 
 ;; Unconditional and other jump instructions.
 
+;; Trivial return used when no epilogue is needed.
+(define_insn "return"
+  [(return)
+   (use (reg:SI 2))]
+  "pa_can_use_return_insn ()"
+  "*
+{
+  if (TARGET_PA_20)
+    return \"bve%* (%%r2)\";
+  return \"bv%* %%r0(%%r2)\";
+}"
+  [(set_attr "type" "branch")
+   (set_attr "length" "4")])
+
 ;; This is used for most returns.
 (define_insn "return_internal"
   [(return)
@@ -6932,11 +6765,8 @@
   rtx x;
 
   /* Try to use the trivial return first.  Else use the full epilogue.  */
-  if (reload_completed
-      && !frame_pointer_needed
-      && !df_regs_ever_live_p (2)
-      && (compute_frame_size (get_frame_size (), 0) ? 0 : 1))
-    x = gen_return_internal ();
+  if (pa_can_use_return_insn ())
+    x = gen_return ();
   else
     {
       hppa_expand_epilogue ();
@@ -7068,12 +6898,12 @@
   /* Restore the frame pointer.  The virtual_stack_vars_rtx is saved
      instead of the hard_frame_pointer_rtx in the save area.  As a
      result, an extra instruction is needed to adjust for the offset
-     of the virtual stack variables and the frame pointer.  */
+     of the virtual stack variables and the hard frame pointer.  */
   if (GET_CODE (fp) != REG)
     fp = force_reg (Pmode, fp);
-  emit_move_insn (virtual_stack_vars_rtx, fp);
+  emit_move_insn (hard_frame_pointer_rtx, plus_constant (fp, -8));
 
-  emit_stack_restore (SAVE_NONLOCAL, stack, NULL_RTX);
+  emit_stack_restore (SAVE_NONLOCAL, stack);
 
   emit_use (hard_frame_pointer_rtx);
   emit_use (stack_pointer_rtx);
@@ -7244,7 +7074,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   ""
   "
 {
-  rtx op, call_insn;
+  rtx op;
   rtx nb = operands[1];
 
   if (TARGET_PORTABLE_RUNTIME)
@@ -7309,11 +7139,11 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
     {
       rtx r4 = gen_rtx_REG (word_mode, 4);
       if (GET_CODE (op) == SYMBOL_REF)
-	call_insn = emit_call_insn (gen_call_symref_64bit (op, nb, r4));
+	emit_call_insn (gen_call_symref_64bit (op, nb, r4));
       else
 	{
 	  op = force_reg (word_mode, op);
-	  call_insn = emit_call_insn (gen_call_reg_64bit (op, nb, r4));
+	  emit_call_insn (gen_call_reg_64bit (op, nb, r4));
 	}
     }
   else
@@ -7323,10 +7153,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn = emit_call_insn (gen_call_symref_pic (op, nb, r4));
+	      emit_call_insn (gen_call_symref_pic (op, nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_symref (op, nb));
+	    emit_call_insn (gen_call_symref (op, nb));
 	}
       else
 	{
@@ -7335,10 +7165,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn = emit_call_insn (gen_call_reg_pic (nb, r4));
+	      emit_call_insn (gen_call_reg_pic (nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_reg (nb));
+	    emit_call_insn (gen_call_reg (nb));
 	}
     }
 
@@ -7388,7 +7218,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_call (insn, operands[0], 0);
 }"
   [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 0)")))])
 
 (define_insn "call_symref_pic"
   [(set (match_operand:SI 2 "register_operand" "=&r") (reg:SI 19))
@@ -7465,7 +7297,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_call (insn, operands[0], 0);
 }"
   [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 0)")))])
 
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
@@ -7550,7 +7384,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_call (insn, operands[0], 0);
 }"
   [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 0)")))])
 
 (define_insn "call_reg"
   [(call (mem:SI (reg:SI 22))
@@ -7564,7 +7400,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_indirect_call (insn, gen_rtx_REG (word_mode, 22));
 }"
   [(set_attr "type" "dyncall")
-   (set (attr "length") (symbol_ref "attr_length_indirect_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_indirect_call (insn)")))])
 
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
@@ -7642,7 +7480,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_indirect_call (insn, gen_rtx_REG (word_mode, 22));
 }"
   [(set_attr "type" "dyncall")
-   (set (attr "length") (symbol_ref "attr_length_indirect_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_indirect_call (insn)")))])
 
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
@@ -7726,7 +7566,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_indirect_call (insn, operands[0]);
 }"
   [(set_attr "type" "dyncall")
-   (set (attr "length") (symbol_ref "attr_length_indirect_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 12)]
+	      (symbol_ref "attr_length_indirect_call (insn)")))])
 
 (define_expand "call_value"
   [(parallel [(set (match_operand 0 "" "")
@@ -7736,7 +7578,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   ""
   "
 {
-  rtx op, call_insn;
+  rtx op;
   rtx dst = operands[0];
   rtx nb = operands[2];
 
@@ -7802,13 +7644,11 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
     {
       rtx r4 = gen_rtx_REG (word_mode, 4);
       if (GET_CODE (op) == SYMBOL_REF)
-	call_insn
-	  = emit_call_insn (gen_call_val_symref_64bit (dst, op, nb, r4));
+	  emit_call_insn (gen_call_val_symref_64bit (dst, op, nb, r4));
       else
 	{
 	  op = force_reg (word_mode, op);
-	  call_insn
-	    = emit_call_insn (gen_call_val_reg_64bit (dst, op, nb, r4));
+	  emit_call_insn (gen_call_val_reg_64bit (dst, op, nb, r4));
 	}
     }
   else
@@ -7818,11 +7658,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn
-		= emit_call_insn (gen_call_val_symref_pic (dst, op, nb, r4));
+	      emit_call_insn (gen_call_val_symref_pic (dst, op, nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_val_symref (dst, op, nb));
+	    emit_call_insn (gen_call_val_symref (dst, op, nb));
 	}
       else
 	{
@@ -7831,10 +7670,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	  if (flag_pic)
 	    {
 	      rtx r4 = gen_rtx_REG (word_mode, 4);
-	      call_insn = emit_call_insn (gen_call_val_reg_pic (dst, nb, r4));
+	      emit_call_insn (gen_call_val_reg_pic (dst, nb, r4));
 	    }
 	  else
-	    call_insn = emit_call_insn (gen_call_val_reg (dst, nb));
+	    emit_call_insn (gen_call_val_reg (dst, nb));
 	}
     }
 
@@ -7855,7 +7694,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_call (insn, operands[1], 0);
 }"
   [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 0)")))])
 
 (define_insn "call_val_symref_pic"
   [(set (match_operand:SI 3 "register_operand" "=&r") (reg:SI 19))
@@ -7938,7 +7779,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_call (insn, operands[1], 0);
 }"
   [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 0)")))])
 
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
@@ -8029,7 +7872,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_call (insn, operands[1], 0);
 }"
   [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 0)")))])
 
 (define_insn "call_val_reg"
   [(set (match_operand 0 "" "")
@@ -8044,7 +7889,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_indirect_call (insn, gen_rtx_REG (word_mode, 22));
 }"
   [(set_attr "type" "dyncall")
-   (set (attr "length") (symbol_ref "attr_length_indirect_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_indirect_call (insn)")))])
 
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
@@ -8128,7 +7975,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_indirect_call (insn, gen_rtx_REG (word_mode, 22));
 }"
   [(set_attr "type" "dyncall")
-   (set (attr "length") (symbol_ref "attr_length_indirect_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_indirect_call (insn)")))])
 
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
@@ -8218,7 +8067,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   return output_indirect_call (insn, operands[1]);
 }"
   [(set_attr "type" "dyncall")
-   (set (attr "length") (symbol_ref "attr_length_indirect_call (insn)"))])
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 12)]
+	      (symbol_ref "attr_length_indirect_call (insn)")))])
 
 ;; Call subroutine returning any type.
 
@@ -8311,8 +8162,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   output_arg_descriptor (insn);
   return output_call (insn, operands[0], 1);
 }"
-  [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 1)"))])
+  [(set_attr "type" "sibcall")
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 1)")))])
 
 (define_insn "sibcall_internal_symref_64bit"
   [(call (mem:SI (match_operand 0 "call_operand_address" ""))
@@ -8326,8 +8179,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   output_arg_descriptor (insn);
   return output_call (insn, operands[0], 1);
 }"
-  [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 1)"))])
+  [(set_attr "type" "sibcall")
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 1)")))])
 
 (define_expand "sibcall_value"
   [(set (match_operand 0 "" "")
@@ -8395,8 +8250,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   output_arg_descriptor (insn);
   return output_call (insn, operands[1], 1);
 }"
-  [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 1)"))])
+  [(set_attr "type" "sibcall")
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 1)")))])
 
 (define_insn "sibcall_value_internal_symref_64bit"
   [(set (match_operand 0 "" "")
@@ -8411,8 +8268,10 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   output_arg_descriptor (insn);
   return output_call (insn, operands[1], 1);
 }"
-  [(set_attr "type" "call")
-   (set (attr "length") (symbol_ref "attr_length_call (insn, 1)"))])
+  [(set_attr "type" "sibcall")
+   (set (attr "length")
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 8)]
+	      (symbol_ref "attr_length_call (insn, 1)")))])
 
 (define_insn "nop"
   [(const_int 0)]
@@ -8515,18 +8374,13 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 
   /* Restore the frame pointer.  The virtual_stack_vars_rtx is saved
      instead of the hard_frame_pointer_rtx in the save area.  We need
-     to adjust for the offset between these two values when we have
-     a nonlocal_goto pattern.  When we don't have a nonlocal_goto
-     pattern, the receiver performs the adjustment.  */
-#ifdef HAVE_nonlocal_goto
-  if (HAVE_nonlocal_goto)
-    emit_move_insn (virtual_stack_vars_rtx, force_reg (Pmode, fp));
-  else
-#endif
-    emit_move_insn (hard_frame_pointer_rtx, fp);
+     to adjust for the offset between these two values.  */
+  if (GET_CODE (fp) != REG)
+    fp = force_reg (Pmode, fp);
+  emit_move_insn (hard_frame_pointer_rtx, plus_constant (fp, -8));
 
   /* This bit is the same as expand_builtin_longjmp.  */
-  emit_stack_restore (SAVE_NONLOCAL, stack, NULL_RTX);
+  emit_stack_restore (SAVE_NONLOCAL, stack);
   emit_use (hard_frame_pointer_rtx);
   emit_use (stack_pointer_rtx);
 
@@ -9453,10 +9307,11 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 				gen_rtx_SYMBOL_REF (SImode,
 						    \"$$sh_func_adrs\"));
 }"
-  [(set_attr "type" "multi")
+  [(set_attr "type" "sh_func_adrs")
    (set (attr "length")
-	(plus (symbol_ref "attr_length_millicode_call (insn)")
-	      (const_int 20)))])
+	(cond [(and (const_int 0) (eq (const_int 0) (pc))) (const_int 28)]
+	      (plus (symbol_ref "attr_length_millicode_call (insn)")
+		    (const_int 20))))])
 
 ;; On the PA, the PIC register is call clobbered, so it must
 ;; be saved & restored around calls by the caller.  If the call
@@ -9526,7 +9381,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
     {
       addr = gen_rtx_PLUS (word_mode, stack_pointer_rtx,
 			   GEN_INT (TARGET_64BIT ? -8 : -4));
-      emit_move_insn (gen_rtx_MEM (word_mode, addr), frame_pointer_rtx);
+      emit_move_insn (gen_rtx_MEM (word_mode, addr), hard_frame_pointer_rtx);
     }
   if (!TARGET_64BIT && flag_pic)
     {

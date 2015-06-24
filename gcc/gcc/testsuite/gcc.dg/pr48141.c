@@ -1,6 +1,6 @@
 /* PR rtl-optimization/48141 */
 /* { dg-do compile } */
-/* { dg-options "-O -fno-tree-fre" } */
+/* { dg-options "-O" } */
 
 #define A i = 0;
 #define B A A A A A A A A A A

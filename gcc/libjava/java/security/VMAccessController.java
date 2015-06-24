@@ -1,5 +1,5 @@
 /* VMAccessController.java -- VM-specific access controller methods.
-   Copyright (C) 2004, 2005, 2006  Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2010  Free Software Foundation, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -121,7 +121,7 @@ final class VMAccessController
     LinkedList stack = state.getContexts();
     if (!stack.isEmpty())
       {
-	stack.removeFirst();
+        stack.removeFirst();
       }
     else if (DEBUG)
       {
@@ -190,15 +190,15 @@ final class VMAccessController
         if (privileged && i == classes.length - 2)
           {
             // If there was a call to doPrivileged with a supplied context,
-            // return that context. If using JAAS doAs*, it should be 
-	    // a context with a SubjectDomainCombiner
+            // return that context. If using JAAS doAs*, it should be
+            // a context with a SubjectDomainCombiner
             LinkedList l = state.getContexts();
             if (!l.isEmpty())
               context = (AccessControlContext) l.getFirst();
           }
 
         // subject to getProtectionDomain RuntimePermission
-	ProtectionDomain domain = clazz.getProtectionDomain();
+        ProtectionDomain domain = clazz.getProtectionDomain();
 
         if (domain == null)
           continue;

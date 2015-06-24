@@ -14,7 +14,7 @@ struct B
 int i = 1;
 struct B b = { 0, 3 };
 
-static void
+void
 test ()
 {
   if (b.a[0].i != i)

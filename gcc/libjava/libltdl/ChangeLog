@@ -1,22 +1,40 @@
-2012-07-02  Release Manager
+2013-04-12  Release Manager
 
-	* GCC 4.5.4 released.
+	* GCC 4.6.4 released.
 
-2011-04-28  Release Manager
+2012-03-01  Release Manager
 
-	* GCC 4.5.3 released.
+	* GCC 4.6.3 released.
 
-2010-12-16  Release Manager
+2011-11-20  Andreas Tobler  <andreast@fgznet.ch>
 
-	* GCC 4.5.2 released.
+	* acinclude.m4: Additional FreeBSD 10 fixes.
+	* configure: Regenerate.
 
-2010-07-31  Release Manager
+2011-10-26  Release Manager
 
-	* GCC 4.5.1 released.
+	* GCC 4.6.2 released.
 
-2010-04-14  Release Manager
+2011-06-27  Release Manager
 
-	* GCC 4.5.0 released.
+	* GCC 4.6.1 released.
+
+2011-03-25  Release Manager
+
+	* GCC 4.6.0 released.
+
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 (AC_LIBTOOL_PROG_LD_SHLIBS)
+	(AC_LIBTOOL_SYS_DYNAMIC_LINKER): Remove handling
+	of freebsd1* which soon would incorrectly match FreeBSD 10.0.
+	* configure: Regenerate.
+
+2010-05-04  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/43620
+	* Makefile.am (AUTOMAKE_OPTIONS): Add no-dist.
+	* Makefile.in: Regenerate.
 
 2010-04-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
