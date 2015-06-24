@@ -5,30 +5,40 @@ that led to GCC 3. For information on GCC 2.8.1 and older releases of GCC 2,
 see ONEWS.
 
 ======================================================================
-http://gcc.gnu.org/gcc-4.2/index.html
-                           GCC 4.2 Release Series
+http://gcc.gnu.org/gcc-4.3/index.html
 
-   February 1, 2008
+                             GCC 4.3 Release Series
+
+   Jun 27, 2011
 
    The [1]GNU project and the GCC developers are pleased to announce the
-   release of GCC 4.2.3.
+   release of GCC 4.3.6.
 
    This release is a bug-fix release, containing fixes for regressions in
-   GCC 4.2.2 relative to previous releases of GCC.
+   GCC 4.3.5 relative to previous releases of GCC.
 
 Release History
 
-   GCC 4.2.3
-          February 1, 2008 ([2]changes)
+   GCC 4.3.6
+          Jun 27, 2011 ([2]changes)
 
-   GCC 4.2.2
-          October 7, 2007 ([3]changes)
+   GCC 4.3.5
+          May 22, 2010 ([3]changes)
 
-   GCC 4.2.1
-          July 18, 2007 ([4]changes)
+   GCC 4.3.4
+          August 4, 2009 ([4]changes)
 
-   GCC 4.2.0
-          May 13, 2007 ([5]changes)
+   GCC 4.3.3
+          January 24, 2009 ([5]changes)
+
+   GCC 4.3.2
+          August 27, 2008 ([6]changes)
+
+   GCC 4.3.1
+          June 6, 2008 ([7]changes)
+
+   GCC 4.3.0
+          March 5, 2008 ([8]changes)
 
 References and Acknowledgements
 
@@ -36,39 +46,937 @@ References and Acknowledgements
    supports several other languages aside from C, it now stands for the
    GNU Compiler Collection.
 
-   A list of [6]successful builds is updated as new information becomes
+   A list of [9]successful builds is updated as new information becomes
    available.
 
    The GCC developers would like to thank the numerous people that have
    contributed new features, improvements, bug fixes, and other changes as
-   well as test results to GCC. This [7]amazing group of volunteers is
+   well as test results to GCC. This [10]amazing group of volunteers is
    what makes GCC successful.
 
-   For additional information about GCC please refer to the [8]GCC project
-   web site or contact the [9]GCC development mailing list.
+   For additional information about GCC please refer to the [11]GCC
+   project web site or contact the [12]GCC development mailing list.
 
-   To obtain GCC please use [10]our mirror sites, one of the [11]GNU
-   mirror sites, or [12]our SVN server.
-
-   Please send FSF & GNU inquiries & questions to [13]gnu@gnu.org. There
-   are also [14]other ways to contact the FSF.
-
-   These pages are maintained by [15]the GCC team.
+   To obtain GCC please use [13]our mirror sites or [14]our SVN server.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [16]GCC manuals. If that fails, the
-    [17]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [18]gcc@gnu.org or [19]gcc@gcc.gnu.org.
-    All of our lists have [20]public archives.
+    pages and the [15]GCC manuals. If that fails, the
+    [16]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [17]gcc@gcc.gnu.org. All of [18]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [19]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2008-02-01 [21]Valid XHTML 1.0
+   These pages are [20]maintained by the GCC team. Last modified
+   2011-06-27[21].
+
+References
+
+   1. http://www.gnu.org/
+   2. http://gcc.gnu.org/gcc-4.3/changes.html
+   3. http://gcc.gnu.org/gcc-4.3/changes.html
+   4. http://gcc.gnu.org/gcc-4.3/changes.html
+   5. http://gcc.gnu.org/gcc-4.3/changes.html
+   6. http://gcc.gnu.org/gcc-4.3/changes.html
+   7. http://gcc.gnu.org/gcc-4.3/changes.html
+   8. http://gcc.gnu.org/gcc-4.3/changes.html
+   9. http://gcc.gnu.org/gcc-4.3/buildstat.html
+  10. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
+  11. http://gcc.gnu.org/index.html
+  12. mailto:gcc@gcc.gnu.org
+  13. http://gcc.gnu.org/mirrors.html
+  14. http://gcc.gnu.org/svn.html
+  15. http://gcc.gnu.org/onlinedocs/
+  16. mailto:gcc-help@gcc.gnu.org
+  17. mailto:gcc@gcc.gnu.org
+  18. http://gcc.gnu.org/lists.html
+  19. http://www.fsf.org/
+  20. http://gcc.gnu.org/about.html
+  21. http://validator.w3.org/check/referer
+======================================================================
+http://gcc.gnu.org/gcc-4.3/changes.html
+
+                             GCC 4.3 Release Series
+                        Changes, New Features, and Fixes
+
+   The latest release in the 4.3 release series is [1]GCC 4.3.5.
+
+Caveats
+
+     * GCC requires the [2]GMP and [3]MPFR libraries for building all the
+       various front-end languages it supports. See the [4]prerequisites
+       page for version requirements.
+     * ColdFire targets now treat long double as having the same format as
+       double. In earlier versions of GCC, they used the 68881 long double
+       format instead.
+     * The m68k-uclinux target now uses the same calling conventions as
+       m68k-linux-gnu. You can select the original calling conventions by
+       configuring for m68k-uclinuxoldabi instead. Note that
+       m68k-uclinuxoldabi also retains the original 80-bit long double on
+       ColdFire targets.
+     * The -fforce-mem option has been removed because it has had no
+       effect in the last few GCC releases.
+     * The i386 -msvr3-shlib option has been removed since it is no longer
+       used.
+     * Fastcall for i386 has been changed not to pass aggregate arguments
+       in registers, following Microsoft compilers.
+     * Support for the AOF assembler has been removed from the ARM back
+       end; this affects only the targets arm-semi-aof and armel-semi-aof,
+       which are no longer recognized. We removed these targets without a
+       deprecation period because we discovered that they have been
+       unusable since GCC 4.0.0.
+     * Support for the TMS320C3x/C4x processor (targets c4x-* and tic4x-*)
+       has been removed. This support had been deprecated since GCC 4.0.0.
+     * Support for a number of older systems and recently unmaintained or
+       untested target ports of GCC has been declared obsolete in GCC 4.3.
+       Unless there is activity to revive them, the next release of GCC
+       will have their sources permanently removed.
+       All GCC ports for the following processor architectures have been
+       declared obsolete:
+          + Morpho MT (mt-*)
+       The following aliases for processor architectures have been
+       declared obsolete. Users should use the indicated generic target
+       names instead, with compile-time options such as -mcpu or
+       configure-time options such as --with-cpu to control the
+       configuration more precisely.
+          + strongarm*-*-*, ep9312*-*-*, xscale*-*-* (use arm*-*-*
+            instead).
+          + parisc*-*-* (use hppa*-*-* instead).
+          + m680[012]0-*-* (use m68k-*-* instead).
+       All GCC ports for the following operating systems have been
+       declared obsolete:
+          + BeOS (*-*-beos*)
+          + kaOS (*-*-kaos*)
+          + GNU/Linux using the a.out object format (*-*-linux*aout*)
+          + GNU/Linux using version 1 of the GNU C Library
+            (*-*-linux*libc1*)
+          + Solaris versions before Solaris 7 (*-*-solaris2.[0-6],
+            *-*-solaris2.[0-6].*)
+          + Miscellaneous System V (*-*-sysv*)
+          + WindISS (*-*-windiss*)
+       Also, those for some individual systems on particular architectures
+       have been obsoleted:
+          + UNICOS/mk on DEC Alpha (alpha*-*-unicosmk*)
+          + CRIS with a.out object format (cris-*-aout)
+          + BSD 4.3 on PA-RISC (hppa1.1-*-bsd*)
+          + OSF/1 on PA-RISC (hppa1.1-*-osf*)
+          + PRO on PA-RISC (hppa1.1-*-pro*)
+          + Sequent PTX on IA32 (i[34567]86-sequent-ptx4*,
+            i[34567]86-sequent-sysv4*)
+          + SCO Open Server 5 on IA32 (i[34567]86-*-sco3.2v5*)
+          + UWIN on IA32 (i[34567]86-*-uwin*) (support for UWIN as a host
+            was previously [5]removed in 2001, leaving only the support
+            for UWIN as a target now being deprecated)
+          + ChorusOS on PowerPC (powerpc-*-chorusos*)
+          + All VAX configurations apart from NetBSD and OpenBSD
+            (vax-*-bsd*, vax-*-sysv*, vax-*-ultrix*)
+     * The [6]-Wconversion option has been modified. Its purpose now is to
+       warn for implicit conversions that may alter a value. This new
+       behavior is available for both C and C++. Warnings about
+       conversions between signed and unsigned integers can be disabled by
+       using -Wno-sign-conversion. In C++, they are disabled by default
+       unless -Wsign-conversion is explicitly requested. The old behavior
+       of -Wconversion, that is, warn for prototypes causing a type
+       conversion that is different from what would happen to the same
+       argument in the absence of a prototype, has been moved to a new
+       option -Wtraditional-conversion, which is only available for C.
+     * The -m386, -m486, -mpentium and -mpentiumpro tuning options have
+       been removed because they were deprecated for more than 3 GCC major
+       releases. Use -mtune=i386, -mtune=i486, -mtune=pentium or
+       -mtune=pentiumpro as a replacement.
+     * The -funsafe-math-optimizations option now automatically turns on
+       -fno-trapping-math in addition to -fno-signed-zeros, as it enables
+       reassociation and thus may introduce or remove traps.
+     * The -ftree-vectorize option is now on by default under -O3. In
+       order to generate code for a SIMD extension, it has to be enabled
+       as well: use -maltivec for PowerPC platforms and -msse/-msse2 for
+       i?86 and x86_64.
+     * More information on porting to GCC 4.3 from previous versions of
+       GCC can be found in the [7]porting guide for this release.
+
+General Optimizer Improvements
+
+     * The GCC middle-end has been integrated with the [8]MPFR library.
+       This allows GCC to evaluate and replace at compile-time calls to
+       built-in math functions having constant arguments with their
+       mathematically equivalent results. In making use of [9]MPFR, GCC
+       can generate correct results regardless of the math library
+       implementation or floating point precision of the host platform.
+       This also allows GCC to generate identical results regardless of
+       whether one compiles in native or cross-compile configurations to a
+       particular target. The following built-in functions take advantage
+       of this new capability: acos, acosh, asin, asinh, atan2, atan,
+       atanh, cbrt, cos, cosh, drem, erf, erfc, exp10, exp2, exp, expm1,
+       fdim, fma, fmax, fmin, gamma_r, hypot, j0, j1, jn, lgamma_r, log10,
+       log1p, log2, log, pow10, pow, remainder, remquo, sin, sincos, sinh,
+       tan, tanh, tgamma, y0, y1 and yn. The float and long double
+       variants of these functions (e.g. sinf and sinl) are also handled.
+       The sqrt and cabs functions with constant arguments were already
+       optimized in prior GCC releases. Now they also use [10]MPFR.
+     * A new forward propagation pass on RTL was added. The new pass
+       replaces several slower transformations, resulting in compile-time
+       improvements as well as better code generation in some cases.
+     * A new command-line switch -frecord-gcc-switches has been added to
+       GCC, although it is only enabled for some targets. The switch
+       causes the command line that was used to invoke the compiler to be
+       recorded into the object file that is being created. The exact
+       format of this recording is target and binary file format
+       dependent, but it usually takes the form of a note section
+       containing ASCII text. The switch is related to the -fverbose-asm
+       switch, but that one only records the information in the assembler
+       output file as comments, so the information never reaches the
+       object file.
+     * The inliner heuristic is now aware of stack frame consumption. New
+       command-line parameters --param large-stack-frame and --param
+       large-stack-frame-growth can be used to limit stack frame size
+       growth caused by inlining.
+     * During feedback directed optimizations, the expected block size the
+       memcpy, memset and bzero functions operate on is discovered and for
+       cases of commonly used small sizes, specialized inline code is
+       generated.
+     * __builtin_expect no longer requires its argument to be a compile
+       time constant.
+     * Interprocedural optimization was reorganized to work on functions
+       in SSA form. This enables more precise and cheaper dataflow
+       analysis and makes writing interprocedural optimizations easier.
+       The following improvements have been implemented on top of this
+       framework:
+          + Pre-inline optimization: Selected local optimization passes
+            are run before the inliner (and other interprocedural passes)
+            are executed. This significantly improves the accuracy of code
+            growth estimates used by the inliner and reduces the overall
+            memory footprint for large compilation units.
+          + Early inlining (a simple bottom-up inliner pass inlining only
+            functions whose body is smaller than the expected call
+            overhead) is now executed with the early optimization passes,
+            thus inlining already optimized function bodies into an
+            unoptimized function that is subsequently optimized by early
+            optimizers. This enables the compiler to quickly eliminate
+            abstraction penalty in C++ programs.
+          + Interprocedural constant propagation now operate on SSA form
+            increasing accuracy of the analysis.
+     * A new internal representation for GIMPLE statements has been
+       contributed, resulting in compile-time memory savings.
+     * The vectorizer was enhanced to support vectorization of outer
+       loops, intra-iteration parallelism (loop-aware SLP), vectorization
+       of strided accesses and loops with multiple data-types. Run-time
+       dependency testing using loop versioning was added. The cost model,
+       turned on by -fvect-cost-model, was developed.
+
+New Languages and Language specific improvements
+
+     * We have added new command-line options
+       -finstrument-functions-exclude-function-list and
+       -finstrument-functions-exclude-file-list. They provide more control
+       over which functions are annotated by the -finstrument-functions
+       option.
+
+  C family
+
+     * Implicit conversions between generic vector types are now only
+       permitted when the two vectors in question have the same number of
+       elements and compatible element types. (Note that the restriction
+       involves compatible element types, not implicitly-convertible
+       element types: thus, a vector type with element type int may not be
+       implicitly converted to a vector type with element type unsigned
+       int.) This restriction, which is in line with specifications for
+       SIMD architectures such as AltiVec, may be relaxed using the flag
+       -flax-vector-conversions. This flag is intended only as a
+       compatibility measure and should not be used for new code.
+     * -Warray-bounds has been added and is now enabled by default for
+       -Wall . It produces warnings for array subscripts that can be
+       determined at compile time to be always out of bounds.
+       -Wno-array-bounds will disable the warning.
+     * The constructor and destructor function attributes now accept
+       optional priority arguments which control the order in which the
+       constructor and destructor functions are run.
+     * New [11]command-line options -Wtype-limits,
+       -Wold-style-declaration, -Wmissing-parameter-type, -Wempty-body,
+       -Wclobbered and -Wignored-qualifiers have been added for finer
+       control of the diverse warnings enabled by -Wextra.
+     * A new function attribute alloc_size has been added to mark up
+       malloc style functions. For constant sized allocations this can be
+       used to find out the size of the returned pointer using the
+       __builtin_object_size() function for buffer overflow checking and
+       similar. This supplements the already built-in malloc and calloc
+       constant size handling.
+     * Integer constants written in binary are now supported as a GCC
+       extension. They consist of a prefix 0b or 0B, followed by a
+       sequence of 0 and 1 digits.
+     * A new predefined macro __COUNTER__ has been added. It expands to
+       sequential integral values starting from 0. In conjunction with the
+       ## operator, this provides a convenient means to generate unique
+       identifiers.
+     * A new command-line option -fdirectives-only has been added. It
+       enables a special preprocessing mode which improves the performance
+       of applications like distcc and ccache.
+     * Fixed-point data types and operators have been added. They are
+       based on Chapter 4 of the Embedded-C specification (n1169.pdf).
+       Currently, only MIPS targets are supported.
+     * Decimal floating-point arithmetic based on draft ISO/IEC TR 24732,
+       N1241, is now supported as a GCC extension to C for targets
+       i[34567]86-*-linux-gnu, powerpc*-*-linux-gnu, s390*-ibm-linux-gnu,
+       and x86_64-*-linux-gnu. The feature introduces new data types
+       _Decimal32, _Decimal64, and _Decimal128 with constant suffixes DF,
+       DD, and DL.
+
+  C++
+
+     * [12]Experimental support for the upcoming ISO C++ standard, C++0x.
+     * -Wc++0x-compat has been added and is now enabled by default for
+       -Wall. It produces warnings for constructs whose meaning differs
+       between ISO C++ 1998 and C++0x.
+     * The -Wparentheses option now works for C++ as it does for C. It
+       warns if parentheses are omitted when operators with confusing
+       precedence are nested. It also warns about ambiguous else
+       statements. Since -Wparentheses is enabled by -Wall, this may cause
+       additional warnings with existing C++ code which uses -Wall. These
+       new warnings may be disabled by using -Wall -Wno-parentheses.
+     * The -Wmissing-declarations now works for C++ as it does for C.
+     * The -fvisibility-ms-compat flag was added, to make it easier to
+       port larger projects using shared libraries from Microsoft's Visual
+       Studio to ELF and Mach-O systems.
+     * C++ attribute handling has been overhauled for template arguments
+       (ie dependent types). In particular, __attribute__((aligned(T)));
+       works for C++ types.
+
+    Runtime Library (libstdc++)
+
+     * [13]Experimental support for the upcoming ISO C++ standard, C++0x.
+     * Support for TR1 mathematical special functions and regular
+       expressions. ([14]Implementation status of TR1)
+     * Default what implementations give more elaborate exception strings
+       for bad_cast, bad_typeid, bad_exception, and bad_alloc.
+     * Header dependencies have been streamlined, reducing unnecessary
+       includes and pre-processed bloat.
+     * Variadic template implementations of items in <tuple> and
+       <functional>.
+     * An experimental [15]parallel mode has been added. This is a
+       parallel implementation of many C++ Standard library algorithms,
+       like std::accumulate, std::for_each, std::transform, or std::sort,
+       to give but four examples. These algorithms can be substituted for
+       the normal (sequential) libstdc++ algorithms on a piecemeal basis,
+       or all existing algorithms can be transformed via the
+       -D_GLIBCXX_PARALLEL macro.
+     * Debug mode versions of classes in <unordered_set> and
+       <unordered_map>.
+     * Formal deprecation of <ext/hash_set> and <ext/hash_map>, which are
+       now <backward/hash_set> and <backward/hash_map>. This code:
+    #include <ext/hash_set>
+    __gnu_cxx::hash_set<int> s;
+
+       Can be transformed (in order of preference) to:
+    #include <tr1/unordered_set>
+    std::tr1::unordered_set<int> s;
+
+       or
+    #include <backward/hash_set>
+    __gnu_cxx::hash_set<int> s;
+
+       Similar transformations apply to __gnu_cxx::hash_map,
+       __gnu_cxx::hash_multimap, __gnu_cxx::hash_set,
+       __gnu_cxx::hash_multiset.
+
+  Fortran
+
+     * Due to the fact that the [16]GMP and [17]MPFR libraries are
+       required for all languages, Fortran is no longer special in this
+       regard and is available by default.
+     * The [18]-fexternal-blas option has been added, which generates
+       calls to BLAS routines for intrinsic matrix operations such as
+       matmul rather than using the built-in algorithms.
+     * Support to give a backtrace (compiler flag -fbacktrace or
+       environment variable GFORTRAN_ERROR_BACKTRACE; on glibc systems
+       only) or a core dump (-fdump-core, GFORTRAN_ERROR_DUMPCORE) when a
+       run-time error occured.
+     * GNU Fortran now defines __GFORTRAN__ when it runs the C
+       preprocessor (CPP).
+     * The [19]-finit-local-zero, -finit-real, -finit-integer,
+       -finit-character, and -finit-logical options have been added, which
+       can be used to initialize local variables.
+     * The intrinsic procedures [20]GAMMA and [21]LGAMMA have been added,
+       which calculate the Gamma function and its logarithm. Use EXTERNAL
+       gamma if you want to use your own gamma function.
+     * GNU Fortran now regards the backslash character as literal (as
+       required by the Fortran 2003 standard); using [22]-fbackslash GNU
+       Fortran interprets backslashes as C-style escape characters.
+     * The [23]interpretation of binary, octal and hexadecimal (BOZ)
+       literal constants has been changed. Before they were always
+       interpreted as integer; now they are bit-wise transferred as
+       argument of INT, REAL, DBLE and CMPLX as required by the Fortran
+       2003 standard, and for real and complex variables in DATA
+       statements or when directly assigned to real and complex variables.
+       Everywhere else and especially in expressions they are still
+       regarded as integer constants.
+     * Fortran 2003 support has been extended:
+          + Intrinsic statements IMPORT, PROTECTED, VALUE and VOLATILE
+          + Pointer intent
+          + Intrinsic module ISO_ENV_FORTRAN
+          + Interoperability with C (ISO C Bindings)
+          + ABSTRACT INTERFACES and PROCEDURE statements (without POINTER
+            attribute)
+          + Fortran 2003 BOZ
+
+  Java (GCJ)
+
+     * GCJ now uses the Eclipse Java compiler for its Java parsing needs.
+       This enables the use of all 1.5 language features, and fixes most
+       existing front end bugs.
+     * libgcj now supports all 1.5 language features which require runtime
+       support: foreach, enum, annotations, generics, and auto-boxing.
+     * We've made many changes to the tools shipped with gcj.
+          + The old jv-scan tool has been removed. This tool never really
+            worked properly. There is no replacement.
+          + gcjh has been rewritten. Some of its more obscure options no
+            longer work, but are still recognized in an attempt at
+            compatibility. gjavah is a new program with similar
+            functionality but different command-line options.
+          + grmic and grmiregistry have been rewritten. grmid has been
+            added.
+          + gjar replaces the old fastjar.
+          + gjarsigner (used for signing jars), gkeytool (used for key
+            management), gorbd (for CORBA), gserialver (computes
+            serialization UIDs), and gtnameserv (also for CORBA) are now
+            installed.
+     * The ability to dump the contents of the java run time heap to a
+       file for off-line analysis has been added. The heap dumps may be
+       analyzed with the new gc-analyze tool. They may be generated on
+       out-of-memory conditions or on demand and are controlled by the new
+       run time class gnu.gcj.util.GCInfo.
+     * java.util.TimeZone can now read files from /usr/share/zoneinfo to
+       provide correct, updated, timezone information. This means that
+       packagers no longer have to update libgcj when a time zone change
+       is published.
+
+New Targets and Target Specific Improvements
+
+  IA-32/x86-64
+
+     * Tuning for Intel Core 2 processors is available via -mtune=core2
+       and -march=core2.
+     * Tuning for AMD Geode processors is available via -mtune=geode and
+       -march=geode.
+     * Code generation of block move (memcpy) and block set (memset) was
+       rewritten. GCC can now pick the best algorithm (loop, unrolled
+       loop, instruction with rep prefix or a library call) based on the
+       size of the block being copied and the CPU being optimized for. A
+       new option -minline-stringops-dynamically has been added. With this
+       option string operations of unknown size are expanded such that
+       small blocks are copied by in-line code, while for large blocks a
+       library call is used. This results in faster code than
+       -minline-all-stringops when the library implementation is capable
+       of using cache hierarchy hints. The heuristic choosing the
+       particular algorithm can be overwritten via -mstringop-strategy.
+       Newly also memset of values different from 0 is inlined.
+     * GCC no longer places the cld instruction before string operations.
+       Both i386 and x86-64 ABI documents mandate the direction flag to be
+       clear at the entry of a function. It is now invalid to set the flag
+       in asm statement without reseting it afterward.
+     * Support for SSSE3 built-in functions and code generation are
+       available via -mssse3.
+     * Support for SSE4.1 built-in functions and code generation are
+       available via -msse4.1.
+     * Support for SSE4.2 built-in functions and code generation are
+       available via -msse4.2.
+     * Both SSE4.1 and SSE4.2 support can be enabled via -msse4.
+     * A new set of options -mpc32, -mpc64 and -mpc80 have been added to
+       allow explicit control of x87 floating point precision.
+     * Support for __float128 (TFmode) IEEE quad type and corresponding
+       TCmode IEEE complex quad type is available via the soft-fp library
+       on x86_64 targets. This includes basic arithmetic operations
+       (addition, subtraction, negation, multiplication and division) on
+       __float128 real and TCmode complex values, the full set of IEEE
+       comparisons between __float128 values, conversions to and from
+       float, double and long double floating point types, as well as
+       conversions to and from signed or unsigned integer, signed or
+       unsigned long integer and signed or unsigned quad (TImode) integer
+       types. Additionally, all operations generate the full set of IEEE
+       exceptions and support the full set of IEEE rounding modes.
+     * GCC can now utilize the ACML library for vectorizing calls to a set
+       of C99 functions on x86_64 if -mveclibabi=acml is specified and you
+       link to an ACML ABI compatible library.
+
+  ARM
+
+     * Compiler and Library support for Thumb-2 and the ARMv7 architecture
+       has been added.
+
+  CRIS
+
+    New features
+
+     * Compiler and Library support for the CRIS v32 architecture, as
+       found in Axis Communications ETRAX FS and ARTPEC-3 chips, has been
+       added.
+
+    Configuration changes
+
+     * The cris-*-elf target now includes support for CRIS v32, including
+       libraries, through the -march=v32 option.
+     * A new crisv32-*-elf target defaults to generate code for CRIS v32.
+     * A new crisv32-*-linux* target defaults to generate code for CRIS
+       v32.
+     * The cris-*-aout target has been obsoleted.
+
+    Improved support for built-in functions
+
+     * GCC can now use the lz and swapwbr instructions to implement the
+       __builtin_clz, __builtin_ctz and __builtin_ffs family of functions.
+     * __builtin_bswap32 is now implemented using the swapwb instruction,
+       when available.
+
+  m68k and ColdFire
+
+    New features
+
+     * Support for several new ColdFire processors has been added. You can
+       generate code for them using the new -mcpu option.
+     * All targets now support ColdFire processors.
+     * m68k-uclinux targets have improved support for C++ constructors and
+       destructors, and for shared libraries.
+     * It is now possible to set breakpoints on the first or last line of
+       a function, even if there are no statements on that line.
+
+    Optimizations
+
+     * Support for sibling calls has been added.
+     * More use is now made of the ColdFire mov3q instruction.
+     * __builtin_clz is now implemented using the ff1 ColdFire
+       instruction, when available.
+     * GCC now honors the -m68010 option. 68010 code now uses clr rather
+       than move to zero volatile memory.
+     * 68020 targets and above can now use symbol(index.size*scale)
+       addresses for indexed array accesses. Earlier compilers would
+       always load the symbol into a base register first.
+
+    Configuration changes
+
+     * All m68k and ColdFire targets now allow the default processor to be
+       set at configure time using --with-cpu.
+     * A --with-arch configuration option has been added. This option
+       allows you to restrict a target to ColdFire or non-ColdFire
+       processors.
+
+    Preprocessor macros
+
+     * An __mcfv*__ macro is now defined for all ColdFire targets.
+       (Earlier versions of GCC only defined __mcfv4e__.)
+     * __mcf_cpu_*, __mcf_family_* and __mcffpu__ macros have been added.
+     * All targets now define __mc68010 and __mc68010__ when generating
+       68010 code.
+
+    Command-line changes
+
+     * New command-line options -march, -mcpu, -mtune and -mhard-float
+       have been added. These options apply to both m68k and ColdFire
+       targets.
+     * -mno-short, -mno-bitfield and -mno-rtd are now accepted as negative
+       versions of -mshort, etc.
+     * -fforce-addr has been removed. It is now ignored by the compiler.
+
+    Other improvements
+
+     * ColdFire targets now try to maintain a 4-byte-aligned stack where
+       possible.
+     * m68k-uclinux targets now try to avoid situations that lead to the
+       load-time error: BINFMT_FLAT: reloc outside program.
+
+  MIPS
+
+    Changes to existing configurations
+
+     * libffi and libjava now support all three GNU/Linux ABIs: o32, n32
+       and n64. Every GNU/Linux configuration now builds these libraries
+       by default.
+     * GNU/Linux configurations now generate -mno-shared code unless
+       overridden by -fpic, -fPIC, -fpie or -fPIE.
+     * mipsisa32*-linux-gnu configurations now generate hard-float code by
+       default, just like other mipsisa32* and mips*-linux-gnu
+       configurations. You can build a soft-float version of any
+       mips*-linux-gnu configuration by passing --with-float=soft to
+       configure.
+     * mips-wrs-vxworks now supports run-time processes (RTPs).
+
+    Changes to existing command-line options
+
+     * The -march and -mtune options no longer accept 24k as a processor
+       name. Please use 24kc, 24kf2_1 or 24kf1_1 instead.
+     * The -march and -mtune options now accept 24kf2_1, 24kef2_1 and
+       34kf2_1 as synonyms for 24kf, 24kef and 34kf respectively. The
+       options also accept 24kf1_1, 24kef1_1 and 34kf1_1 as synonyms for
+       24kx, 24kex and 34kx.
+
+    New configurations
+
+   GCC now supports the following configurations:
+     * mipsisa32r2*-linux-gnu*, which generates MIPS32 revision 2 code by
+       default. Earlier releases also recognized this configuration, but
+       they treated it in the same way as mipsisa32*-linux-gnu*. Note that
+       you can customize any mips*-linux-gnu* configuration to a
+       particular ISA or processor by passing an appropriate --with-arch
+       option to configure.
+     * mipsisa*-sde-elf*, which provides compatibility with MIPS
+       Technologies' SDE toolchains. The configuration uses the SDE
+       libraries by default, but you can use it like other newlib-based
+       ELF configurations by passing --with-newlib to configure. It is the
+       only configuration besides mips64vr*-elf* to build MIPS16 as well
+       as non-MIPS16 libraries.
+     * mipsisa*-elfoabi*, which is similar to the general mipsisa*-elf*
+       configuration, but uses the o32 and o64 ABIs instead of the 32-bit
+       and 64-bit forms of the EABI.
+
+    New processors and application-specific extensions
+
+     * Support for the SmartMIPS ASE is available through the new
+       -msmartmips option.
+     * Support for revision 2 of the DSP ASE is available through the new
+       -mdspr2 option. A new preprocessor macro called __mips_dsp_rev
+       indicates the revision of the ASE in use.
+     * Support for the 4KS and 74K families of processors is available
+       through the -march and -mtune options.
+
+    Improved support for built-in functions
+
+     * GCC can now use load-linked, store-conditional and sync
+       instructions to implement atomic built-in functions such as
+       __sync_fetch_and_add. The memory reference must be 4 bytes wide for
+       32-bit targets and either 4 or 8 bytes wide for 64-bit targets.
+     * GCC can now use the clz and dclz instructions to implement the
+       __builtin_ctz and __builtin_ffs families of functions.
+     * There is a new __builtin___clear_cache function for flushing the
+       instruction cache. GCC expands this function inline on MIPS32
+       revision 2 targets, otherwise it calls the function specified by
+       -mcache-flush-func.
+
+    MIPS16 improvements
+
+     * GCC can now compile objects that contain a mixture of MIPS16 and
+       non-MIPS16 code. There are two new attributes, mips16 and nomips16,
+       for specifying which mode a function should use.
+     * A new option called -minterlink-mips16 makes non-MIPS16 code
+       link-compatible with MIPS16 code.
+     * After many bug fixes, the long-standing MIPS16 -mhard-float support
+       should now work fairly reliably.
+     * GCC can now use the MIPS16e save and restore instructions.
+     * -fsection-anchors now works in MIPS16 mode. MIPS16 code compiled
+       with -G0 -fsection-anchors is often smaller than code compiled with
+       -G8. However, please note that you must usually compile all objects
+       in your application with the same -G option; see the documentation
+       of -G for details.
+     * A new option called-mcode-readable specifies which instructions are
+       allowed to load from the code segment. -mcode-readable=yes is the
+       default and says that any instruction may load from the code
+       segment. The other alternatives are -mcode-readable=pcrel, which
+       says that only PC-relative MIPS16 instructions may load from the
+       code segment, and -mcode-readable=no, which says that no
+       instruction may do so. Please see the documentation for more
+       details, including example uses.
+
+    Small-data improvements
+
+   There are three new options for controlling small data:
+     * -mno-extern-sdata, which disables small-data accesses for
+       externally-defined variables. Code compiled with -Gn
+       -mno-extern-sdata will be link-compatible with any -G setting
+       between -G0 and -Gn inclusive.
+     * -mno-local-sdata, which disables the use of small-data sections for
+       data that is not externally visible. This option can be a useful
+       way of reducing small-data usage in less performance-critical parts
+       of an application.
+     * -mno-gpopt, which disables the use of the $gp register while still
+       honoring the -G limit when placing externally-visible data. This
+       option implies -mno-extern-sdata and -mno-local-sdata and it can be
+       useful in situations where $gp does not necessarily hold the
+       expected value.
+
+    Miscellaneous improvements
+
+     * There is a new option called -mbranch-cost for tweaking the
+       perceived cost of branches.
+     * If GCC is configured to use a version of GAS that supports the
+       .gnu_attribute directive, it will use that directive to record
+       certain properties of the output code. .gnu_attribute is new to GAS
+       2.18.
+     * There are two new function attributes, near and far, for overriding
+       the command-line setting of -mlong-calls on a function-by-function
+       basis.
+     * -mfp64, which previously required a 64-bit target, now works with
+       MIPS32 revision 2 targets as well. The mipsisa*-elfoabi* and
+       mipsisa*-sde-elf* configurations provide suitable library support.
+     * GCC now recognizes the -mdmx and -mmt options and passes them down
+       to the assembler. It does nothing else with the options at present.
+
+  SPU (Synergistic Processor Unit) of the Cell Broadband Engine Architecture
+  (BEA)
+
+     * Support has been added for this new architecture.
+
+  RS6000 (POWER/PowerPC)
+
+     * Support for the PowerPC 750CL paired-single instructions has been
+       added with a new powerpc-*-linux*paired* target configuration. It
+       is enabled by an associated -mpaired option and can be accessed
+       using new built-in functions.
+     * Support for auto-detecting architecture and system configuration to
+       auto-select processor optimization tuning.
+     * Support for VMX on AIX 5.3 has been added.
+     * Support for AIX Version 6.1 has been added.
+
+  S/390, zSeries and System z9
+
+     * Support for the IBM System z9 EC/BC processor (z9 GA3) has been
+       added. When using the -march=z9-ec option, the compiler will
+       generate code making use of instructions provided by the decimal
+       floating point facility and the floating point conversion facility
+       (pfpo). Besides the instructions used to implement decimal floating
+       point operations these facilities also contain instructions to move
+       between general purpose and floating point registers and to modify
+       and copy the sign-bit of floating point values.
+     * When the -march=z9-ec option is used the new
+       -mhard-dfp/-mno-hard-dfp options can be used to specify whether the
+       decimal floating point hardware instructions will be used or not.
+       If none of them is given the hardware support is enabled by
+       default.
+     * The -mstack-guard option can now be omitted when using stack
+       checking via -mstack-size in order to let GCC choose a sensible
+       stack guard value according to the frame size of each function.
+     * Various changes to improve performance of generated code have been
+       implemented, including:
+          + The condition code set by an add logical with carry
+            instruction is now available for overflow checks like: a + b +
+            carry < b.
+          + The test data class instruction is now used to implement
+            sign-bit and infinity checks of binary and decimal floating
+            point numbers.
+
+  Xtensa
+
+     * Stack unwinding for exception handling now uses by default a
+       specialized version of DWARF unwinding. This is not
+       binary-compatible with the setjmp/longjmp (sjlj) unwinding used for
+       Xtensa with previous versions of GCC.
+     * For Xtensa processors that include the Conditional Store option,
+       the built-in functions for atomic memory access are now implemented
+       using S32C1I instructions.
+     * If the Xtensa NSA option is available, GCC will use it to implement
+       the __builtin_ctz and __builtin_clz functions.
+
+Documentation improvements
+
+     * Existing libstdc++ documentation has been edited and restructured
+       into a single DocBook XML manual. The results can be viewed online
+       [24]here.
+
+Other significant improvements
+
+     * The compiler's --help command-line option has been extended so that
+       it now takes an optional set of arguments. These arguments restrict
+       the information displayed to specific classes of command-line
+       options, and possibly only a subset of those options. It is also
+       now possible to replace the descriptive text associated with each
+       displayed option with an indication of its current value, or for
+       binary options, whether it has been enabled or disabled.
+       Here are some examples. The following will display all the options
+       controlling warning messages:
+      --help=warnings
+
+       Whereas this will display all the undocumented, target specific
+       options:
+      --help=target,undocumented
+
+       This sequence of commands will display the binary optimizations
+       that are enabled by -O3:
+      gcc -c -Q -O3 --help=optimizers > /tmp/O3-opts
+      gcc -c -Q -O2 --help=optimizers > /tmp/O2-opts
+      diff /tmp/O2-opts /tmp/O3-opts | grep enabled
+
+     * The configure options --with-pkgversion and --with-bugurl have been
+       added. These allow distributors of GCC to include a
+       distributor-specific string in manuals and --version output and to
+       specify the URL for reporting bugs in their versions of GCC.
+
+GCC 4.3.1
+
+   This is the [25]list of problem reports (PRs) from GCC's bug tracking
+   system that are known to be fixed in the 4.3.1 release. This list might
+   not be complete (that is, it is possible that some PRs that have been
+   fixed are not listed here).
+
+Target Specific Changes
+
+  IA-32/x86-64
+
+    ABI changes
+
+     * Starting with GCC 4.3.1, decimal floating point variables are
+       aligned to their natural boundaries when they are passed on the
+       stack for i386.
+
+    Command-line changes
+
+     * Starting with GCC 4.3.1, the -mcld option has been added to
+       automatically generate a cld instruction in the prologue of
+       functions that use string instructions. This option is used for
+       backward compatibility on some operating systems and can be enabled
+       by default for 32-bit x86 targets by configuring GCC with the
+       --enable-cld configure option.
+
+GCC 4.3.2
+
+   This is the [26]list of problem reports (PRs) from GCC's bug tracking
+   system that are known to be fixed in the 4.3.2 release. This list might
+   not be complete (that is, it is possible that some PRs that have been
+   fixed are not listed here).
+
+GCC 4.3.3
+
+   This is the [27]list of problem reports (PRs) from GCC's bug tracking
+   system that are known to be fixed in the 4.3.3 release. This list might
+   not be complete (that is, it is possible that some PRs that have been
+   fixed are not listed here).
+
+GCC 4.3.4
+
+   This is the [28]list of problem reports (PRs) from GCC's bug tracking
+   system that are known to be fixed in the 4.3.4 release. This list might
+   not be complete (that is, it is possible that some PRs that have been
+   fixed are not listed here).
+
+GCC 4.3.5
+
+   This is the [29]list of problem reports (PRs) from GCC's bug tracking
+   system that are known to be fixed in the 4.3.5 release. This list might
+   not be complete (that is, it is possible that some PRs that have been
+   fixed are not listed here).
+
+GCC 4.3.6
+
+   This is the [30]list of problem reports (PRs) from GCC's bug tracking
+   system that are known to be fixed in the 4.3.6 release. This list might
+   not be complete (that is, it is possible that some PRs that have been
+   fixed are not listed here).
+
+
+    For questions related to the use of GCC, please consult these web
+    pages and the [31]GCC manuals. If that fails, the
+    [32]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [33]gcc@gcc.gnu.org. All of [34]our lists have public
+    archives.
+
+   Copyright (C) [35]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
+
+   These pages are [36]maintained by the GCC team. Last modified
+   2011-06-27[37].
+
+References
+
+   1. http://gcc.gnu.org/gcc-4.3/changes.html#4.3.5
+   2. http://gmplib.org/
+   3. http://www.mpfr.org/
+   4. http://gcc.gnu.org/install/prerequisites.html
+   5. http://gcc.gnu.org/ml/gcc-announce/2001/msg00000.html
+   6. http://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#Warning-Options
+   7. http://gcc.gnu.org/gcc-4.3/porting_to.html
+   8. http://www.mpfr.org/
+   9. http://www.mpfr.org/
+  10. http://www.mpfr.org/
+  11. http://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+  12. http://gcc.gnu.org/gcc-4.3/cxx0x_status.html
+  13. http://gcc.gnu.org/gcc-4.3/cxx0x_status.html
+  14. http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt01ch01.html#m anual.intro.status.standard.tr1
+  15. http://gcc.gnu.org/onlinedocs/libstdc++/manual/parallel_mode.html
+  16. http://gmplib.org/
+  17. http://www.mpfr.org/
+  18. http://gcc.gnu.org/onlinedocs/gfortran/Code-Gen-Options.html#Code-Gen-Options
+  19. http://gcc.gnu.org/onlinedocs/gfortran/Code-Gen-Options.html#index-g_t_0040code_007bfinit-local-zero_007d-167
+  20. http://gcc.gnu.org/onlinedocs/gcc-4.3.0/gfortran/GAMMA.html
+  21. http://gcc.gnu.org/onlinedocs/gcc-4.3.0/gfortran/LGAMMA.html
+  22. http://gcc.gnu.org/onlinedocs/gfortran/Fortran-Dialect-Options.html
+  23. http://gcc.gnu.org/onlinedocs/gfortran/BOZ-literal-constants.html
+  24. http://gcc.gnu.org/onlinedocs/libstdc++/
+  25. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.3.1
+  26. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.3.2
+  27. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.3.3
+  28. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.3.4
+  29. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.3.5
+  30. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.3.6
+  31. http://gcc.gnu.org/onlinedocs/
+  32. mailto:gcc-help@gcc.gnu.org
+  33. mailto:gcc@gcc.gnu.org
+  34. http://gcc.gnu.org/lists.html
+  35. http://www.fsf.org/
+  36. http://gcc.gnu.org/about.html
+  37. http://validator.w3.org/check/referer
+======================================================================
+http://gcc.gnu.org/gcc-4.2/index.html
+
+                             GCC 4.2 Release Series
+
+   May 19, 2008
+
+   The [1]GNU project and the GCC developers are pleased to announce the
+   release of GCC 4.2.4.
+
+   This release is a bug-fix release, containing fixes for regressions in
+   GCC 4.2.3 relative to previous releases of GCC.
+
+Release History
+
+   GCC 4.2.4
+          May 19, 2008 ([2]changes)
+
+   GCC 4.2.3
+          February 1, 2008 ([3]changes)
+
+   GCC 4.2.2
+          October 7, 2007 ([4]changes)
+
+   GCC 4.2.1
+          July 18, 2007 ([5]changes)
+
+   GCC 4.2.0
+          May 13, 2007 ([6]changes)
+
+References and Acknowledgements
+
+   GCC used to stand for the GNU C Compiler, but since the compiler
+   supports several other languages aside from C, it now stands for the
+   GNU Compiler Collection.
+
+   A list of [7]successful builds is updated as new information becomes
+   available.
+
+   The GCC developers would like to thank the numerous people that have
+   contributed new features, improvements, bug fixes, and other changes as
+   well as test results to GCC. This [8]amazing group of volunteers is
+   what makes GCC successful.
+
+   For additional information about GCC please refer to the [9]GCC project
+   web site or contact the [10]GCC development mailing list.
+
+   To obtain GCC please use [11]our mirror sites or [12]our SVN server.
+
+
+    For questions related to the use of GCC, please consult these web
+    pages and the [13]GCC manuals. If that fails, the
+    [14]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [15]gcc@gcc.gnu.org. All of [16]our lists have public
+    archives.
+
+   Copyright (C) [17]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
+
+   These pages are [18]maintained by the GCC team. Last modified
+   2011-04-25[19].
 
 References
 
@@ -77,26 +985,25 @@ References
    3. http://gcc.gnu.org/gcc-4.2/changes.html
    4. http://gcc.gnu.org/gcc-4.2/changes.html
    5. http://gcc.gnu.org/gcc-4.2/changes.html
-   6. http://gcc.gnu.org/gcc-4.2/buildstat.html
-   7. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
-   8. http://gcc.gnu.org/index.html
-   9. mailto:gcc@gcc.gnu.org
-  10. http://gcc.gnu.org/mirrors.html
-  11. http://www.gnu.org/order/ftp.html
+   6. http://gcc.gnu.org/gcc-4.2/changes.html
+   7. http://gcc.gnu.org/gcc-4.2/buildstat.html
+   8. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
+   9. http://gcc.gnu.org/index.html
+  10. mailto:gcc@gcc.gnu.org
+  11. http://gcc.gnu.org/mirrors.html
   12. http://gcc.gnu.org/svn.html
-  13. mailto:gnu@gnu.org
-  14. http://www.gnu.org/home.html#ContactInfo
-  15. http://gcc.gnu.org/about.html
-  16. http://gcc.gnu.org/onlinedocs/
-  17. mailto:gcc-help@gcc.gnu.org
-  18. mailto:gcc@gnu.org
-  19. mailto:gcc@gcc.gnu.org
-  20. http://gcc.gnu.org/lists.html
-  21. http://validator.w3.org/check/referer
+  13. http://gcc.gnu.org/onlinedocs/
+  14. mailto:gcc-help@gcc.gnu.org
+  15. mailto:gcc@gcc.gnu.org
+  16. http://gcc.gnu.org/lists.html
+  17. http://www.fsf.org/
+  18. http://gcc.gnu.org/about.html
+  19. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-4.2/changes.html
-                           GCC 4.2 Release Series
-                      Changes, New Features, and Fixes
+
+                             GCC 4.2 Release Series
+                        Changes, New Features, and Fixes
 
 Caveats
 
@@ -144,7 +1051,7 @@ New Languages and Language specific improvements
        for most cases which currently use -fno-unit-at-a-time. The
        -fno-unit-at-a-time option will be removed in some future version
        of GCC. If you know of a case which requires -fno-unit-at-a-time
-       which is not fixed by -fno-toplevel-reorder, please [3]open a bug
+       which is not fixed by -fno-toplevel-reorder, please open a bug
        report.
 
   C family
@@ -220,8 +1127,7 @@ New Languages and Language specific improvements
      * Added support for TR1 <random>, <complex>, and C compatibility
        headers. In addition, a lock-free version of shared_ptr was
        contributed as part of Phillip Jordan's Google Summer of Code
-       project on lock-free containers. The implementation status for TR1
-       can be tracked in [4]tr1.html
+       project on lock-free containers. ([3]Implementation status of TR1)
      * In association with the Summer of Code work on lock-free
        containers, the interface for atomic builtins was adjusted,
        creating simpler alternatives for non-threaded code paths. Also,
@@ -239,7 +1145,7 @@ New Languages and Language specific improvements
        (basic_tree, tree, trie), lists (list_update), and both
        collision-chaining and probing hash-based containers
        (basic_hash_table, cc_hash_table, gp_hash_table). More details per
-       the [5]documentation.
+       the [4]documentation.
      * The implementation of the debug mode was modified, whereby the
        debug namespaces were nested inside of namespace std and namespace
        __gnu_cxx in order to resolve some long standing corner cases
@@ -272,7 +1178,7 @@ New Languages and Language specific improvements
        gfortran used 8-byte record markers by default (on most systems).
        In order to change the length of the record markers, e.g. to read
        unformatted files created by older gfortran versions, the
-       [6]-frecord-marker=8 option can be used.
+       [5]-frecord-marker=8 option can be used.
 
   Java (GCJ)
 
@@ -283,7 +1189,7 @@ New Languages and Language specific improvements
        memory than if the shared version of libgcj were used. However
        caution should be used as it can also cause essential parts of the
        library to be omitted. Some of these issues are discussed in:
-       [7]http://gcc.gnu.org/wiki/Statically_linking_libgcj
+       [6]http://gcc.gnu.org/wiki/Statically_linking_libgcj
      * fastjar is no longer bundled with GCC. To build libgcj, you will
        need either InfoZIP (both zip and unzip) or an external jar
        program. In the former case, the GCC build will install a jar shell
@@ -387,47 +1293,40 @@ Other significant improvements
        achieve the same effect, and works for all native and cross
        settings.
 
-   Please send FSF & GNU inquiries & questions to [8]gnu@gnu.org. There
-   are also [9]other ways to contact the FSF.
-
-   These pages are maintained by [10]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [11]GCC manuals. If that fails, the
-    [12]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [13]gcc@gnu.org or [14]gcc@gcc.gnu.org.
-    All of our lists have [15]public archives.
+    pages and the [7]GCC manuals. If that fails, the
+    [8]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [9]gcc@gcc.gnu.org. All of [10]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [11]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2008-03-22 [16]Valid XHTML 1.0
+   These pages are [12]maintained by the GCC team. Last modified
+   2011-04-25[13].
 
 References
 
    1. http://gcc.gnu.org/projects/gomp/
    2. http://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
-   3. http://gcc.gnu.org/bugs.html
-   4. http://gcc.gnu.org/onlinedocs/libstdc++/ext/tr1.html
-   5. http://gcc.gnu.org/onlinedocs/libstdc++/ext/pb_ds/index.html
-   6. http://gcc.gnu.org/onlinedocs/gfortran/Runtime-Options.html
-   7. http://gcc.gnu.org/wiki/Statically_linking_libgcj
-   8. mailto:gnu@gnu.org
-   9. http://www.gnu.org/home.html#ContactInfo
-  10. http://gcc.gnu.org/about.html
-  11. http://gcc.gnu.org/onlinedocs/
-  12. mailto:gcc-help@gcc.gnu.org
-  13. mailto:gcc@gnu.org
-  14. mailto:gcc@gcc.gnu.org
-  15. http://gcc.gnu.org/lists.html
-  16. http://validator.w3.org/check/referer
+   3. http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt01ch01.html#manual.intro.status.standard.tr1
+   4. http://gcc.gnu.org/onlinedocs/libstdc++/ext/pb_ds/index.html
+   5. http://gcc.gnu.org/onlinedocs/gfortran/Runtime-Options.html
+   6. http://gcc.gnu.org/wiki/Statically_linking_libgcj
+   7. http://gcc.gnu.org/onlinedocs/
+   8. mailto:gcc-help@gcc.gnu.org
+   9. mailto:gcc@gcc.gnu.org
+  10. http://gcc.gnu.org/lists.html
+  11. http://www.fsf.org/
+  12. http://gcc.gnu.org/about.html
+  13. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-4.1/index.html
-                           GCC 4.1 Release Series
+
+                             GCC 4.1 Release Series
 
    February 13, 2007
 
@@ -465,28 +1364,22 @@ References and Acknowledgements
    For additional information about GCC please refer to the [7]GCC project
    web site or contact the [8]GCC development mailing list.
 
-   To obtain GCC please use [9]our mirror sites, one of the [10]GNU mirror
-   sites, or [11]our SVN server.
-
-   Please send FSF & GNU inquiries & questions to [12]gnu@gnu.org. There
-   are also [13]other ways to contact the FSF.
-
-   These pages are maintained by [14]the GCC team.
+   To obtain GCC please use [9]our mirror sites or [10]our SVN server.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [15]GCC manuals. If that fails, the
-    [16]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [17]gcc@gnu.org or [18]gcc@gcc.gnu.org.
-    All of our lists have [19]public archives.
+    pages and the [11]GCC manuals. If that fails, the
+    [12]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [13]gcc@gcc.gnu.org. All of [14]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [15]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [20]Valid XHTML 1.0
+   These pages are [16]maintained by the GCC team. Last modified
+   2011-04-25[17].
 
 References
 
@@ -499,21 +1392,19 @@ References
    7. http://gcc.gnu.org/index.html
    8. mailto:gcc@gcc.gnu.org
    9. http://gcc.gnu.org/mirrors.html
-  10. http://www.gnu.org/order/ftp.html
-  11. http://gcc.gnu.org/svn.html
-  12. mailto:gnu@gnu.org
-  13. http://www.gnu.org/home.html#ContactInfo
-  14. http://gcc.gnu.org/about.html
-  15. http://gcc.gnu.org/onlinedocs/
-  16. mailto:gcc-help@gcc.gnu.org
-  17. mailto:gcc@gnu.org
-  18. mailto:gcc@gcc.gnu.org
-  19. http://gcc.gnu.org/lists.html
-  20. http://validator.w3.org/check/referer
+  10. http://gcc.gnu.org/svn.html
+  11. http://gcc.gnu.org/onlinedocs/
+  12. mailto:gcc-help@gcc.gnu.org
+  13. mailto:gcc@gcc.gnu.org
+  14. http://gcc.gnu.org/lists.html
+  15. http://www.fsf.org/
+  16. http://gcc.gnu.org/about.html
+  17. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-4.1/changes.html
-                           GCC 4.1 Release Series
-                      Changes, New Features, and Fixes
+
+                             GCC 4.1 Release Series
+                        Changes, New Features, and Fixes
 
    The latest release in the 4.1 release series is [1]GCC 4.1.2.
 
@@ -1039,25 +1930,20 @@ GCC 4.1.2
    continue to optimize as before, you must add a throw() clause to the
    declaration of f to make clear that it does not throw exceptions.
 
-   Please send FSF & GNU inquiries & questions to [7]gnu@gnu.org. There
-   are also [8]other ways to contact the FSF.
-
-   These pages are maintained by [9]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [10]GCC manuals. If that fails, the
-    [11]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [12]gcc@gnu.org or [13]gcc@gcc.gnu.org.
-    All of our lists have [14]public archives.
+    pages and the [7]GCC manuals. If that fails, the
+    [8]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [9]gcc@gcc.gnu.org. All of [10]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [11]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-09-19 [15]Valid XHTML 1.0
+   These pages are [12]maintained by the GCC team. Last modified
+   2011-04-25[13].
 
 References
 
@@ -1067,18 +1953,17 @@ References
    4. http://developer.classpath.org/doc/
    5. http://gcc.gnu.org/onlinedocs/gcc-4.1.0/gcc/Atomic-Builtins.html
    6. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.1.2
-   7. mailto:gnu@gnu.org
-   8. http://www.gnu.org/home.html#ContactInfo
-   9. http://gcc.gnu.org/about.html
-  10. http://gcc.gnu.org/onlinedocs/
-  11. mailto:gcc-help@gcc.gnu.org
-  12. mailto:gcc@gnu.org
-  13. mailto:gcc@gcc.gnu.org
-  14. http://gcc.gnu.org/lists.html
-  15. http://validator.w3.org/check/referer
+   7. http://gcc.gnu.org/onlinedocs/
+   8. mailto:gcc-help@gcc.gnu.org
+   9. mailto:gcc@gcc.gnu.org
+  10. http://gcc.gnu.org/lists.html
+  11. http://www.fsf.org/
+  12. http://gcc.gnu.org/about.html
+  13. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-4.0/index.html
-                           GCC 4.0 Release Series
+
+                             GCC 4.0 Release Series
 
    January 31, 2007
 
@@ -1122,28 +2007,22 @@ References and Acknowledgements
    For additional information about GCC please refer to the [9]GCC project
    web site or contact the [10]GCC development mailing list.
 
-   To obtain GCC please use [11]our mirror sites, one of the [12]GNU
-   mirror sites, or [13]our SVN server.
-
-   Please send FSF & GNU inquiries & questions to [14]gnu@gnu.org. There
-   are also [15]other ways to contact the FSF.
-
-   These pages are maintained by [16]the GCC team.
+   To obtain GCC please use [11]our mirror sites, or [12]our SVN server.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [17]GCC manuals. If that fails, the
-    [18]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [19]gcc@gnu.org or [20]gcc@gcc.gnu.org.
-    All of our lists have [21]public archives.
+    pages and the [13]GCC manuals. If that fails, the
+    [14]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [15]gcc@gcc.gnu.org. All of [16]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [17]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [22]Valid XHTML 1.0
+   These pages are [18]maintained by the GCC team. Last modified
+   2011-04-25[19].
 
 References
 
@@ -1158,21 +2037,19 @@ References
    9. http://gcc.gnu.org/index.html
   10. mailto:gcc@gcc.gnu.org
   11. http://gcc.gnu.org/mirrors.html
-  12. http://www.gnu.org/order/ftp.html
-  13. http://gcc.gnu.org/svn.html
-  14. mailto:gnu@gnu.org
-  15. http://www.gnu.org/home.html#ContactInfo
-  16. http://gcc.gnu.org/about.html
-  17. http://gcc.gnu.org/onlinedocs/
-  18. mailto:gcc-help@gcc.gnu.org
-  19. mailto:gcc@gnu.org
-  20. mailto:gcc@gcc.gnu.org
-  21. http://gcc.gnu.org/lists.html
-  22. http://validator.w3.org/check/referer
+  12. http://gcc.gnu.org/svn.html
+  13. http://gcc.gnu.org/onlinedocs/
+  14. mailto:gcc-help@gcc.gnu.org
+  15. mailto:gcc@gcc.gnu.org
+  16. http://gcc.gnu.org/lists.html
+  17. http://www.fsf.org/
+  18. http://gcc.gnu.org/about.html
+  19. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-4.0/changes.html
-                           GCC 4.0 Release Series
-                      Changes, New Features, and Fixes
+
+                             GCC 4.0 Release Series
+                        Changes, New Features, and Fixes
 
    The latest release in the 4.0 release series is [1]GCC 4.0.4.
 
@@ -1301,7 +2178,7 @@ class __attribute__ ((visibility("hidden"))) Foo
        used outside a binary as hidden, one can completely avoid PLT
        indirection overheads during their usage by the compiler. You can
        find out more about the advantages of this at
-       [6]http://people.redhat.com/drepper/dsohowto.pdf
+       [6]http://www.akkadia.org/drepper/dsohowto.pdf
      * The -fvisibility-inlines-hidden option has been added which marks
        all inlineable functions as having hidden ELF visibility, thus
        removing their symbol and typeinfo from the exported symbol table
@@ -1659,25 +2536,20 @@ GCC 4.0.4
    binary compatibility with previous 4.0.x releases. For most users, the
    GCC team recommends that version 4.1.1 or later be used instead."
 
-   Please send FSF & GNU inquiries & questions to [16]gnu@gnu.org. There
-   are also [17]other ways to contact the FSF.
-
-   These pages are maintained by [18]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [19]GCC manuals. If that fails, the
-    [20]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [21]gcc@gnu.org or [22]gcc@gcc.gnu.org.
-    All of our lists have [23]public archives.
+    pages and the [16]GCC manuals. If that fails, the
+    [17]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [18]gcc@gcc.gnu.org. All of [19]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [20]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-09-19 [24]Valid XHTML 1.0
+   These pages are [21]maintained by the GCC team. Last modified
+   2011-04-25[22].
 
 References
 
@@ -1686,9 +2558,9 @@ References
    3. http://gcc.gnu.org/projects/tree-ssa/
    4. http://gcc.gnu.org/projects/tree-ssa/vectorization.html
    5. http://gcc.gnu.org/news/sms.html
-   6. http://people.redhat.com/drepper/dsohowto.pdf
+   6. http://www.akkadia.org/drepper/dsohowto.pdf
    7. http://gcc.gnu.org/gcc-4.0/changes.html#visibility
-   8. http://www.codesourcery.com/cxx-abi/
+   8. http://www.codesourcery.com/public/cxx-abi/
    9. http://gcc.gnu.org/fortran/
   10. http://gcc.gnu.org/install/
   11. http://gcc.gnu.org/wiki/Visibility
@@ -1696,18 +2568,17 @@ References
   13. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.0.2
   14. http://gcc.gnu.org/ml/gcc-cvs/2005-09/msg00984.html
   15. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=4.0.4
-  16. mailto:gnu@gnu.org
-  17. http://www.gnu.org/home.html#ContactInfo
-  18. http://gcc.gnu.org/about.html
-  19. http://gcc.gnu.org/onlinedocs/
-  20. mailto:gcc-help@gcc.gnu.org
-  21. mailto:gcc@gnu.org
-  22. mailto:gcc@gcc.gnu.org
-  23. http://gcc.gnu.org/lists.html
-  24. http://validator.w3.org/check/referer
+  16. http://gcc.gnu.org/onlinedocs/
+  17. mailto:gcc-help@gcc.gnu.org
+  18. mailto:gcc@gcc.gnu.org
+  19. http://gcc.gnu.org/lists.html
+  20. http://www.fsf.org/
+  21. http://gcc.gnu.org/about.html
+  22. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.4/index.html
-                           GCC 3.4 Release Series
+
+                             GCC 3.4 Release Series
 
    May 26, 2006
 
@@ -1762,28 +2633,22 @@ References and Acknowledgements
    For additional information about GCC please refer to the [13]GCC
    project web site or contact the [14]GCC development mailing list.
 
-   To obtain GCC please use [15]our mirror sites, one of the [16]GNU
-   mirror sites, or [17]our SVN server.
-
-   Please send FSF & GNU inquiries & questions to [18]gnu@gnu.org. There
-   are also [19]other ways to contact the FSF.
-
-   These pages are maintained by [20]the GCC team.
+   To obtain GCC please use [15]our mirror sites, or [16]our SVN server.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [21]GCC manuals. If that fails, the
-    [22]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [23]gcc@gnu.org or [24]gcc@gcc.gnu.org.
-    All of our lists have [25]public archives.
+    pages and the [17]GCC manuals. If that fails, the
+    [18]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [19]gcc@gcc.gnu.org. All of [20]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [21]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [26]Valid XHTML 1.0
+   These pages are [22]maintained by the GCC team. Last modified
+   2011-04-25[23].
 
 References
 
@@ -1802,21 +2667,19 @@ References
   13. http://gcc.gnu.org/index.html
   14. mailto:gcc@gcc.gnu.org
   15. http://gcc.gnu.org/mirrors.html
-  16. http://www.gnu.org/order/ftp.html
-  17. http://gcc.gnu.org/svn.html
-  18. mailto:gnu@gnu.org
-  19. http://www.gnu.org/home.html#ContactInfo
-  20. http://gcc.gnu.org/about.html
-  21. http://gcc.gnu.org/onlinedocs/
-  22. mailto:gcc-help@gcc.gnu.org
-  23. mailto:gcc@gnu.org
-  24. mailto:gcc@gcc.gnu.org
-  25. http://gcc.gnu.org/lists.html
-  26. http://validator.w3.org/check/referer
+  16. http://gcc.gnu.org/svn.html
+  17. http://gcc.gnu.org/onlinedocs/
+  18. mailto:gcc-help@gcc.gnu.org
+  19. mailto:gcc@gcc.gnu.org
+  20. http://gcc.gnu.org/lists.html
+  21. http://www.fsf.org/
+  22. http://gcc.gnu.org/about.html
+  23. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.4/changes.html
-                           GCC 3.4 Release Series
-                      Changes, New Features, and Fixes
+
+                             GCC 3.4 Release Series
+                        Changes, New Features, and Fixes
 
    The final release in the 3.4 release series is [1]GCC 3.4.6. The series
    is now closed.
@@ -2728,8 +3591,8 @@ Obsolete Systems
           + NCR 3000 running System V r.4, i?86-ncr-sysv4*
           + FreeBSD with a.out object format, i?86-*-freebsd*aout* and
             i?86-*-freebsd2*
-          + Linux with a.out object format, i?86-linux*aout*
-          + Linux with libc5, a.k.a. glibc1, i?86-linux*libc1*
+          + GNU/Linux with a.out object format, i?86-linux*aout*
+          + GNU/Linux with libc5, a.k.a. glibc1, i?86-linux*libc1*
           + Interix versions before Interix 3, i?86-*-interix
           + Mach microkernel, i?86-mach*
           + SCO UnixWare with UDK, i?86-*-udk*
@@ -3561,25 +4424,20 @@ GCC 3.4.6
    not be complete (that is, it is possible that some PRs that have been
    fixed are not listed here).
 
-   Please send FSF & GNU inquiries & questions to [412]gnu@gnu.org. There
-   are also [413]other ways to contact the FSF.
-
-   These pages are maintained by [414]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [415]GCC manuals. If that fails, the
-    [416]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [417]gcc@gnu.org or
-    [418]gcc@gcc.gnu.org. All of our lists have [419]public archives.
+    pages and the [412]GCC manuals. If that fails, the
+    [413]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [414]gcc@gcc.gnu.org. All of [415]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [416]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2008-05-03 [420]Valid XHTML 1.0
+   These pages are [417]maintained by the GCC team. Last modified
+   2011-04-25[418].
 
 References
 
@@ -3594,7 +4452,7 @@ References
    9. http://gcc.gnu.org/bugzilla/show_bug.cgi?id=8361
   10. http://gcc.gnu.org/onlinedocs/gcc-3.4.3/gcc/Other-Builtins.html#Other%20Builtins
   11. http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_closed.html#209
-  12. http://gcc.gnu.org/bugs.html#cxx_rvalbind
+  12. http://gcc.gnu.org/bugs/#cxx_rvalbind
   13. http://gcc.gnu.org/onlinedocs/gcc-3.4.3/gcc/Objective-C-Dialect-Options.html
   14. http://gcc.gnu.org/onlinedocs/gcc-3.4.3/gcc/Objective-C-Dialect-Options.html
   15. http://gcc.gnu.org/onlinedocs/gcc-3.4.3/gcc/Objective-C-Dialect-Options.html
@@ -3994,18 +4852,17 @@ References
  409. http://gcc.gnu.org/PR21716
  410. http://gcc.gnu.org/PR24315
  411. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=3.4.6
- 412. mailto:gnu@gnu.org
- 413. http://www.gnu.org/home.html#ContactInfo
- 414. http://gcc.gnu.org/about.html
- 415. http://gcc.gnu.org/onlinedocs/
- 416. mailto:gcc-help@gcc.gnu.org
- 417. mailto:gcc@gnu.org
- 418. mailto:gcc@gcc.gnu.org
- 419. http://gcc.gnu.org/lists.html
- 420. http://validator.w3.org/check/referer
+ 412. http://gcc.gnu.org/onlinedocs/
+ 413. mailto:gcc-help@gcc.gnu.org
+ 414. mailto:gcc@gcc.gnu.org
+ 415. http://gcc.gnu.org/lists.html
+ 416. http://www.fsf.org/
+ 417. http://gcc.gnu.org/about.html
+ 418. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.3/index.html
-                           GCC 3.3 Release Series
+
+                             GCC 3.3 Release Series
 
    May 03, 2005
 
@@ -4061,28 +4918,22 @@ References and Acknowledgements
    For additional information about GCC please refer to the [13]GCC
    project web site or contact the [14]GCC development mailing list.
 
-   To obtain GCC please use [15]our mirror sites, one of the [16]GNU
-   mirror sites, or our CVS server.
-
-   Please send FSF & GNU inquiries & questions to [17]gnu@gnu.org. There
-   are also [18]other ways to contact the FSF.
-
-   These pages are maintained by [19]the GCC team.
+   To obtain GCC please use [15]our mirror sites, or our CVS server.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [20]GCC manuals. If that fails, the
-    [21]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [22]gcc@gnu.org or [23]gcc@gcc.gnu.org.
-    All of our lists have [24]public archives.
+    pages and the [16]GCC manuals. If that fails, the
+    [17]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [18]gcc@gcc.gnu.org. All of [19]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [20]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [25]Valid XHTML 1.0
+   These pages are [21]maintained by the GCC team. Last modified
+   2011-04-25[22].
 
 References
 
@@ -4101,20 +4952,18 @@ References
   13. http://gcc.gnu.org/index.html
   14. mailto:gcc@gcc.gnu.org
   15. http://gcc.gnu.org/mirrors.html
-  16. http://www.gnu.org/order/ftp.html
-  17. mailto:gnu@gnu.org
-  18. http://www.gnu.org/home.html#ContactInfo
-  19. http://gcc.gnu.org/about.html
-  20. http://gcc.gnu.org/onlinedocs/
-  21. mailto:gcc-help@gcc.gnu.org
-  22. mailto:gcc@gnu.org
-  23. mailto:gcc@gcc.gnu.org
-  24. http://gcc.gnu.org/lists.html
-  25. http://validator.w3.org/check/referer
+  16. http://gcc.gnu.org/onlinedocs/
+  17. mailto:gcc-help@gcc.gnu.org
+  18. mailto:gcc@gcc.gnu.org
+  19. http://gcc.gnu.org/lists.html
+  20. http://www.fsf.org/
+  21. http://gcc.gnu.org/about.html
+  22. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.3/changes.html
-                           GCC 3.3 Release Series
-                      Changes, New Features, and Fixes
+
+                             GCC 3.3 Release Series
+                        Changes, New Features, and Fixes
 
    The latest release in the 3.3 release series is [1]GCC 3.3.6.
 
@@ -5447,25 +6296,20 @@ GCC 3.3.6
    not be complete (that is, it is possible that some PRs that have been
    fixed are not listed here).
 
-   Please send FSF & GNU inquiries & questions to [553]gnu@gnu.org. There
-   are also [554]other ways to contact the FSF.
-
-   These pages are maintained by [555]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [556]GCC manuals. If that fails, the
-    [557]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [558]gcc@gnu.org or
-    [559]gcc@gcc.gnu.org. All of our lists have [560]public archives.
+    pages and the [553]GCC manuals. If that fails, the
+    [554]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [555]gcc@gcc.gnu.org. All of [556]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [557]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-08-20 [561]Valid XHTML 1.0
+   These pages are [558]maintained by the GCC team. Last modified
+   2011-04-25[559].
 
 References
 
@@ -6021,18 +6865,17 @@ References
  550. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=3.3.4
  551. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=3.3.5
  552. http://gcc.gnu.org/bugzilla/buglist.cgi?bug_status=RESOLVED&resolution=FIXED&target_milestone=3.3.6
- 553. mailto:gnu@gnu.org
- 554. http://www.gnu.org/home.html#ContactInfo
- 555. http://gcc.gnu.org/about.html
- 556. http://gcc.gnu.org/onlinedocs/
- 557. mailto:gcc-help@gcc.gnu.org
- 558. mailto:gcc@gnu.org
- 559. mailto:gcc@gcc.gnu.org
- 560. http://gcc.gnu.org/lists.html
- 561. http://validator.w3.org/check/referer
+ 553. http://gcc.gnu.org/onlinedocs/
+ 554. mailto:gcc-help@gcc.gnu.org
+ 555. mailto:gcc@gcc.gnu.org
+ 556. http://gcc.gnu.org/lists.html
+ 557. http://www.fsf.org/
+ 558. http://gcc.gnu.org/about.html
+ 559. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.2/index.html
-                           GCC 3.2 Release Series
+
+                             GCC 3.2 Release Series
 
    April 25, 2003
 
@@ -6082,28 +6925,22 @@ References and Acknowledgements
    For additional information about GCC please refer to the [9]GCC project
    web site or contact the [10]GCC development mailing list.
 
-   To obtain GCC please use [11]our mirror sites, one of the [12]GNU
-   mirror sites, or our CVS server.
-
-   Please send FSF & GNU inquiries & questions to [13]gnu@gnu.org. There
-   are also [14]other ways to contact the FSF.
-
-   These pages are maintained by [15]the GCC team.
+   To obtain GCC please use [11]our mirror sites, or our CVS server.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [16]GCC manuals. If that fails, the
-    [17]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [18]gcc@gnu.org or [19]gcc@gcc.gnu.org.
-    All of our lists have [20]public archives.
+    pages and the [12]GCC manuals. If that fails, the
+    [13]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [14]gcc@gcc.gnu.org. All of [15]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [16]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [21]Valid XHTML 1.0
+   These pages are [17]maintained by the GCC team. Last modified
+   2011-04-25[18].
 
 References
 
@@ -6118,20 +6955,18 @@ References
    9. http://gcc.gnu.org/index.html
   10. mailto:gcc@gcc.gnu.org
   11. http://gcc.gnu.org/mirrors.html
-  12. http://www.gnu.org/order/ftp.html
-  13. mailto:gnu@gnu.org
-  14. http://www.gnu.org/home.html#ContactInfo
-  15. http://gcc.gnu.org/about.html
-  16. http://gcc.gnu.org/onlinedocs/
-  17. mailto:gcc-help@gcc.gnu.org
-  18. mailto:gcc@gnu.org
-  19. mailto:gcc@gcc.gnu.org
-  20. http://gcc.gnu.org/lists.html
-  21. http://validator.w3.org/check/referer
+  12. http://gcc.gnu.org/onlinedocs/
+  13. mailto:gcc-help@gcc.gnu.org
+  14. mailto:gcc@gcc.gnu.org
+  15. http://gcc.gnu.org/lists.html
+  16. http://www.fsf.org/
+  17. http://gcc.gnu.org/about.html
+  18. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.2/changes.html
-                           GCC 3.2 Release Series
-                      Changes, New Features, and Fixes
+
+                             GCC 3.2 Release Series
+                        Changes, New Features, and Fixes
 
    The latest release in the 3.2 release series is [1]GCC 3.2.3.
 
@@ -6347,7 +7182,7 @@ GCC 3.2.2
    On the following i386-based systems GCC 3.2.1 broke the C ABI wrt.
    functions returning structures: Cygwin, FreeBSD (GCC 3.2.1 as shipped
    with FreeBSD 5.0 does not have this problem), Interix, a.out-based
-   Linux and NetBSD, OpenBSD, and Darwin. GCC 3.2.2 reverts this ABI
+   GNU/Linux and NetBSD, OpenBSD, and Darwin. GCC 3.2.2 reverts this ABI
    change, and thus restores ABI-compatibility with previous releases
    (except GCC 3.2.1) on these platforms.
 
@@ -6716,25 +7551,20 @@ GCC 3.2
 
      * [245]7291: off-by-one in generated inline bzero code for x86-64
 
-   Please send FSF & GNU inquiries & questions to [246]gnu@gnu.org. There
-   are also [247]other ways to contact the FSF.
-
-   These pages are maintained by [248]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [249]GCC manuals. If that fails, the
-    [250]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [251]gcc@gnu.org or
-    [252]gcc@gcc.gnu.org. All of our lists have [253]public archives.
+    pages and the [246]GCC manuals. If that fails, the
+    [247]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [248]gcc@gcc.gnu.org. All of [249]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [250]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [254]Valid XHTML 1.0
+   These pages are [251]maintained by the GCC team. Last modified
+   2011-04-25[252].
 
 References
 
@@ -6983,18 +7813,17 @@ References
  243. http://gcc.gnu.org/PR7442
  244. http://gcc.gnu.org/PR7445
  245. http://gcc.gnu.org/PR7291
- 246. mailto:gnu@gnu.org
- 247. http://www.gnu.org/home.html#ContactInfo
- 248. http://gcc.gnu.org/about.html
- 249. http://gcc.gnu.org/onlinedocs/
- 250. mailto:gcc-help@gcc.gnu.org
- 251. mailto:gcc@gnu.org
- 252. mailto:gcc@gcc.gnu.org
- 253. http://gcc.gnu.org/lists.html
- 254. http://validator.w3.org/check/referer
+ 246. http://gcc.gnu.org/onlinedocs/
+ 247. mailto:gcc-help@gcc.gnu.org
+ 248. mailto:gcc@gcc.gnu.org
+ 249. http://gcc.gnu.org/lists.html
+ 250. http://www.fsf.org/
+ 251. http://gcc.gnu.org/about.html
+ 252. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.1/index.html
-                                   GCC 3.1
+
+                                    GCC 3.1
 
    July 27, 2002
 
@@ -7023,29 +7852,23 @@ http://gcc.gnu.org/gcc-3.1/index.html
    For additional information about GCC please refer to the [6]GCC project
    web site or contact the [7]GCC development mailing list.
 
-   To obtain GCC please use [8]our mirror sites, one of the [9]GNU mirror
-   sites, or our CVS server.
+   To obtain GCC please use [8]our mirror sites, or our CVS server.
      __________________________________________________________________
-
-   Please send FSF & GNU inquiries & questions to [10]gnu@gnu.org. There
-   are also [11]other ways to contact the FSF.
-
-   These pages are maintained by [12]the GCC team.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [13]GCC manuals. If that fails, the
-    [14]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [15]gcc@gnu.org or [16]gcc@gcc.gnu.org.
-    All of our lists have [17]public archives.
+    pages and the [9]GCC manuals. If that fails, the
+    [10]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [11]gcc@gcc.gnu.org. All of [12]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [13]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [18]Valid XHTML 1.0
+   These pages are [14]maintained by the GCC team. Last modified
+   2011-04-25[15].
 
 References
 
@@ -7057,20 +7880,18 @@ References
    6. http://gcc.gnu.org/index.html
    7. mailto:gcc@gcc.gnu.org
    8. http://gcc.gnu.org/mirrors.html
-   9. http://www.gnu.org/order/ftp.html
-  10. mailto:gnu@gnu.org
-  11. http://www.gnu.org/home.html#ContactInfo
-  12. http://gcc.gnu.org/about.html
-  13. http://gcc.gnu.org/onlinedocs/
-  14. mailto:gcc-help@gcc.gnu.org
-  15. mailto:gcc@gnu.org
-  16. mailto:gcc@gcc.gnu.org
-  17. http://gcc.gnu.org/lists.html
-  18. http://validator.w3.org/check/referer
+   9. http://gcc.gnu.org/onlinedocs/
+  10. mailto:gcc-help@gcc.gnu.org
+  11. mailto:gcc@gcc.gnu.org
+  12. http://gcc.gnu.org/lists.html
+  13. http://www.fsf.org/
+  14. http://gcc.gnu.org/about.html
+  15. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.1/changes.html
-                           GCC 3.1 Release Series
-                      Changes, New Features, and Fixes
+
+                             GCC 3.1 Release Series
+                        Changes, New Features, and Fixes
 
 Additional changes in GCC 3.1.1
 
@@ -7348,7 +8169,7 @@ Obsolete Systems
           + FreeBSD 1.x, i?86-*-freebsd1.*
           + IBM AIX, i?86-*-aix*
           + ISC UNIX, i?86-*-isc*
-          + Linux with pre-BFD linker, i?86-*-linux*oldld*
+          + GNU/Linux with pre-BFD linker, i?86-*-linux*oldld*
           + NEXTstep, i?86-next-*
           + OSF UNIX, i?86-*-osf1* and i?86-*-osfrose*
           + RTEMS/coff, i?86-*-rtemscoff*
@@ -7390,25 +8211,20 @@ Documentation improvements
        representation used by the C and C++ front ends.
      * Many cleanups and improvements in general.
 
-   Please send FSF & GNU inquiries & questions to [13]gnu@gnu.org. There
-   are also [14]other ways to contact the FSF.
-
-   These pages are maintained by [15]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [16]GCC manuals. If that fails, the
-    [17]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [18]gcc@gnu.org or [19]gcc@gcc.gnu.org.
-    All of our lists have [20]public archives.
+    pages and the [13]GCC manuals. If that fails, the
+    [14]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [15]gcc@gcc.gnu.org. All of [16]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [17]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2008-05-03 [21]Valid XHTML 1.0
+   These pages are [18]maintained by the GCC team. Last modified
+   2011-04-25[19].
 
 References
 
@@ -7424,18 +8240,17 @@ References
   10. http://developer.axis.com/
   11. http://www.superh.com/
   12. http://www.x86-64.org/
-  13. mailto:gnu@gnu.org
-  14. http://www.gnu.org/home.html#ContactInfo
-  15. http://gcc.gnu.org/about.html
-  16. http://gcc.gnu.org/onlinedocs/
-  17. mailto:gcc-help@gcc.gnu.org
-  18. mailto:gcc@gnu.org
-  19. mailto:gcc@gcc.gnu.org
-  20. http://gcc.gnu.org/lists.html
-  21. http://validator.w3.org/check/referer
+  13. http://gcc.gnu.org/onlinedocs/
+  14. mailto:gcc-help@gcc.gnu.org
+  15. mailto:gcc@gcc.gnu.org
+  16. http://gcc.gnu.org/lists.html
+  17. http://www.fsf.org/
+  18. http://gcc.gnu.org/about.html
+  19. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.0/gcc-3.0.html
-                                  GCC 3.0.4
+
+                                   GCC 3.0.4
 
    February 20, 2002
 
@@ -7464,8 +8279,7 @@ http://gcc.gnu.org/gcc-3.0/gcc-3.0.html
    For additional information about GCC please refer to the [6]GCC project
    web site or contact the [7]GCC development mailing list.
 
-   To obtain GCC please use [8]our mirror sites, one of the [9]GNU mirror
-   sites, or our CVS server.
+   To obtain GCC please use [8]our mirror sites, or our CVS server.
      __________________________________________________________________
 
 Previous 3.0.x Releases
@@ -7475,25 +8289,20 @@ Previous 3.0.x Releases
    August 20, 2001: GCC 3.0.1 has been released.
    June 18, 2001: GCC 3.0 has been released.
 
-   Please send FSF & GNU inquiries & questions to [10]gnu@gnu.org. There
-   are also [11]other ways to contact the FSF.
-
-   These pages are maintained by [12]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [13]GCC manuals. If that fails, the
-    [14]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [15]gcc@gnu.org or [16]gcc@gcc.gnu.org.
-    All of our lists have [17]public archives.
+    pages and the [9]GCC manuals. If that fails, the
+    [10]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [11]gcc@gcc.gnu.org. All of [12]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [13]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [18]Valid XHTML 1.0
+   These pages are [14]maintained by the GCC team. Last modified
+   2011-04-25[15].
 
 References
 
@@ -7505,19 +8314,17 @@ References
    6. http://gcc.gnu.org/index.html
    7. mailto:gcc@gcc.gnu.org
    8. http://gcc.gnu.org/mirrors.html
-   9. http://www.gnu.org/order/ftp.html
-  10. mailto:gnu@gnu.org
-  11. http://www.gnu.org/home.html#ContactInfo
-  12. http://gcc.gnu.org/about.html
-  13. http://gcc.gnu.org/onlinedocs/
-  14. mailto:gcc-help@gcc.gnu.org
-  15. mailto:gcc@gnu.org
-  16. mailto:gcc@gcc.gnu.org
-  17. http://gcc.gnu.org/lists.html
-  18. http://validator.w3.org/check/referer
+   9. http://gcc.gnu.org/onlinedocs/
+  10. mailto:gcc-help@gcc.gnu.org
+  11. mailto:gcc@gcc.gnu.org
+  12. http://gcc.gnu.org/lists.html
+  13. http://www.fsf.org/
+  14. http://gcc.gnu.org/about.html
+  15. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.0/features.html
-                            GCC 3.0 New Features
+
+                              GCC 3.0 New Features
 
 Additional changes in GCC 3.0.4
 
@@ -7674,25 +8481,20 @@ Other significant improvements
    Plus a great many bug fixes and almost all the [13]features found in
    GCC 2.95.
 
-   Please send FSF & GNU inquiries & questions to [14]gnu@gnu.org. There
-   are also [15]other ways to contact the FSF.
-
-   These pages are maintained by [16]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [17]GCC manuals. If that fails, the
-    [18]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [19]gcc@gnu.org or [20]gcc@gcc.gnu.org.
-    All of our lists have [21]public archives.
+    pages and the [14]GCC manuals. If that fails, the
+    [15]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [16]gcc@gcc.gnu.org. All of [17]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [18]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [22]Valid XHTML 1.0
+   These pages are [19]maintained by the GCC team. Last modified
+   2011-04-25[20].
 
 References
 
@@ -7709,18 +8511,17 @@ References
   11. http://gcc.gnu.org/onlinedocs/gcc-3.4.6/g77/News.html
   12. http://gcc.gnu.org/gcc-3.0/libgcc.html
   13. http://gcc.gnu.org/gcc-2.95/features.html
-  14. mailto:gnu@gnu.org
-  15. http://www.gnu.org/home.html#ContactInfo
-  16. http://gcc.gnu.org/about.html
-  17. http://gcc.gnu.org/onlinedocs/
-  18. mailto:gcc-help@gcc.gnu.org
-  19. mailto:gcc@gnu.org
-  20. mailto:gcc@gcc.gnu.org
-  21. http://gcc.gnu.org/lists.html
-  22. http://validator.w3.org/check/referer
+  14. http://gcc.gnu.org/onlinedocs/
+  15. mailto:gcc-help@gcc.gnu.org
+  16. mailto:gcc@gcc.gnu.org
+  17. http://gcc.gnu.org/lists.html
+  18. http://www.fsf.org/
+  19. http://gcc.gnu.org/about.html
+  20. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-3.0/caveats.html
-                               GCC 3.0 Caveats
+
+                                GCC 3.0 Caveats
 
      * -fstrict-aliasing is now part of -O2 and higher optimization
        levels. This allows the compiler to assume the strictest aliasing
@@ -7754,41 +8555,34 @@ http://gcc.gnu.org/gcc-3.0/caveats.html
        but not yet handled in GDB:
        [1]http://gcc.gnu.org/ml/gcc-bugs/2001-06/msg00421.html
 
-   Please send FSF & GNU inquiries & questions to [2]gnu@gnu.org. There
-   are also [3]other ways to contact the FSF.
-
-   These pages are maintained by [4]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [5]GCC manuals. If that fails, the
-    [6]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [7]gcc@gnu.org or [8]gcc@gcc.gnu.org.
-    All of our lists have [9]public archives.
+    pages and the [2]GCC manuals. If that fails, the
+    [3]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [4]gcc@gcc.gnu.org. All of [5]our lists have public archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [6]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2008-05-07 [10]Valid XHTML 1.0
+   These pages are [7]maintained by the GCC team. Last modified
+   2011-04-25[8].
 
 References
 
    1. http://gcc.gnu.org/ml/gcc-bugs/2001-06/msg00421.html
-   2. mailto:gnu@gnu.org
-   3. http://www.gnu.org/home.html#ContactInfo
-   4. http://gcc.gnu.org/about.html
-   5. http://gcc.gnu.org/onlinedocs/
-   6. mailto:gcc-help@gcc.gnu.org
-   7. mailto:gcc@gnu.org
-   8. mailto:gcc@gcc.gnu.org
-   9. http://gcc.gnu.org/lists.html
-  10. http://validator.w3.org/check/referer
+   2. http://gcc.gnu.org/onlinedocs/
+   3. mailto:gcc-help@gcc.gnu.org
+   4. mailto:gcc@gcc.gnu.org
+   5. http://gcc.gnu.org/lists.html
+   6. http://www.fsf.org/
+   7. http://gcc.gnu.org/about.html
+   8. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-2.95/index.html
-                                  GCC 2.95
+
+                                    GCC 2.95
 
    March 16, 2001: The GNU project and the GCC developers are pleased to
    announce the release of GCC version 2.95.3.
@@ -7836,32 +8630,25 @@ References and Acknowledgements
    And finally, we can't in good conscience fail to mention some
    [7]caveats to using GCC 2.95.
 
-   Download GCC 2.95 from the [8]GNU FTP server (ftp://ftp.gnu.org)
-   [9]Find a GNU mirror site
-   [10]Find a GCC mirror site
+   Download GCC 2.95 from one of our many [8]mirror sites.
 
-   For additional information about GCC please see the [11]GCC project web
-   server or contact the [12]GCC development mailing list.
-
-   Please send FSF & GNU inquiries & questions to [13]gnu@gnu.org. There
-   are also [14]other ways to contact the FSF.
-
-   These pages are maintained by [15]the GCC team.
+   For additional information about GCC please see the [9]GCC project web
+   server or contact the [10]GCC development mailing list.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [16]GCC manuals. If that fails, the
-    [17]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [18]gcc@gnu.org or [19]gcc@gcc.gnu.org.
-    All of our lists have [20]public archives.
+    pages and the [11]GCC manuals. If that fails, the
+    [12]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [13]gcc@gcc.gnu.org. All of [14]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [15]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [21]Valid XHTML 1.0
+   These pages are [16]maintained by the GCC team. Last modified
+   2011-04-25[17].
 
 References
 
@@ -7872,23 +8659,20 @@ References
    5. http://gcc.gnu.org/gcc-2.95/buildstat.html
    6. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
    7. http://gcc.gnu.org/gcc-2.95/caveats.html
-   8. ftp://ftp.gnu.org/pub/gnu/gcc/
-   9. http://www.gnu.org/order/ftp.html
-  10. http://gcc.gnu.org/mirrors.html
-  11. http://gcc.gnu.org/index.html
-  12. mailto:gcc@gcc.gnu.org
-  13. mailto:gnu@gnu.org
-  14. http://www.gnu.org/home.html#ContactInfo
-  15. http://gcc.gnu.org/about.html
-  16. http://gcc.gnu.org/onlinedocs/
-  17. mailto:gcc-help@gcc.gnu.org
-  18. mailto:gcc@gnu.org
-  19. mailto:gcc@gcc.gnu.org
-  20. http://gcc.gnu.org/lists.html
-  21. http://validator.w3.org/check/referer
+   8. http://gcc.gnu.org/mirrors.html
+   9. http://gcc.gnu.org/index.html
+  10. mailto:gcc@gcc.gnu.org
+  11. http://gcc.gnu.org/onlinedocs/
+  12. mailto:gcc-help@gcc.gnu.org
+  13. mailto:gcc@gcc.gnu.org
+  14. http://gcc.gnu.org/lists.html
+  15. http://www.fsf.org/
+  16. http://gcc.gnu.org/about.html
+  17. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-2.95/features.html
-                            GCC 2.95 New Features
+
+                             GCC 2.95 New Features
 
      * General Optimizer Improvements:
           + [1]Localized register spilling to improve speed and code
@@ -8118,25 +8902,20 @@ Additional Changes in GCC 2.95.3
           + Several updates for the h8300 port.
           + Fix problem building libio with glibc 2.2.
 
-   Please send FSF & GNU inquiries & questions to [17]gnu@gnu.org. There
-   are also [18]other ways to contact the FSF.
-
-   These pages are maintained by [19]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [20]GCC manuals. If that fails, the
-    [21]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [22]gcc@gnu.org or [23]gcc@gcc.gnu.org.
-    All of our lists have [24]public archives.
+    pages and the [17]GCC manuals. If that fails, the
+    [18]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [19]gcc@gcc.gnu.org. All of [20]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [21]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [25]Valid XHTML 1.0
+   These pages are [22]maintained by the GCC team. Last modified
+   2011-04-25[23].
 
 References
 
@@ -8148,7 +8927,7 @@ References
    6. http://gcc.gnu.org/news/hoist.html
    7. http://gcc.gnu.org/news/alias.html
    8. http://gcc.gnu.org/gcc-2.95/c++features.html
-   9. http://gcc.gnu.org/onlinedocs/g77/News.html
+   9. http://gcc.gnu.org/onlinedocs/gcc-3.4.6/g77/News.html
   10. http://gcc.gnu.org/java/gcj-announce.txt
   11. http://gcc.gnu.org/news/javaannounce.html
   12. http://gcc.gnu.org/c99status.html
@@ -8156,18 +8935,17 @@ References
   14. http://gcc.gnu.org/news/sparc.html
   15. http://gcc.gnu.org/news/egcs-vcg.html
   16. http://gcc.gnu.org/egcs-1.0/features-2.8.html
-  17. mailto:gnu@gnu.org
-  18. http://www.gnu.org/home.html#ContactInfo
-  19. http://gcc.gnu.org/about.html
-  20. http://gcc.gnu.org/onlinedocs/
-  21. mailto:gcc-help@gcc.gnu.org
-  22. mailto:gcc@gnu.org
-  23. mailto:gcc@gcc.gnu.org
-  24. http://gcc.gnu.org/lists.html
-  25. http://validator.w3.org/check/referer
+  17. http://gcc.gnu.org/onlinedocs/
+  18. mailto:gcc-help@gcc.gnu.org
+  19. mailto:gcc@gcc.gnu.org
+  20. http://gcc.gnu.org/lists.html
+  21. http://www.fsf.org/
+  22. http://gcc.gnu.org/about.html
+  23. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/gcc-2.95/caveats.html
-                              GCC 2.95 Caveats
+
+                                GCC 2.95 Caveats
 
      * GCC 2.95 will issue an error for invalid asm statements that had
        been silently accepted by earlier versions of the compiler. This is
@@ -8209,41 +8987,34 @@ http://gcc.gnu.org/gcc-2.95/caveats.html
        GCC 2.8 project). Future GCC releases will include all the changes
        from the defunct GCC 2.8 sources.
 
-   Please send FSF & GNU inquiries & questions to [2]gnu@gnu.org. There
-   are also [3]other ways to contact the FSF.
-
-   These pages are maintained by [4]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [5]GCC manuals. If that fails, the
-    [6]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [7]gcc@gnu.org or [8]gcc@gcc.gnu.org.
-    All of our lists have [9]public archives.
+    pages and the [2]GCC manuals. If that fails, the
+    [3]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [4]gcc@gcc.gnu.org. All of [5]our lists have public archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [6]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [10]Valid XHTML 1.0
+   These pages are [7]maintained by the GCC team. Last modified
+   2011-04-25[8].
 
 References
 
    1. ftp://gcc.gnu.org/pub/gcc/infrastructure/libg++-2.8.1.3.tar.gz
-   2. mailto:gnu@gnu.org
-   3. http://www.gnu.org/home.html#ContactInfo
-   4. http://gcc.gnu.org/about.html
-   5. http://gcc.gnu.org/onlinedocs/
-   6. mailto:gcc-help@gcc.gnu.org
-   7. mailto:gcc@gnu.org
-   8. mailto:gcc@gcc.gnu.org
-   9. http://gcc.gnu.org/lists.html
-  10. http://validator.w3.org/check/referer
+   2. http://gcc.gnu.org/onlinedocs/
+   3. mailto:gcc-help@gcc.gnu.org
+   4. mailto:gcc@gcc.gnu.org
+   5. http://gcc.gnu.org/lists.html
+   6. http://www.fsf.org/
+   7. http://gcc.gnu.org/about.html
+   8. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/egcs-1.1/index.html
-                                  EGCS 1.1
+
+                                    EGCS 1.1
 
    September 3, 1998: We are pleased to announce the release of EGCS 1.1.
    December 1, 1998: We are pleased to announce the release of EGCS 1.1.1.
@@ -8437,25 +9208,20 @@ http://gcc.gnu.org/egcs-1.1/index.html
    The EGCS 1.1 release is also available on many mirror sites.
    [10]Goto mirror list to find a closer site.
 
-   Please send FSF & GNU inquiries & questions to [11]gnu@gnu.org. There
-   are also [12]other ways to contact the FSF.
-
-   These pages are maintained by [13]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [14]GCC manuals. If that fails, the
-    [15]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [16]gcc@gnu.org or [17]gcc@gcc.gnu.org.
-    All of our lists have [18]public archives.
+    pages and the [11]GCC manuals. If that fails, the
+    [12]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [13]gcc@gcc.gnu.org. All of [14]our lists have public
+    archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [15]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [19]Valid XHTML 1.0
+   These pages are [16]maintained by the GCC team. Last modified
+   2011-04-25[17].
 
 References
 
@@ -8469,26 +9235,25 @@ References
    8. http://gcc.gnu.org/onlinedocs/gcc/Contributors.html
    9. http://gcc.gnu.org/egcs-1.1/caveats.html
   10. http://gcc.gnu.org/mirrors.html
-  11. mailto:gnu@gnu.org
-  12. http://www.gnu.org/home.html#ContactInfo
-  13. http://gcc.gnu.org/about.html
-  14. http://gcc.gnu.org/onlinedocs/
-  15. mailto:gcc-help@gcc.gnu.org
-  16. mailto:gcc@gnu.org
-  17. mailto:gcc@gcc.gnu.org
-  18. http://gcc.gnu.org/lists.html
-  19. http://validator.w3.org/check/referer
+  11. http://gcc.gnu.org/onlinedocs/
+  12. mailto:gcc-help@gcc.gnu.org
+  13. mailto:gcc@gcc.gnu.org
+  14. http://gcc.gnu.org/lists.html
+  15. http://www.fsf.org/
+  16. http://gcc.gnu.org/about.html
+  17. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/egcs-1.1/features.html
-                            EGCS 1.1 new features
+
+                             EGCS 1.1 new features
 
      * Integrated GNU Fortran (g77) compiler and runtime library with
-       improvements, based on [1]g77 version 0.5.23.
-     * Vast improvements in the C++ compiler; so many they have [2]page of
+       improvements, based on g77 version 0.5.23.
+     * Vast improvements in the C++ compiler; so many they have [1]page of
        their own!
-     * Compiler implements [3]global common subexpression elimination and
+     * Compiler implements [2]global common subexpression elimination and
        global copy/constant propagation.
-     * More major improvements in the [4]alias analysis code.
+     * More major improvements in the [3]alias analysis code.
      * More major improvements in the exception handling code to improve
        performance, lower static overhead and provide the infrastructure
        for future improvements.
@@ -8543,47 +9308,39 @@ http://gcc.gnu.org/egcs-1.1/features.html
             includes mips16 ISA support.
           + M68k has many micro-optimizations and Coldfire fixes.
      * Core compiler is based on the GCC development tree from June 9,
-       1998, so we have all of the [5]features found in GCC 2.8.
-
-   Please send FSF & GNU inquiries & questions to [6]gnu@gnu.org. There
-   are also [7]other ways to contact the FSF.
-
-   These pages are maintained by [8]the GCC team.
+       1998, so we have all of the [4]features found in GCC 2.8.
 
 
     For questions related to the use of GCC, please consult these web
-    pages and the [9]GCC manuals. If that fails, the
-    [10]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [11]gcc@gnu.org or [12]gcc@gcc.gnu.org.
-    All of our lists have [13]public archives.
+    pages and the [5]GCC manuals. If that fails, the
+    [6]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [7]gcc@gcc.gnu.org. All of [8]our lists have public archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [9]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [14]Valid XHTML 1.0
+   These pages are [10]maintained by the GCC team. Last modified
+   2011-04-25[11].
 
 References
 
-   1. http://gcc.gnu.org/onlinedocs/g77/News.html
-   2. http://gcc.gnu.org/egcs-1.1/c++features.html
-   3. http://gcc.gnu.org/news/gcse.html
-   4. http://gcc.gnu.org/news/alias.html
-   5. http://gcc.gnu.org/egcs-1.0/features-2.8.html
-   6. mailto:gnu@gnu.org
-   7. http://www.gnu.org/home.html#ContactInfo
-   8. http://gcc.gnu.org/about.html
-   9. http://gcc.gnu.org/onlinedocs/
-  10. mailto:gcc-help@gcc.gnu.org
-  11. mailto:gcc@gnu.org
-  12. mailto:gcc@gcc.gnu.org
-  13. http://gcc.gnu.org/lists.html
-  14. http://validator.w3.org/check/referer
+   1. http://gcc.gnu.org/egcs-1.1/c++features.html
+   2. http://gcc.gnu.org/news/gcse.html
+   3. http://gcc.gnu.org/news/alias.html
+   4. http://gcc.gnu.org/egcs-1.0/features-2.8.html
+   5. http://gcc.gnu.org/onlinedocs/
+   6. mailto:gcc-help@gcc.gnu.org
+   7. mailto:gcc@gcc.gnu.org
+   8. http://gcc.gnu.org/lists.html
+   9. http://www.fsf.org/
+  10. http://gcc.gnu.org/about.html
+  11. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/egcs-1.1/caveats.html
-                              EGCS 1.1 Caveats
+
+                                EGCS 1.1 Caveats
 
      * EGCS has an integrated libstdc++, but does not have an integrated
        libg++. Furthermore old libg++ releases will not work with EGCS; HJ
@@ -8608,40 +9365,33 @@ http://gcc.gnu.org/egcs-1.1/caveats.html
        or GCC 2.8.x due to changes necessary to support thread safe
        exception handling.
 
-   Please send FSF & GNU inquiries & questions to [1]gnu@gnu.org. There
-   are also [2]other ways to contact the FSF.
-
-   These pages are maintained by [3]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [4]GCC manuals. If that fails, the
-    [5]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [6]gcc@gnu.org or [7]gcc@gcc.gnu.org.
-    All of our lists have [8]public archives.
+    pages and the [1]GCC manuals. If that fails, the
+    [2]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [3]gcc@gcc.gnu.org. All of [4]our lists have public archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [5]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [9]Valid XHTML 1.0
+   These pages are [6]maintained by the GCC team. Last modified
+   2011-04-25[7].
 
 References
 
-   1. mailto:gnu@gnu.org
-   2. http://www.gnu.org/home.html#ContactInfo
-   3. http://gcc.gnu.org/about.html
-   4. http://gcc.gnu.org/onlinedocs/
-   5. mailto:gcc-help@gcc.gnu.org
-   6. mailto:gcc@gnu.org
-   7. mailto:gcc@gcc.gnu.org
-   8. http://gcc.gnu.org/lists.html
-   9. http://validator.w3.org/check/referer
+   1. http://gcc.gnu.org/onlinedocs/
+   2. mailto:gcc-help@gcc.gnu.org
+   3. mailto:gcc@gcc.gnu.org
+   4. http://gcc.gnu.org/lists.html
+   5. http://www.fsf.org/
+   6. http://gcc.gnu.org/about.html
+   7. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/egcs-1.0/index.html
-                                  EGCS 1.0
+
+                                    EGCS 1.0
 
    December 3, 1997: We are pleased to announce the release of EGCS 1.0.
    January 6, 1998: We are pleased to announce the release of EGCS 1.0.1.
@@ -8812,25 +9562,19 @@ http://gcc.gnu.org/egcs-1.0/index.html
    features, test results, bugfixes, etc. Unfortunately, they're far too
    numerous to mention by name.
 
-   Please send FSF & GNU inquiries & questions to [6]gnu@gnu.org. There
-   are also [7]other ways to contact the FSF.
-
-   These pages are maintained by [8]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [9]GCC manuals. If that fails, the
-    [10]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [11]gcc@gnu.org or [12]gcc@gcc.gnu.org.
-    All of our lists have [13]public archives.
+    pages and the [6]GCC manuals. If that fails, the
+    [7]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [8]gcc@gcc.gnu.org. All of [9]our lists have public archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [10]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [14]Valid XHTML 1.0
+   These pages are [11]maintained by the GCC team. Last modified
+   2011-04-25[12].
 
 References
 
@@ -8839,18 +9583,17 @@ References
    3. http://gcc.gnu.org/egcs-1.0/buildstat.html
    4. http://gcc.gnu.org/egcs-1.0/caveats.html
    5. http://gcc.gnu.org/mirrors.html
-   6. mailto:gnu@gnu.org
-   7. http://www.gnu.org/home.html#ContactInfo
-   8. http://gcc.gnu.org/about.html
-   9. http://gcc.gnu.org/onlinedocs/
-  10. mailto:gcc-help@gcc.gnu.org
-  11. mailto:gcc@gnu.org
-  12. mailto:gcc@gcc.gnu.org
-  13. http://gcc.gnu.org/lists.html
-  14. http://validator.w3.org/check/referer
+   6. http://gcc.gnu.org/onlinedocs/
+   7. mailto:gcc-help@gcc.gnu.org
+   8. mailto:gcc@gcc.gnu.org
+   9. http://gcc.gnu.org/lists.html
+  10. http://www.fsf.org/
+  11. http://gcc.gnu.org/about.html
+  12. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/egcs-1.0/features.html
-                              EGCS 1.0 features
+
+                               EGCS 1.0 features
 
      * Core compiler is based on the gcc2 development tree from Aug 2,
        1997, so we have most of the [1]features found in GCC 2.8.
@@ -8887,42 +9630,35 @@ http://gcc.gnu.org/egcs-1.0/features.html
        such as Linux.
      * Plus the usual assortment of bugfixes and improvements.
 
-   Please send FSF & GNU inquiries & questions to [3]gnu@gnu.org. There
-   are also [4]other ways to contact the FSF.
-
-   These pages are maintained by [5]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [6]GCC manuals. If that fails, the
-    [7]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [8]gcc@gnu.org or [9]gcc@gcc.gnu.org.
-    All of our lists have [10]public archives.
+    pages and the [3]GCC manuals. If that fails, the
+    [4]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [5]gcc@gcc.gnu.org. All of [6]our lists have public archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [7]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [11]Valid XHTML 1.0
+   These pages are [8]maintained by the GCC team. Last modified
+   2011-04-25[9].
 
 References
 
    1. http://gcc.gnu.org/egcs-1.0/features-2.8.html
    2. http://gcc.gnu.org/egcs-1.0/c++features.html
-   3. mailto:gnu@gnu.org
-   4. http://www.gnu.org/home.html#ContactInfo
-   5. http://gcc.gnu.org/about.html
-   6. http://gcc.gnu.org/onlinedocs/
-   7. mailto:gcc-help@gcc.gnu.org
-   8. mailto:gcc@gnu.org
-   9. mailto:gcc@gcc.gnu.org
-  10. http://gcc.gnu.org/lists.html
-  11. http://validator.w3.org/check/referer
+   3. http://gcc.gnu.org/onlinedocs/
+   4. mailto:gcc-help@gcc.gnu.org
+   5. mailto:gcc@gcc.gnu.org
+   6. http://gcc.gnu.org/lists.html
+   7. http://www.fsf.org/
+   8. http://gcc.gnu.org/about.html
+   9. http://validator.w3.org/check/referer
 ======================================================================
 http://gcc.gnu.org/egcs-1.0/caveats.html
-                              EGCS 1.0 Caveats
+
+                                EGCS 1.0 Caveats
 
      * EGCS has an integrated libstdc++, but does not have an integrated
        libg++. Furthermore old libg++ releases will not work with egc; HJ
@@ -8948,35 +9684,27 @@ http://gcc.gnu.org/egcs-1.0/caveats.html
      * EGCS 1.0 may not work with Red Hat Linux 5.0 on all targets. EGCS
        1.0.x and later releases should work with Red Hat Linux 5.0.
 
-   Please send FSF & GNU inquiries & questions to [1]gnu@gnu.org. There
-   are also [2]other ways to contact the FSF.
-
-   These pages are maintained by [3]the GCC team.
-
 
     For questions related to the use of GCC, please consult these web
-    pages and the [4]GCC manuals. If that fails, the
-    [5]gcc-help@gcc.gnu.org mailing list might help.
-    Please send comments on these web pages and the development of GCC to
-    our developer mailing list at [6]gcc@gnu.org or [7]gcc@gcc.gnu.org.
-    All of our lists have [8]public archives.
+    pages and the [1]GCC manuals. If that fails, the
+    [2]gcc-help@gcc.gnu.org mailing list might help. Comments on these
+    web pages and the development of GCC are welcome on our developer
+    list at [3]gcc@gcc.gnu.org. All of [4]our lists have public archives.
 
-   Copyright (C) Free Software Foundation, Inc., 51 Franklin St, Fifth
-   Floor, Boston, MA 02110, USA.
+   Copyright (C) [5]Free Software Foundation, Inc. Verbatim copying and
+   distribution of this entire article is permitted in any medium,
+   provided this notice is preserved.
 
-   Verbatim copying and distribution of this entire article is permitted
-   in any medium, provided this notice is preserved.
-   Last modified 2007-07-25 [9]Valid XHTML 1.0
+   These pages are [6]maintained by the GCC team. Last modified
+   2011-04-25[7].
 
 References
 
-   1. mailto:gnu@gnu.org
-   2. http://www.gnu.org/home.html#ContactInfo
-   3. http://gcc.gnu.org/about.html
-   4. http://gcc.gnu.org/onlinedocs/
-   5. mailto:gcc-help@gcc.gnu.org
-   6. mailto:gcc@gnu.org
-   7. mailto:gcc@gcc.gnu.org
-   8. http://gcc.gnu.org/lists.html
-   9. http://validator.w3.org/check/referer
+   1. http://gcc.gnu.org/onlinedocs/
+   2. mailto:gcc-help@gcc.gnu.org
+   3. mailto:gcc@gcc.gnu.org
+   4. http://gcc.gnu.org/lists.html
+   5. http://www.fsf.org/
+   6. http://gcc.gnu.org/about.html
+   7. http://validator.w3.org/check/referer
 ======================================================================

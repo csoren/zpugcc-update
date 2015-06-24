@@ -1,22 +1,51 @@
-2008-05-19  Release Manager
+2011-06-27  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.6 released.
 
-2008-02-01  Release Manager
+2010-05-22  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.5 released.
 
-2007-10-07  Release Manager
+2010-05-06  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-	* GCC 4.2.2 released.
+	PR other/43620
+	* Makefile.am (AUTOMAKE_OPTIONS): Add no-dist.
+	* Makefile.in: Regenerate.
 
-2007-07-19  Release Manager
+2009-12-03  Jakub Jelinek  <jakub@redhat.com>
 
-	* GCC 4.2.1 released.
+	* acinclude.m4: Regenerated to pick:
+	2007-06-22 Ralf Wildenhues <Ralf.Wildenhues@gmx.de>
 
-2007-05-13  Release Manager
+	* libtool.m4 (AC_LIBTOOL_SYS_DYNAMIC_LINKER) [linux]:
+	Ignore lines in ld.so.conf starting with 'hwcap '.
 
-	* GCC 4.2.0 released.
+	* configure: Regenerated.
+
+	2009-11-24  Peter O'Gorman  <peter@pogma.com>
+
+	Backport of libltdl changes from the 2.26b release.
+	* ltdl.c: Backport changes.
+
+2009-08-04  Release Manager
+
+	* GCC 4.3.4 released.
+
+2009-01-24  Release Manager
+
+	* GCC 4.3.3 released.
+
+2008-08-27  Release Manager
+
+	* GCC 4.3.2 released.
+
+2008-06-06  Release Manager
+
+	* GCC 4.3.1 released.
+
+2008-03-05  Release Manager
+
+	* GCC 4.3.0 released.
 
 2007-01-16  Jack Howarth  <howarth@bromo.med.uc.edu>
 

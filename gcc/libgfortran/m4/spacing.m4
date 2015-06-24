@@ -1,5 +1,5 @@
 `/* Implementation of the SPACING intrinsic
-   Copyright 2006 Free Software Foundation, Inc.
+   Copyright 2006, 2007 Free Software Foundation, Inc.
    Contributed by Steven G. Kargl <kargl@gcc.gnu.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,31 +28,29 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
-#include <math.h>
 #include "libgfortran.h"'
 
 include(`mtype.m4')dnl
 
-`#if defined (HAVE_'real_type`) && defined (HAVE_FREXP'Q`)'
+`#if defined (HAVE_'real_type`) && defined (HAVE_FREXP'Q`)
 
-extern real_type spacing_r`'kind (real_type s, int p, int emin, real_type tiny);
-export_proto(spacing_r`'kind);
+extern 'real_type` spacing_r'kind` ('real_type` s, int p, int emin, 'real_type` tiny);
+export_proto(spacing_r'kind`);
 
-real_type
-spacing_r`'kind (real_type s, int p, int emin, real_type tiny)
+'real_type`
+spacing_r'kind` ('real_type` s, int p, int emin, 'real_type` tiny)
 {
   int e;
   if (s == 0.)
     return tiny;
-  frexp`'q (s, &e);
+  frexp'q` (s, &e);
   e = e - p;
   e = e > emin ? e : emin;
-`#if defined (HAVE_LDEXP'Q`)'
-  return ldexp`'q (1., e);
+#if defined (HAVE_LDEXP'Q`)
+  return ldexp'q` (1., e);
 #else
-  return scalbn`'q (1., e);
+  return scalbn'q` (1., e);
 #endif
 }
 
-#endif
+#endif'

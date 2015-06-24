@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -67,11 +67,11 @@
 #include <assert.h>
 #include <list>
 #ifdef _GLIBCXX_DEBUG
-#include <ext/pb_ds/detail/map_debug_base.hpp>
+#include <ext/pb_ds/detail/debug_map_base.hpp>
 #endif 
 #include <debug/debug.h>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace detail
   {
@@ -94,8 +94,8 @@ namespace pb_ds
     types_traits<Key, Mapped, Allocator, false>
 
 #ifdef _GLIBCXX_DEBUG
-#define PB_DS_MAP_DEBUG_BASE_C_DEC \
-    map_debug_base<Key,	eq_by_less<Key, \
+#define PB_DS_DEBUG_MAP_BASE_C_DEC \
+    debug_map_base<Key,	eq_by_less<Key, \
 			std::less<Key> >, typename Allocator::template rebind<Key>::other::const_reference>
 #endif 
 
@@ -111,10 +111,6 @@ namespace pb_ds
 #define PB_DS_EP2VP(X)& ((X)->m_value.first)
 #endif 
 
-#define PB_DS_STATIC_ASSERT(UNIQUE, E)	\
-    typedef static_assert_dumclass<sizeof(static_assert<(bool)(E)>)> \
-    UNIQUE##static_assert_type
-
     /**
      * class description = PATRICIA trie implementation.">
      **/
@@ -124,7 +120,7 @@ namespace pb_ds
 	     typename Allocator>
     class PB_DS_CLASS_NAME :
 #ifdef _GLIBCXX_DEBUG
-      public PB_DS_MAP_DEBUG_BASE_C_DEC,
+      public PB_DS_DEBUG_MAP_BASE_C_DEC,
 #endif 
       public Node_And_It_Traits::synth_e_access_traits,
       public Node_And_It_Traits::node_update,
@@ -159,7 +155,7 @@ namespace pb_ds
 #include <ext/pb_ds/detail/pat_trie_/cond_dtor_entry_dealtor.hpp>
 
 #ifdef _GLIBCXX_DEBUG
-      typedef PB_DS_MAP_DEBUG_BASE_C_DEC map_debug_base;
+      typedef PB_DS_DEBUG_MAP_BASE_C_DEC debug_base;
 #endif 
 
 #include <ext/pb_ds/detail/pat_trie_/split_join_branch_bag.hpp>
@@ -516,11 +512,10 @@ namespace pb_ds
 #undef PB_DS_CLASS_T_DEC
 #undef PB_DS_CLASS_NAME
 #undef PB_DS_TYPES_TRAITS_C_DEC
-#undef PB_DS_MAP_DEBUG_BASE_C_DEC
+#undef PB_DS_DEBUG_MAP_BASE_C_DEC
 #undef PB_DS_V2F
 #undef PB_DS_EP2VP
 #undef PB_DS_V2S
-#undef PB_DS_STATIC_ASSERT
 
   } // namespace detail
-} // namespace pb_ds
+} // namespace __gnu_pbds

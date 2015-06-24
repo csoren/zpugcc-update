@@ -36,5 +36,5 @@ int main()
 }
 
 // { dg-error "instantiated from" "" { target *-*-* } 29 } 
-// { dg-error "no type" "" { target *-*-* } 74 } 
+// { dg-error "no type" "" { target *-*-* } 73 } 
 // { dg-excess-errors "In instantiation of" }

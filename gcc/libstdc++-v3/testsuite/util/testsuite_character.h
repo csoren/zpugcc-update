@@ -3,7 +3,7 @@
 // Testing character type and state type with char_traits and codecvt
 // specializations for the C++ library testsuite.
 //
-// Copyright (C) 2003, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -36,6 +36,7 @@
 #include <climits>
 #include <string> // for char_traits
 #include <locale> // for codecvt
+#include <algorithm> // for transform
 #include <ext/pod_char_traits.h>
 
 namespace __gnu_test
@@ -45,6 +46,8 @@ namespace __gnu_test
     int value;
   };
   
+  // For 20.1 requirements for instantiable type: equality comparable
+  // and less than comparable.
   inline bool
   operator==(const pod_int& lhs, const pod_int& rhs)
   { return lhs.value == rhs.value; }
@@ -52,6 +55,29 @@ namespace __gnu_test
   inline bool
   operator<(const pod_int& lhs, const pod_int& rhs)
   { return lhs.value < rhs.value; }
+
+  // For 26 numeric algorithms requirements, need addable,
+  // subtractable, multiplicable.
+  inline pod_int
+  operator+(const pod_int& lhs, const pod_int& rhs)
+  {
+    pod_int ret = { lhs.value + rhs.value };
+    return ret;
+  }
+
+  inline pod_int
+  operator-(const pod_int& lhs, const pod_int& rhs)
+  { 
+    pod_int ret = { lhs.value - rhs.value };
+    return ret;
+  }
+
+  inline pod_int
+  operator*(const pod_int& lhs, const pod_int& rhs)
+  { 
+    pod_int ret = { lhs.value * rhs.value };
+    return ret;
+  }
 
   struct pod_state
   {
@@ -111,7 +137,7 @@ namespace __gnu_cxx
       inline V2
       __gnu_test::pod_uchar::char_type::to(const char_type& c)
       { return static_cast<V2>(c.value << 5); }
-}; // namespace __gnu_test
+} // namespace __gnu_test
 
 namespace std
 {

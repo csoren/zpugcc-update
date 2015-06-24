@@ -1,4 +1,5 @@
-/* { dg-do compile { target lp64 } } */
+/* { dg-do compile } */
+/* { dg-require-effective-target lp64 } */
 /* { dg-require-effective-target nonpic } */
 /* { dg-options "-O2 -fstack-protector-all -mcmodel=kernel" } */
 

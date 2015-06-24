@@ -75,7 +75,7 @@ c_finish_omp_barrier (void)
   tree x;
 
   x = built_in_decls[BUILT_IN_GOMP_BARRIER];
-  x = build_function_call_expr (x, NULL);
+  x = build_call_expr (x, 0);
   add_stmt (x);
 }
 
@@ -149,7 +149,7 @@ c_finish_omp_flush (void)
   tree x;
 
   x = built_in_decls[BUILT_IN_SYNCHRONIZE];
-  x = build_function_call_expr (x, NULL);
+  x = build_call_expr (x, 0);
   add_stmt (x);
 }
 
@@ -172,6 +172,7 @@ check_omp_for_incr_expr (tree exp, tree decl)
   switch (TREE_CODE (exp))
     {
     case NOP_EXPR:
+    case CONVERT_EXPR:
       t = check_omp_for_incr_expr (TREE_OPERAND (exp, 0), decl);
       if (t != error_mark_node)
         return fold_convert (TREE_TYPE (exp), t);

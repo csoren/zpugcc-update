@@ -126,7 +126,7 @@ static int
 score7_save_reg_p (unsigned int regno)
 {
   /* Check call-saved registers.  */
-  if (regs_ever_live[regno] && !call_used_regs[regno])
+  if (df_regs_ever_live_p (regno) && !call_used_regs[regno])
     return 1;
 
   /* We need to save the old frame pointer before setting up a new one.  */
@@ -135,7 +135,7 @@ score7_save_reg_p (unsigned int regno)
 
   /* We need to save the incoming return address if it is ever clobbered
      within the function.  */
-  if (regno == RA_REGNUM && regs_ever_live[regno])
+  if (regno == RA_REGNUM && df_regs_ever_live_p (regno))
     return 1;
 
   return 0;
@@ -325,9 +325,10 @@ score7_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   rtx this, temp1, insn, fnaddr;
 
   /* Pretend to be a post-reload pass while generating rtl.  */
-  no_new_pseudos = 1;
   reload_completed = 1;
-  reset_block_changes ();
+
+  /* Mark the end of the (empty) prologue.  */
+  emit_note (NOTE_INSN_PROLOGUE_END);
 
   /* We need two temporary registers in some cases.  */
   temp1 = gen_rtx_REG (Pmode, 8);
@@ -374,7 +375,7 @@ score7_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Run just enough of rest_of_compilation.  This sequence was
      "borrowed" from alpha.c.  */
   insn = get_insns ();
-  insn_locators_initialize ();
+  insn_locators_alloc ();
   split_all_insns_noflow ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
@@ -384,7 +385,6 @@ score7_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   /* Clean up the vars set above.  Note that final_end_function resets
      the global pointer for us.  */
   reload_completed = 0;
-  no_new_pseudos = 0;
 }
 
 /* Copy VALUE to a register and return that register.  If new psuedos
@@ -392,7 +392,7 @@ score7_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 static rtx
 score7_force_temporary (rtx dest, rtx value)
 {
-  if (!no_new_pseudos)
+  if (can_create_pseudo_p ())
     return force_reg (Pmode, value);
   else
     {

@@ -71,6 +71,61 @@ else
 fi
 AC_SUBST(MAINT)
 
+AC_CANONICAL_TARGET
+
+# Default decimal format
+# If you change the defaults here, be sure to change them in the GCC directory also
+AC_MSG_CHECKING([for decimal floating point])
+AC_ARG_ENABLE(decimal-float,
+[  --enable-decimal-float={no,yes,bid,dpd}
+			enable decimal float extension to C.  Selecting 'bid'
+			or 'dpd' choses which decimal floating point format
+			to use],
+[
+  case $enable_decimal_float in
+    yes | no | bid | dpd) ;;
+    *) AC_MSG_ERROR(['$enable_decimal_float' is an invalid value for --enable-decimal-float.
+Valid choices are 'yes', 'bid', 'dpd', and 'no'.]) ;;
+  esac
+],
+[
+  case $target in
+    powerpc*-*-linux* | i?86*-*-linux* | x86_64*-*-linux*)
+      enable_decimal_float=yes
+      ;;
+    *)
+      enable_decimal_float=no
+      ;;
+  esac
+])
+
+# x86's use BID format instead of DPD
+# In theory --enable-decimal-float=no should not compile anything
+# For the sake of simplicity, just use the default format in this directory
+if test x$enable_decimal_float = xyes -o x$enable_decimal_float = xno; then
+  case $target in
+    i?86*-*-linux* | x86_64*-*-linux*)
+      enable_decimal_float=bid
+      ;;
+    *)
+      enable_decimal_float=dpd
+      ;;
+  esac
+fi
+
+# If BID is being used, additional objects should be linked in.
+if test x$enable_decimal_float = xbid; then
+  ADDITIONAL_OBJS="$ADDITIONAL_OBJS \$(bid_OBJS)"
+else
+  ADDITIONAL_OBJS=
+fi
+
+AC_MSG_RESULT($enable_decimal_float)
+AC_SUBST(enable_decimal_float)
+AC_SUBST(ADDITIONAL_OBJS)
+
+AC_C_BIGENDIAN
+
 # Output.
 
 AC_CONFIG_HEADERS(config.h:config.in, [echo timestamp > stamp-h1])

@@ -1,7 +1,7 @@
-This is libgomp.info, produced by makeinfo version 4.8 from
-/scratch/joseph/4.2.4/gcc-4.2.4/gcc-4.2.4/libgomp/libgomp.texi.
+This is libgomp.info, produced by makeinfo version 4.12 from
+/space/rguenther/gcc-4.3.6/gcc-4.3.6/libgomp/libgomp.texi.
 
-   Copyright (C) 2006 Free Software Foundation, Inc.
+Copyright (C) 2006 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1 or
@@ -92,7 +92,7 @@ directive `#pragma omp' in C/C++ and `!$omp' directives in free form,
 `c$omp', `*$omp' and `!$omp' directives in fixed form, `!$' conditional
 compilation sentinels in free form and `c$', `*$' and `!$' sentinels in
 fixed form, for Fortran. The flag also arranges for automatic linking
-of the OpenMP runtime library (*Note Runtime Library Routines::).
+of the OpenMP runtime library (*note Runtime Library Routines::).
 
    A complete description of all OpenMP directives accepted may be
 found in the OpenMP Application Program Interface
@@ -166,7 +166,7 @@ _Fortran_:
      _Interface_:  `logical function omp_get_dynamic()'
 
 _See also_:
-     *Note omp_set_dynamic::, *Note OMP_DYNAMIC::
+     *note omp_set_dynamic::, *note OMP_DYNAMIC::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.2.8.
@@ -188,7 +188,7 @@ _Fortran_:
      _Interface_:  `integer function omp_get_max_threads()'
 
 _See also_:
-     *Note omp_set_num_threads::, *Note omp_set_dynamic::
+     *note omp_set_num_threads::, *note omp_set_dynamic::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.2.3.
@@ -216,7 +216,7 @@ _Fortran_:
      _Interface_:  `integer function omp_get_nested()'
 
 _See also_:
-     *Note omp_set_nested::, *Note OMP_NESTED::
+     *note omp_set_nested::, *note OMP_NESTED::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section
@@ -264,7 +264,7 @@ _Fortran_:
      _Interface_:  `integer function omp_get_num_threads()'
 
 _See also_:
-     *Note omp_get_max_threads::, *Note omp_set_num_threads::, *Note
+     *note omp_get_max_threads::, *note omp_set_num_threads::, *note
      OMP_NUM_THREADS::
 
 _Reference_:
@@ -290,7 +290,7 @@ _Fortran_:
      _Interface_:  `integer function omp_get_thread_num()'
 
 _See also_:
-     *Note omp_get_max_threads::
+     *note omp_get_max_threads::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.2.4.
@@ -335,7 +335,7 @@ _Fortran_:
                    `integer, intent(in) :: set'
 
 _See also_:
-     *Note OMP_DYNAMIC::, *Note omp_get_dynamic::
+     *note OMP_DYNAMIC::, *note omp_get_dynamic::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.2.7.
@@ -360,7 +360,7 @@ _Fortran_:
                    `integer, intent(in) :: set'
 
 _See also_:
-     *Note OMP_NESTED::, *Note omp_get_nested::
+     *note OMP_NESTED::, *note omp_get_nested::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.2.9.
@@ -384,7 +384,7 @@ _Fortran_:
                    `integer, intent(in) :: set'
 
 _See also_:
-     *Note OMP_NUM_THREADS::, *Note omp_get_num_threads::, *Note
+     *note OMP_NUM_THREADS::, *note omp_get_num_threads::, *note
      omp_get_max_threads::
 
 _Reference_:
@@ -408,7 +408,7 @@ _Fortran_:
                    `integer(omp_lock_kind), intent(out) :: lock'
 
 _See also_:
-     *Note omp_destroy_lock::
+     *note omp_destroy_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.1.
@@ -433,7 +433,7 @@ _Fortran_:
                    `integer(omp_lock_kind), intent(out) :: lock'
 
 _See also_:
-     *Note omp_init_lock::, *Note omp_test_lock::, *Note
+     *note omp_init_lock::, *note omp_test_lock::, *note
      omp_unset_lock::
 
 _Reference_:
@@ -461,7 +461,7 @@ _Fortran_:
                    `integer(omp_lock_kind), intent(out) :: lock'
 
 _See also_:
-     *Note omp_init_lock::, *Note omp_set_lock::, *Note omp_set_lock::
+     *note omp_init_lock::, *note omp_set_lock::, *note omp_set_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.5.
@@ -488,7 +488,7 @@ _Fortran_:
                    `integer(omp_lock_kind), intent(out) :: lock'
 
 _See also_:
-     *Note omp_set_lock::, *Note omp_test_lock::
+     *note omp_set_lock::, *note omp_test_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.4.
@@ -511,7 +511,7 @@ _Fortran_:
                    `integer(omp_lock_kind), intent(inout) :: lock'
 
 _See also_:
-     *Note omp_init_lock::
+     *note omp_init_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.2.
@@ -534,7 +534,7 @@ _Fortran_:
                    `integer(omp_nest_lock_kind), intent(out) :: lock'
 
 _See also_:
-     *Note omp_destroy_nest_lock::
+     *note omp_destroy_nest_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.1.
@@ -559,7 +559,7 @@ _Fortran_:
                    `integer(omp_nest_lock_kind), intent(out) :: lock'
 
 _See also_:
-     *Note omp_init_nest_lock::, *Note omp_unset_nest_lock::
+     *note omp_init_nest_lock::, *note omp_unset_nest_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.3.
@@ -587,7 +587,7 @@ _Fortran_:
                    `integer(omp_nest_lock_kind), intent(inout) :: lock'
 
 _See also_:
-     *Note omp_init_lock::, *Note omp_set_lock::, *Note omp_set_lock::
+     *note omp_init_lock::, *note omp_set_lock::, *note omp_set_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.5.
@@ -615,7 +615,7 @@ _Fortran_:
                    `integer(omp_nest_lock_kind), intent(out) :: lock'
 
 _See also_:
-     *Note omp_set_nest_lock::
+     *note omp_set_nest_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.4.
@@ -639,7 +639,7 @@ _Fortran_:
                    `integer(omp_nest_lock_kind), intent(inout) :: lock'
 
 _See also_:
-     *Note omp_init_lock::
+     *note omp_init_lock::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.3.2.
@@ -661,7 +661,7 @@ _Fortran_:
      _Interface_:  `double precision function omp_get_wtick()'
 
 _See also_:
-     *Note omp_get_wtime::
+     *note omp_get_wtime::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.4.2.
@@ -686,7 +686,7 @@ _Fortran_:
      _Interface_:  `double precision function omp_get_wtime()'
 
 _See also_:
-     *Note omp_get_wtick::
+     *note omp_get_wtick::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 3.4.1.
@@ -724,7 +724,7 @@ _Description_:
      default.
 
 _See also_:
-     *Note omp_set_dynamic::
+     *note omp_set_dynamic::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 4.3
@@ -742,7 +742,7 @@ _Description_:
      nested parallel regions are disabled by default.
 
 _See also_:
-     *Note omp_set_nested::
+     *note omp_set_nested::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 4.4
@@ -759,7 +759,7 @@ _Description_:
      undefined one thread per CPU online is used.
 
 _See also_:
-     *Note omp_set_num_threads::
+     *note omp_set_num_threads::
 
 _Reference_:
      OpenMP specifications v2.5 (http://www.openmp.org/), section 4.2
@@ -788,14 +788,27 @@ File: libgomp.info,  Node: GOMP_CPU_AFFINITY,  Next: GOMP_STACKSIZE,  Prev: OMP_
 =======================================================
 
 _Description_:
-     A patch for this extension has been submitted, but was not yet
-     applied at the time of writing.
+     Binds threads to specific CPUs. The variable should contain a
+     space- or comma-separated list of CPUs. This list may contain
+     different kind of entries: either single CPU numbers in any order,
+     a range of CPUs (M-N) or a range with some stride (M-N:S). CPU
+     numbers are zero based. For example, `GOMP_CPU_AFFINITY="0 3 1-2
+     4-15:2"' will bind the initial thread to CPU 0, the second to CPU
+     3, the third to CPU 1, the fourth to CPU 2, the fifth to CPU 4,
+     the sixth through tenth to CPUs 6, 8, 10, 12, and 14 respectively
+     and then start assigning back from the beginning of the list.
+     `GOMP_CPU_AFFINITY=0' binds all threads to CPU 0.
 
-_Reference_:
-     GCC Patches Mailinglist
-     (http://gcc.gnu.org/ml/gcc-patches/2006-05/msg00982.html) GCC
-     Patches Mailinglist
-     (http://gcc.gnu.org/ml/gcc-patches/2006-05/msg01133.html)
+     There is no GNU OpenMP library routine to determine whether a CPU
+     affinity specification is in effect. As a workaround,
+     language-specific library functions, e.g., `getenv' in C or
+     `GET_ENVIRONMENT_VARIABLE' in Fortran, may be used to query the
+     setting of the `GOMP_CPU_AFFINITY' environment variable. A defined
+     CPU affinity on startup cannot be changed or disabled during the
+     runtime of the application.
+
+     If this environment variable is omitted, the host system will
+     handle the assignment of threads to CPUs.
 
 
 File: libgomp.info,  Node: GOMP_STACKSIZE,  Prev: GOMP_CPU_AFFINITY,  Up: Environment Variables
@@ -2054,57 +2067,57 @@ Index
 
 
 Tag Table:
-Node: Top2102
-Node: Enabling OpenMP3296
-Node: Runtime Library Routines4081
-Node: omp_get_dynamic5782
-Node: omp_get_max_threads6626
-Node: omp_get_nested7282
-Node: omp_get_num_procs8190
-Node: omp_get_num_threads8704
-Node: omp_get_thread_num9776
-Node: omp_in_parallel10565
-Node: omp_set_dynamic11209
-Node: omp_set_nested12032
-Node: omp_set_num_threads12897
-Node: omp_init_lock13732
-Node: omp_set_lock14385
-Node: omp_test_lock15234
-Node: omp_unset_lock16260
-Node: omp_destroy_lock17186
-Node: omp_init_nest_lock17856
-Node: omp_set_nest_lock18588
-Node: omp_test_nest_lock19497
-Node: omp_unset_nest_lock20595
-Node: omp_destroy_nest_lock21604
-Node: omp_get_wtick22352
-Node: omp_get_wtime22939
-Node: Environment Variables23722
-Node: OMP_DYNAMIC24435
-Node: OMP_NESTED24992
-Node: OMP_NUM_THREADS25586
-Node: OMP_SCHEDULE26158
-Node: GOMP_CPU_AFFINITY26806
-Node: GOMP_STACKSIZE27358
-Node: The libgomp ABI28132
-Node: Implementing MASTER construct28930
-Node: Implementing CRITICAL construct29343
-Node: Implementing ATOMIC construct30091
-Node: Implementing FLUSH construct30572
-Node: Implementing BARRIER construct30843
-Node: Implementing THREADPRIVATE construct31112
-Node: Implementing PRIVATE clause31764
-Node: Implementing FIRSTPRIVATE LASTPRIVATE COPYIN and COPYPRIVATE clauses32345
-Node: Implementing REDUCTION clause33660
-Node: Implementing PARALLEL construct34216
-Node: Implementing FOR construct35473
-Node: Implementing ORDERED construct37471
-Node: Implementing SECTIONS construct37777
-Node: Implementing SINGLE construct38543
-Node: Reporting Bugs39205
-Node: Copying39513
-Node: GNU Free Documentation License58723
-Node: Funding81134
-Node: Index83651
+Node: Top2095
+Node: Enabling OpenMP3289
+Node: Runtime Library Routines4074
+Node: omp_get_dynamic5775
+Node: omp_get_max_threads6619
+Node: omp_get_nested7275
+Node: omp_get_num_procs8183
+Node: omp_get_num_threads8697
+Node: omp_get_thread_num9769
+Node: omp_in_parallel10558
+Node: omp_set_dynamic11202
+Node: omp_set_nested12025
+Node: omp_set_num_threads12890
+Node: omp_init_lock13725
+Node: omp_set_lock14378
+Node: omp_test_lock15227
+Node: omp_unset_lock16253
+Node: omp_destroy_lock17179
+Node: omp_init_nest_lock17849
+Node: omp_set_nest_lock18581
+Node: omp_test_nest_lock19490
+Node: omp_unset_nest_lock20588
+Node: omp_destroy_nest_lock21597
+Node: omp_get_wtick22345
+Node: omp_get_wtime22932
+Node: Environment Variables23715
+Node: OMP_DYNAMIC24428
+Node: OMP_NESTED24985
+Node: OMP_NUM_THREADS25579
+Node: OMP_SCHEDULE26151
+Node: GOMP_CPU_AFFINITY26799
+Node: GOMP_STACKSIZE28280
+Node: The libgomp ABI29054
+Node: Implementing MASTER construct29852
+Node: Implementing CRITICAL construct30265
+Node: Implementing ATOMIC construct31013
+Node: Implementing FLUSH construct31494
+Node: Implementing BARRIER construct31765
+Node: Implementing THREADPRIVATE construct32034
+Node: Implementing PRIVATE clause32686
+Node: Implementing FIRSTPRIVATE LASTPRIVATE COPYIN and COPYPRIVATE clauses33267
+Node: Implementing REDUCTION clause34582
+Node: Implementing PARALLEL construct35138
+Node: Implementing FOR construct36395
+Node: Implementing ORDERED construct38393
+Node: Implementing SECTIONS construct38699
+Node: Implementing SINGLE construct39465
+Node: Reporting Bugs40127
+Node: Copying40435
+Node: GNU Free Documentation License59645
+Node: Funding82056
+Node: Index84573
 
 End Tag Table

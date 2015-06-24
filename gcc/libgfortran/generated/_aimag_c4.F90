@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -40,11 +40,11 @@
 #if defined (HAVE_GFC_COMPLEX_4)
 
 
-elemental function specific__aimag_c4 (parm)
+elemental function _gfortran_specific__aimag_c4 (parm)
    complex (kind=4), intent (in) :: parm
-   real (kind=4) :: specific__aimag_c4
+   real (kind=4) :: _gfortran_specific__aimag_c4
 
-   specific__aimag_c4 = aimag (parm)
+   _gfortran_specific__aimag_c4 = aimag (parm)
 end function
 
 

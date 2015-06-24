@@ -1,5 +1,5 @@
 /* Decimal floating point support.
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -31,28 +31,14 @@ along with GCC; see the file COPYING3.  If not see
    decNumber structure is large enough to hold decimal128 digits.  */
 
 #include "decimal128.h"
+#include "decimal128Local.h"
 #include "decimal64.h"
 #include "decimal32.h"
 #include "decNumber.h"
 
-static uint32_t
-dfp_byte_swap (uint32_t in)
-{
-  uint32_t out = 0;
-  unsigned char *p = (unsigned char *) &out;
-  union {
-    uint32_t i;
-    unsigned char b[4];
-  } u;
-
-  u.i = in;
-  p[0] = u.b[3];
-  p[1] = u.b[2];
-  p[2] = u.b[1];
-  p[3] = u.b[0];
-
-  return out;
-}
+#ifndef WORDS_BIGENDIAN
+#define WORDS_BIGENDIAN 0
+#endif
 
 /* Initialize R (a real with the decimal flag set) from DN.  Can
    utilize status passed in via CONTEXT, if a previous operation had
@@ -64,8 +50,6 @@ decimal_from_decnumber (REAL_VALUE_TYPE *r, decNumber *dn, decContext *context)
   memset (r, 0, sizeof (REAL_VALUE_TYPE));
 
   r->cl = rvc_normal;
-  if (decNumberIsZero (dn))
-    r->cl = rvc_zero;
   if (decNumberIsNaN (dn))
     r->cl = rvc_nan;
   if (decNumberIsInfinite (dn))
@@ -95,7 +79,7 @@ decimal_real_from_string (REAL_VALUE_TYPE *r, const char *s)
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
 
-  decNumberFromString (&dn, (char *) s, &set);
+  decNumberFromString (&dn, s, &set);
 
   /* It would be more efficient to store directly in decNumber format,
      but that is impractical from current data structure size.
@@ -118,17 +102,17 @@ decimal_to_decnumber (const REAL_VALUE_TYPE *r, decNumber *dn)
       decNumberZero (dn);
       break;
     case rvc_inf:
-      decNumberFromString (dn, (char *)"Infinity", &set);
+      decNumberFromString (dn, "Infinity", &set);
       break;
     case rvc_nan:
       if (r->signalling)
-        decNumberFromString (dn, (char *)"snan", &set);
+        decNumberFromString (dn, "snan", &set);
       else
-        decNumberFromString (dn, (char *)"nan", &set);
+        decNumberFromString (dn, "nan", &set);
       break;
     case rvc_normal:
       gcc_assert (r->decimal);
-      decimal128ToNumber ((decimal128 *) r->sig, dn);
+      decimal128ToNumber ((const decimal128 *) r->sig, dn);
       break;
     default:
       gcc_unreachable ();
@@ -148,6 +132,7 @@ encode_decimal32 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decNumber dn;
   decimal32 d32;
   decContext set;
+  int32_t image;
 
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
@@ -155,13 +140,11 @@ encode_decimal32 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decimal_to_decnumber (r, &dn); 
   decimal32FromNumber (&d32, &dn, &set);
 
-  if (FLOAT_WORDS_BIG_ENDIAN)
-    buf[0] = *(uint32_t *) d32.bytes;
-  else
-    buf[0] = dfp_byte_swap (*(uint32_t *) d32.bytes);
+  memcpy (&image, d32.bytes, sizeof (int32_t));
+  buf[0] = image;
 }
 
-/* Decode an IEEE 754R decimal32 type into a real.  */
+/* Decode an IEEE 754 decimal32 type into a real.  */
 
 void
 decode_decimal32 (const struct real_format *fmt ATTRIBUTE_UNUSED,
@@ -170,20 +153,19 @@ decode_decimal32 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decNumber dn;
   decimal32 d32;
   decContext set;
+  int32_t image;
 
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
 
-  if (FLOAT_WORDS_BIG_ENDIAN)
-    *((uint32_t *) d32.bytes) = (uint32_t) buf[0];
-  else
-    *((uint32_t *) d32.bytes) = dfp_byte_swap ((uint32_t) buf[0]);
+  image = buf[0];
+  memcpy (&d32.bytes, &image, sizeof (int32_t));
 
   decimal32ToNumber (&d32, &dn);
   decimal_from_decnumber (r, &dn, &set); 
 }
 
-/* Encode a real into an IEEE 754R decimal64 type.  */
+/* Encode a real into an IEEE 754 decimal64 type.  */
 
 void
 encode_decimal64 (const struct real_format *fmt ATTRIBUTE_UNUSED,
@@ -192,6 +174,7 @@ encode_decimal64 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decNumber dn;
   decimal64 d64;
   decContext set;
+  int32_t image;
 
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
@@ -199,19 +182,23 @@ encode_decimal64 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decimal_to_decnumber (r, &dn);
   decimal64FromNumber (&d64, &dn, &set);
 
-  if (FLOAT_WORDS_BIG_ENDIAN)
+  if (WORDS_BIGENDIAN == FLOAT_WORDS_BIG_ENDIAN)
     {
-      buf[0] = *(uint32_t *) &d64.bytes[0];
-      buf[1] = *(uint32_t *) &d64.bytes[4];
+      memcpy (&image, &d64.bytes[0], sizeof (int32_t));
+      buf[0] = image;
+      memcpy (&image, &d64.bytes[4], sizeof (int32_t));
+      buf[1] = image;
     }
   else
     {
-      buf[1] = dfp_byte_swap (*(uint32_t *) &d64.bytes[0]);
-      buf[0] = dfp_byte_swap (*(uint32_t *) &d64.bytes[4]);
+      memcpy (&image, &d64.bytes[4], sizeof (int32_t));
+      buf[0] = image;
+      memcpy (&image, &d64.bytes[0], sizeof (int32_t));
+      buf[1] = image;
     }
 }
 
-/* Decode an IEEE 754R decimal64 type into a real.  */
+/* Decode an IEEE 754 decimal64 type into a real.  */
 
 void
 decode_decimal64 (const struct real_format *fmt ATTRIBUTE_UNUSED,
@@ -220,26 +207,31 @@ decode_decimal64 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decNumber dn;
   decimal64 d64;
   decContext set;
+  int32_t image;
 
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
 
-  if (FLOAT_WORDS_BIG_ENDIAN)
+  if (WORDS_BIGENDIAN == FLOAT_WORDS_BIG_ENDIAN)
     {
-      *((uint32_t *) &d64.bytes[0]) = (uint32_t) buf[0];
-      *((uint32_t *) &d64.bytes[4]) = (uint32_t) buf[1];
+      image = buf[0];
+      memcpy (&d64.bytes[0], &image, sizeof (int32_t));
+      image = buf[1];
+      memcpy (&d64.bytes[4], &image, sizeof (int32_t));
     }
   else
     {
-      *((uint32_t *) &d64.bytes[0]) = dfp_byte_swap ((uint32_t) buf[1]);
-      *((uint32_t *) &d64.bytes[4]) = dfp_byte_swap ((uint32_t) buf[0]); 
+      image = buf[1];
+      memcpy (&d64.bytes[0], &image, sizeof (int32_t));
+      image = buf[0];
+      memcpy (&d64.bytes[4], &image, sizeof (int32_t));
     }
 
   decimal64ToNumber (&d64, &dn);
   decimal_from_decnumber (r, &dn, &set); 
 }
 
-/* Encode a real into an IEEE 754R decimal128 type.  */
+/* Encode a real into an IEEE 754 decimal128 type.  */
 
 void
 encode_decimal128 (const struct real_format *fmt ATTRIBUTE_UNUSED,
@@ -248,6 +240,7 @@ encode_decimal128 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decNumber dn;
   decContext set;
   decimal128 d128;
+  int32_t image;
 
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
@@ -255,23 +248,31 @@ encode_decimal128 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decimal_to_decnumber (r, &dn);
   decimal128FromNumber (&d128, &dn, &set);
 
-  if (FLOAT_WORDS_BIG_ENDIAN)
+  if (WORDS_BIGENDIAN == FLOAT_WORDS_BIG_ENDIAN)
     {
-      buf[0] = *(uint32_t *) &d128.bytes[0];
-      buf[1] = *(uint32_t *) &d128.bytes[4];
-      buf[2] = *(uint32_t *) &d128.bytes[8];
-      buf[3] = *(uint32_t *) &d128.bytes[12];
+      memcpy (&image, &d128.bytes[0], sizeof (int32_t));
+      buf[0] = image;
+      memcpy (&image, &d128.bytes[4], sizeof (int32_t));
+      buf[1] = image;
+      memcpy (&image, &d128.bytes[8], sizeof (int32_t));
+      buf[2] = image;
+      memcpy (&image, &d128.bytes[12], sizeof (int32_t));
+      buf[3] = image;
     }
   else
     {
-      buf[0] = dfp_byte_swap (*(uint32_t *) &d128.bytes[12]);
-      buf[1] = dfp_byte_swap (*(uint32_t *) &d128.bytes[8]);
-      buf[2] = dfp_byte_swap (*(uint32_t *) &d128.bytes[4]);
-      buf[3] = dfp_byte_swap (*(uint32_t *) &d128.bytes[0]);
+      memcpy (&image, &d128.bytes[12], sizeof (int32_t));
+      buf[0] = image;
+      memcpy (&image, &d128.bytes[8], sizeof (int32_t));
+      buf[1] = image;
+      memcpy (&image, &d128.bytes[4], sizeof (int32_t));
+      buf[2] = image;
+      memcpy (&image, &d128.bytes[0], sizeof (int32_t));
+      buf[3] = image;
     }
 }
 
-/* Decode an IEEE 754R decimal128 type into a real.  */
+/* Decode an IEEE 754 decimal128 type into a real.  */
 
 void
 decode_decimal128 (const struct real_format *fmt ATTRIBUTE_UNUSED,
@@ -280,23 +281,32 @@ decode_decimal128 (const struct real_format *fmt ATTRIBUTE_UNUSED,
   decNumber dn;
   decimal128 d128;
   decContext set;
+  int32_t image;
 
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
 
-  if (FLOAT_WORDS_BIG_ENDIAN)
+  if (WORDS_BIGENDIAN == FLOAT_WORDS_BIG_ENDIAN)
     {
-      *((uint32_t *) &d128.bytes[0])  = (uint32_t) buf[0];
-      *((uint32_t *) &d128.bytes[4])  = (uint32_t) buf[1];
-      *((uint32_t *) &d128.bytes[8])  = (uint32_t) buf[2];
-      *((uint32_t *) &d128.bytes[12]) = (uint32_t) buf[3];
+      image = buf[0];
+      memcpy (&d128.bytes[0],  &image, sizeof (int32_t));
+      image = buf[1];
+      memcpy (&d128.bytes[4],  &image, sizeof (int32_t));
+      image = buf[2];
+      memcpy (&d128.bytes[8],  &image, sizeof (int32_t));
+      image = buf[3];
+      memcpy (&d128.bytes[12], &image, sizeof (int32_t));
     }
   else
     {
-      *((uint32_t *) &d128.bytes[0])  = dfp_byte_swap ((uint32_t) buf[3]);
-      *((uint32_t *) &d128.bytes[4])  = dfp_byte_swap ((uint32_t) buf[2]);
-      *((uint32_t *) &d128.bytes[8])  = dfp_byte_swap ((uint32_t) buf[1]);
-      *((uint32_t *) &d128.bytes[12]) = dfp_byte_swap ((uint32_t) buf[0]);
+      image = buf[3];
+      memcpy (&d128.bytes[0],  &image, sizeof (int32_t));
+      image = buf[2];
+      memcpy (&d128.bytes[4],  &image, sizeof (int32_t));
+      image = buf[1];
+      memcpy (&d128.bytes[8],  &image, sizeof (int32_t));
+      image = buf[0];
+      memcpy (&d128.bytes[12], &image, sizeof (int32_t));
     }
 
   decimal128ToNumber (&d128, &dn);
@@ -311,8 +321,7 @@ decimal_to_binary (REAL_VALUE_TYPE *to, const REAL_VALUE_TYPE *from,
 		   enum machine_mode mode)
 {
   char string[256];
-  decimal128 *d128;
-  d128 = (decimal128 *) from->sig;
+  const decimal128 *const d128 = (const decimal128 *) from->sig;
 
   decimal128ToString (d128, string);
   real_from_string3 (to, string, mode);
@@ -359,8 +368,8 @@ decimal_do_compare (const REAL_VALUE_TYPE *a, const REAL_VALUE_TYPE *b,
   /* Convert into decNumber form for comparison operation.  */
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;  
-  decimal128ToNumber ((decimal128 *) a->sig, &dn2);
-  decimal128ToNumber ((decimal128 *) b->sig, &dn3);
+  decimal128ToNumber ((const decimal128 *) a->sig, &dn2);
+  decimal128ToNumber ((const decimal128 *) b->sig, &dn3);
 
   /* Finally, do the comparison.  */
   decNumberCompare (&dn, &dn2, &dn3, &set);
@@ -450,7 +459,7 @@ decimal_real_to_decimal (char *str, const REAL_VALUE_TYPE *r_orig,
 			 size_t digits ATTRIBUTE_UNUSED,
 			 int crop_trailing_zeros ATTRIBUTE_UNUSED)
 {
-  decimal128 *d128 = (decimal128*) r_orig->sig;
+  const decimal128 *const d128 = (const decimal128*) r_orig->sig;
 
   /* decimal128ToString requires space for at least 24 characters;
      Require two more for suffix.  */
@@ -539,7 +548,7 @@ decimal_do_fix_trunc (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a)
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
   set.round = DEC_ROUND_DOWN;
-  decimal128ToNumber ((decimal128 *) a->sig, &dn2);
+  decimal128ToNumber ((const decimal128 *) a->sig, &dn2);
 
   decNumberToIntegralValue (&dn, &dn2, &set);
   decimal_from_decnumber (r, &dn, &set);
@@ -558,7 +567,7 @@ decimal_real_to_integer (const REAL_VALUE_TYPE *r)
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
   set.round = DEC_ROUND_DOWN;
-  decimal128ToNumber ((decimal128 *) r->sig, &dn);
+  decimal128ToNumber ((const decimal128 *) r->sig, &dn);
 
   decNumberToIntegralValue (&dn2, &dn, &set);
   decNumberZero (&dn3);
@@ -585,7 +594,7 @@ decimal_real_to_integer2 (HOST_WIDE_INT *plow, HOST_WIDE_INT *phigh,
   decContextDefault (&set, DEC_INIT_DECIMAL128);
   set.traps = 0;
   set.round = DEC_ROUND_DOWN;
-  decimal128ToNumber ((decimal128 *) r->sig, &dn);
+  decimal128ToNumber ((const decimal128 *) r->sig, &dn);
 
   decNumberToIntegralValue (&dn2, &dn, &set);
   decNumberZero (&dn3);
@@ -655,11 +664,9 @@ decimal_real_arithmetic (REAL_VALUE_TYPE *r, enum tree_code code,
 
     case NEGATE_EXPR:
       {
-	decimal128 *d128;
 	*r = *op0;
-	d128 = (decimal128 *) r->sig;
-	/* Flip high bit.  */
-	d128->bytes[0] ^= 1 << 7;
+	/* Flip sign bit.  */
+	decimal128FlipSign ((decimal128 *) r->sig);
 	/* Keep sign field in sync.  */
 	r->sign ^= 1;
       }
@@ -667,11 +674,9 @@ decimal_real_arithmetic (REAL_VALUE_TYPE *r, enum tree_code code,
 
     case ABS_EXPR:
       {
-        decimal128 *d128;
         *r = *op0;
-        d128 = (decimal128 *) r->sig;
-	/* Clear high bit.  */
-        d128->bytes[0] &= 0x7f;
+	/* Clear sign bit.  */
+	decimal128ClearSign ((decimal128 *) r->sig);
 	/* Keep sign field in sync.  */
 	r->sign = 0;
       }
@@ -692,18 +697,18 @@ decimal_real_arithmetic (REAL_VALUE_TYPE *r, enum tree_code code,
 void
 decimal_real_maxval (REAL_VALUE_TYPE *r, int sign, enum machine_mode mode)
 { 
-  char *max;
+  const char *max;
 
   switch (mode)
     {
     case SDmode:
-      max = (char *) "9.999999E96";
+      max = "9.999999E96";
       break;
     case DDmode:
-      max = (char *) "9.999999999999999E384";
+      max = "9.999999999999999E384";
       break;
     case TDmode:
-      max = (char *) "9.999999999999999999999999999999999E6144";
+      max = "9.999999999999999999999999999999999E6144";
       break;
     default:
       gcc_unreachable ();
@@ -711,5 +716,5 @@ decimal_real_maxval (REAL_VALUE_TYPE *r, int sign, enum machine_mode mode)
 
   decimal_real_from_string (r, max);
   if (sign)
-    r->sig[0] |= 0x80000000;
+    decimal128SetSign ((decimal128 *) r->sig, 1);
 }

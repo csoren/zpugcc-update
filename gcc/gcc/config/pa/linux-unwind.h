@@ -29,6 +29,9 @@ Boston, MA 02110-1301, USA.  */
 /* Do code reading to identify a signal frame, and set the frame
    state data appropriately.  See unwind-dw2.c for the structs.  */
 
+/* Don't use this if inhibit_libc is set.
+   The build for this target will fail trying to include missing headers. */
+#ifndef inhibit_libc
 #include <signal.h>
 #include <sys/ucontext.h>
 
@@ -111,9 +114,9 @@ pa32_fallback_frame_state (struct _Unwind_Context *context,
   sc = &frame->uc.uc_mcontext;
 
   new_cfa = sc->sc_gr[30];
-  fs->cfa_how = CFA_REG_OFFSET;
-  fs->cfa_reg = 30;
-  fs->cfa_offset = new_cfa - (long) context->cfa;
+  fs->regs.cfa_how = CFA_REG_OFFSET;
+  fs->regs.cfa_reg = 30;
+  fs->regs.cfa_offset = new_cfa - (long) context->cfa;
   for (i = 1; i <= 31; i++)
     {
       fs->regs.reg[i].how = REG_SAVED_OFFSET;
@@ -135,5 +138,7 @@ pa32_fallback_frame_state (struct _Unwind_Context *context,
   fs->regs.reg[DWARF_ALT_FRAME_RETURN_COLUMN].loc.offset
     = (long) &sc->sc_iaoq[0] - new_cfa;
   fs->retaddr_column = DWARF_ALT_FRAME_RETURN_COLUMN;
+  fs->signal_frame = 1;
   return _URC_NO_REASON;
 }
+#endif /* inhibit_libc */

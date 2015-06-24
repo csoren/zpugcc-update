@@ -1,7 +1,7 @@
 // -*- C++ -*-
 // Utility subroutines for the C++ library testsuite. 
 //
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -58,8 +58,8 @@
 
 #include <bits/c++config.h>
 #include <bits/functexcept.h>
-#include <cstddef>
-#include <locale>
+#include <ctime>
+
 #ifdef _GLIBCXX_HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
@@ -134,7 +134,7 @@ namespace __gnu_test
     func_callback(const func_callback&);
 
   public:
-    func_callback(): _M_size(0) { };
+    func_callback(): _M_size(0) { }
 
     int
     size() const { return _M_size; }
@@ -158,24 +158,6 @@ namespace __gnu_test
   // Run select unit tests after setting environment variables.
   void 
   run_tests_wrapped_env(const char*, const char*, const func_callback&);
-
-
-  // For containers (23.1/3).
-  struct NonDefaultConstructible
-  {
-    NonDefaultConstructible(int) { }
-  };
- 
-  inline bool
-  operator==(const NonDefaultConstructible&,
-	     const NonDefaultConstructible&)
-  { return false; }
-
-  inline bool
-  operator<(const NonDefaultConstructible&,
-	    const NonDefaultConstructible&)
-  { return false; }
-
 
   // Counting.
   struct counter
@@ -387,8 +369,8 @@ namespace __gnu_test
   };
 
   // For use in 22_locale/time_get and time_put.
-  tm test_tm(int sec, int min, int hour, int mday, int mon,
-	     int year, int wday, int yday, int isdst);
+  std::tm test_tm(int sec, int min, int hour, int mday, int mon,
+		  int year, int wday, int yday, int isdst);
 
 } // namespace __gnu_test
 

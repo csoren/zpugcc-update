@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler,
-   for IBM RS/6000 POWER running AIX V6.1.
+   for IBM RS/6000 POWER running AIX V5.3.
    Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by David Edelsohn (edelsohn@gnu.org).
@@ -63,7 +63,8 @@ do {									\
 #define ASM_CPU_SPEC \
 "%{!mcpu*: %{!maix64: \
   %{mpowerpc64: -mppc64} \
-  %{!mpower64: %(asm_default)}}} \
+  %{maltivec: -m970} \
+  %{!maltivec: %{!mpower64: %(asm_default)}}}} \
 %{mcpu=power3: -m620} \
 %{mcpu=power4: -mpwr4} \
 %{mcpu=power5: -mpwr5} \

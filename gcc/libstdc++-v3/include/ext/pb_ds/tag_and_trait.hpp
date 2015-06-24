@@ -50,7 +50,11 @@
 
 #include <ext/pb_ds/detail/type_utils.hpp>
 
-namespace pb_ds
+/**
+ * @namespace __gnu_pbds
+ * @brief GNU extensions for policy-based data structures for public use.
+ */
+namespace __gnu_pbds
 {
   // A trivial iterator tag. Signifies that the iterators has none of
   // the STL's movement abilities.
@@ -352,6 +356,6 @@ namespace pb_ds
 	reverse_iteration = base_type::reverse_iteration
       };
   };
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif

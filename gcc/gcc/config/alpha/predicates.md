@@ -53,16 +53,14 @@
 ;; Return 1 if the operand is a valid second operand to an add insn.
 (define_predicate "add_operand"
   (if_then_else (match_code "const_int")
-    (match_test "CONST_OK_FOR_LETTER_P (INTVAL (op), 'K')
-		 || CONST_OK_FOR_LETTER_P (INTVAL (op), 'L')")
+    (match_test "satisfies_constraint_K (op) || satisfies_constraint_L (op)")
     (match_operand 0 "register_operand")))
 
 ;; Return 1 if the operand is a valid second operand to a
 ;; sign-extending add insn.
 (define_predicate "sext_add_operand"
   (if_then_else (match_code "const_int")
-    (match_test "CONST_OK_FOR_LETTER_P (INTVAL (op), 'I')
-		 || CONST_OK_FOR_LETTER_P (INTVAL (op), 'O')")
+    (match_test "satisfies_constraint_I (op) || satisfies_constraint_O (op)")
     (match_operand 0 "register_operand")))
 
 ;; Return 1 if the operand is a non-symbolic constant operand that
@@ -326,13 +324,13 @@
 (define_predicate "local_symbolic_operand"
   (match_code "label_ref,const,symbol_ref")
 {
-  if (GET_CODE (op) == LABEL_REF)
-    return 1;
-
   if (GET_CODE (op) == CONST
       && GET_CODE (XEXP (op, 0)) == PLUS
       && GET_CODE (XEXP (XEXP (op, 0), 1)) == CONST_INT)
     op = XEXP (XEXP (op, 0), 0);
+
+  if (GET_CODE (op) == LABEL_REF)
+    return 1;
 
   if (GET_CODE (op) != SYMBOL_REF)
     return 0;
@@ -392,7 +390,8 @@
   (ior (match_code "symbol_ref,label_ref")
        (and (match_code "const")
 	    (match_test "GET_CODE (XEXP (op,0)) == PLUS
-			 && GET_CODE (XEXP (XEXP (op,0), 0)) == SYMBOL_REF
+			 && (GET_CODE (XEXP (XEXP (op,0), 0)) == SYMBOL_REF
+			     || GET_CODE (XEXP (XEXP (op,0), 0)) == LABEL_REF)
 			 && GET_CODE (XEXP (XEXP (op,0), 1)) == CONST_INT"))))
 
 ;; Return true if OP is valid for 16-bit DTP relative relocations.
@@ -435,14 +434,16 @@
 ;; use recog during reload, so pretending these codes are accepted 
 ;; pessimizes things a tad.
 
-(define_predicate "aligned_memory_operand"
+(define_special_predicate "aligned_memory_operand"
   (ior (match_test "op = resolve_reload_operand (op), 0")
        (match_code "mem"))
 {
   rtx base;
+  int offset;
 
   if (MEM_ALIGN (op) >= 32)
     return 1;
+
   op = XEXP (op, 0);
 
   /* LEGITIMIZE_RELOAD_ADDRESS creates (plus (plus reg const_hi) const_lo)
@@ -450,27 +451,44 @@
   if (reload_in_progress
       && GET_CODE (op) == PLUS
       && GET_CODE (XEXP (op, 0)) == PLUS)
-    base = XEXP (XEXP (op, 0), 0);
+    {
+      base = XEXP (XEXP (op, 0), 0);
+      offset = INTVAL (XEXP (op, 1));
+    }
   else
     {
       if (! memory_address_p (mode, op))
 	return 0;
-      base = (GET_CODE (op) == PLUS ? XEXP (op, 0) : op);
+      if (GET_CODE (op) == PLUS)
+	{
+	  base = XEXP (op, 0);
+	  offset = INTVAL (XEXP (op, 1));
+	}
+      else
+	{
+	  base = op;
+	  offset = 0;
+	}
     }
+
+  if (offset % GET_MODE_SIZE (mode))
+    return 0;
 
   return (GET_CODE (base) == REG && REGNO_POINTER_ALIGN (REGNO (base)) >= 32);
 })
 
 ;; Similar, but return 1 if OP is a MEM which is not alignable.
 
-(define_predicate "unaligned_memory_operand"
+(define_special_predicate "unaligned_memory_operand"
   (ior (match_test "op = resolve_reload_operand (op), 0")
        (match_code "mem"))
 {
   rtx base;
+  int offset;
 
   if (MEM_ALIGN (op) >= 32)
     return 0;
+
   op = XEXP (op, 0);
 
   /* LEGITIMIZE_RELOAD_ADDRESS creates (plus (plus reg const_hi) const_lo)
@@ -478,32 +496,57 @@
   if (reload_in_progress
       && GET_CODE (op) == PLUS
       && GET_CODE (XEXP (op, 0)) == PLUS)
-    base = XEXP (XEXP (op, 0), 0);
+    {
+      base = XEXP (XEXP (op, 0), 0);
+      offset = INTVAL (XEXP (op, 1));
+    }
   else
     {
       if (! memory_address_p (mode, op))
 	return 0;
-      base = (GET_CODE (op) == PLUS ? XEXP (op, 0) : op);
+      if (GET_CODE (op) == PLUS)
+	{
+	  base = XEXP (op, 0);
+	  offset = INTVAL (XEXP (op, 1));
+	}
+      else
+	{
+	  base = op;
+	  offset = 0;
+	}
     }
+
+  if (offset % GET_MODE_SIZE (mode))
+    return 1;
 
   return (GET_CODE (base) == REG && REGNO_POINTER_ALIGN (REGNO (base)) < 32);
 })
 
 ;; Return 1 if OP is any memory location.  During reload a pseudo matches.
-(define_predicate "any_memory_operand"
-  (ior (match_code "mem,reg")
-       (and (match_code "subreg")
-	    (match_test "GET_CODE (SUBREG_REG (op)) == REG"))))
+(define_special_predicate "any_memory_operand"
+  (match_code "mem,reg,subreg")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
 
-;; Return 1 if OP is either a register or an unaligned memory location.
-(define_predicate "reg_or_unaligned_mem_operand"
-  (ior (match_operand 0 "register_operand")
-       (match_operand 0 "unaligned_memory_operand")))
+  if (MEM_P (op))
+    return true;
+  if (reload_in_progress && REG_P (op))
+    {
+      unsigned regno = REGNO (op);
+      if (HARD_REGISTER_NUM_P (regno))
+	return false;
+      else
+	return reg_renumber[regno] < 0;
+    }
+
+  return false;
+})
 
 ;; Return 1 is OP is a memory location that is not a reference
 ;; (using an AND) to an unaligned location.  Take into account
 ;; what reload will do.
-(define_predicate "normal_memory_operand"
+(define_special_predicate "normal_memory_operand"
   (ior (match_test "op = resolve_reload_operand (op), 0")
        (and (match_code "mem")
 	    (match_test "GET_CODE (XEXP (op, 0)) != AND"))))
@@ -571,8 +614,7 @@
 (define_predicate "addition_operation"
   (and (match_code "plus")
        (match_test "register_operand (XEXP (op, 0), mode)
-		    && GET_CODE (XEXP (op, 1)) == CONST_INT
-		    && CONST_OK_FOR_LETTER_P (INTVAL (XEXP (op, 1)), 'K')")))
+		    && satisfies_constraint_K (XEXP (op, 1))")))
 
 ;; For TARGET_EXPLICIT_RELOCS, we don't obfuscate a SYMBOL_REF to a
 ;; small symbolic operand until after reload.  At which point we need

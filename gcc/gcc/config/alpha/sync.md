@@ -17,11 +17,7 @@
 ;; along with GCC; see the file COPYING3.  If not see
 ;; <http://www.gnu.org/licenses/>.
 
-(define_mode_macro I12MODE [QI HI])
-(define_mode_macro I48MODE [SI DI])
-(define_mode_attr modesuffix [(SI "l") (DI "q")])
-
-(define_code_macro FETCHOP [plus minus ior xor and])
+(define_code_iterator FETCHOP [plus minus ior xor and])
 (define_code_attr fetchop_name
   [(plus "add") (minus "sub") (ior "ior") (xor "xor") (and "and")])
 (define_code_attr fetchop_pred
@@ -66,11 +62,8 @@
   [(set_attr "type" "st_c")])
 
 ;; The Alpha Architecture Handbook says that it is UNPREDICTABLE whether
-;; the lock is cleared by a TAKEN branch.  If we were to honor that, it
-;; would mean that we could not expand a ll/sc sequence until after the
-;; final basic-block reordering pass.  Fortunately, it appears that no
-;; Alpha implementation ever built actually clears the lock on branches,
-;; taken or not.
+;; the lock is cleared by a TAKEN branch.  This means that we can not
+;; expand a ll/sc sequence until after the final basic-block reordering pass.
 
 (define_insn_and_split "sync_<fetchop_name><mode>"
   [(set (match_operand:I48MODE 0 "memory_operand" "+m")
@@ -81,7 +74,7 @@
    (clobber (match_scratch:I48MODE 2 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_atomic_op (<CODE>, operands[0], operands[1],
@@ -99,7 +92,7 @@
    (clobber (match_scratch:I48MODE 2 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_atomic_op (NOT, operands[0], operands[1],
@@ -119,7 +112,7 @@
    (clobber (match_scratch:I48MODE 3 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_atomic_op (<CODE>, operands[1], operands[2],
@@ -139,7 +132,7 @@
    (clobber (match_scratch:I48MODE 3 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_atomic_op (NOT, operands[1], operands[2],
@@ -160,7 +153,7 @@
    (clobber (match_scratch:I48MODE 3 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_atomic_op (<CODE>, operands[1], operands[2],
@@ -181,7 +174,7 @@
    (clobber (match_scratch:I48MODE 3 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_atomic_op (NOT, operands[1], operands[2],
@@ -216,7 +209,7 @@
    (clobber (match_scratch:DI 6 "=X,&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_compare_and_swap_12 (<MODE>mode, operands[0], operands[1],
@@ -253,7 +246,7 @@
    (clobber (match_scratch:I48MODE 4 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_compare_and_swap (operands[0], operands[1], operands[2],
@@ -284,7 +277,7 @@
    (clobber (match_scratch:DI 4 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_lock_test_and_set_12 (<MODE>mode, operands[0], operands[1],
@@ -303,7 +296,7 @@
    (clobber (match_scratch:I48MODE 3 "=&r"))]
   ""
   "#"
-  "reload_completed"
+  "epilogue_completed"
   [(const_int 0)]
 {
   alpha_split_lock_test_and_set (operands[0], operands[1],

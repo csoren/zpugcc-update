@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -48,14 +48,15 @@
 #define PB_DS_EXCEPTION_HPP
 
 #include <stdexcept>
+#include <cstdlib>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   // Base class for exceptions.
   struct container_error : public std::logic_error
   {
     container_error() 
-    : std::logic_error(__N("pb_ds::container_error")) { }
+    : std::logic_error(__N("__gnu_pbds::container_error")) { }
   };
 
   // An entry cannot be inserted into a container object for logical
@@ -71,38 +72,38 @@ namespace pb_ds
   struct resize_error : public container_error { };
 
 #if __EXCEPTIONS
-  void
+  inline void
   __throw_container_error(void)
   { throw container_error(); }
 
-  void
+  inline void
   __throw_insert_error(void)
   { throw insert_error(); }
 
-  void
+  inline void
   __throw_join_error(void)
   { throw join_error(); }
 
-  void
+  inline void
   __throw_resize_error(void)
   { throw resize_error(); }
 #else
-  void
+  inline void
   __throw_container_error(void)
   { std::abort(); }
 
-  void
+  inline void
   __throw_insert_error(void)
   { std::abort(); }
 
-  void
+  inline void
   __throw_join_error(void)
   { std::abort(); }
 
-  void
+  inline void
   __throw_resize_error(void)
   { std::abort(); }
 #endif
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif

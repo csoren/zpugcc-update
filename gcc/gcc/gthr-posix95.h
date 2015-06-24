@@ -1,6 +1,6 @@
 /* Threads compatibility routines for libgcc2 and libobjc.  */
 /* Compile this one with gcc.  */
-/* Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -45,6 +45,11 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 typedef pthread_key_t __gthread_key_t;
 typedef pthread_once_t __gthread_once_t;
 typedef pthread_mutex_t __gthread_mutex_t;
+typedef pthread_cond_t __gthread_cond_t;
+
+/* POSIX like conditional variables are supported.  Please look at comments
+   in gthr.h for details. */
+#define __GTHREAD_HAS_COND	1
 
 typedef struct {
   long depth;
@@ -55,6 +60,7 @@ typedef struct {
 #define __GTHREAD_MUTEX_INIT PTHREAD_MUTEX_INITIALIZER
 #define __GTHREAD_ONCE_INIT PTHREAD_ONCE_INIT
 #define __GTHREAD_RECURSIVE_MUTEX_INIT_FUNCTION __gthread_recursive_mutex_init_function
+#define __GTHREAD_COND_INIT PTHREAD_COND_INITIALIZER
 
 #if SUPPORTS_WEAK && GTHREAD_USE_WEAK
 # define __gthrw(name) \
@@ -81,14 +87,14 @@ __gthrw(pthread_mutexattr_init)
 __gthrw(pthread_mutexattr_destroy)
 
 __gthrw(pthread_mutex_init)
+__gthrw(pthread_cond_broadcast)
+__gthrw(pthread_cond_wait)
 
 #if defined(_LIBOBJC) || defined(_LIBOBJC_WEAK)
 /* Objective-C.  */
-__gthrw(pthread_cond_broadcast)
 __gthrw(pthread_cond_destroy)
 __gthrw(pthread_cond_init)
 __gthrw(pthread_cond_signal)
-__gthrw(pthread_cond_wait)
 __gthrw(pthread_exit)
 __gthrw(pthread_mutex_destroy)
 #ifdef _POSIX_PRIORITY_SCHEDULING
@@ -115,9 +121,12 @@ __gthrw(pthread_setschedparam)
    it is passed so we cannot pretend that the interface is active if -pthreads
    is not specified.  On Solaris 2.5.1, the interface is not exposed at all so
    we need to play the usual game with weak symbols.  On Solaris 10 and up, a
-   working interface is always exposed.  */
+   working interface is always exposed.  On FreeBSD 6 and later, libc also
+   exposes a dummy POSIX threads interface, similar to what Solaris 2.6 up
+   to 9 does.  FreeBSD >= 700014 even provides a pthread_cancel stub in libc,
+   which means the alternate __gthread_active_p below cannot be used there.  */
 
-#if defined(__sun) && defined(__svr4__)
+#if defined(__FreeBSD__) || (defined(__sun) && defined(__svr4__))
 
 static volatile int __gthread_active = -1;
 
@@ -160,7 +169,7 @@ __gthread_active_p (void)
   return __gthread_active_latest_value != 0;
 }
 
-#else /* not Solaris */
+#else /* neither FreeBSD nor Solaris */
 
 static inline int
 __gthread_active_p (void)
@@ -170,15 +179,57 @@ __gthread_active_p (void)
   return __gthread_active_ptr != 0;
 }
 
-#endif /* Solaris */
+#endif /* FreeBSD or Solaris */
 
 #else /* not SUPPORTS_WEAK */
+
+/* Similar to Solaris, HP-UX 11 for PA-RISC provides stubs for pthread
+   calls in shared flavors of the HP-UX C library.  Most of the stubs
+   have no functionality.  The details are described in the "libc cumulative
+   patch" for each subversion of HP-UX 11.  There are two special interfaces
+   provided for checking whether an application is linked to a shared pthread
+   library or not.  However, these interfaces aren't available in early
+   pthread libraries.  We also need a test that works for archive
+   libraries.  We can't use pthread_once as some libc versions call the
+   init function.  We also can't use pthread_create or pthread_attr_init
+   as these create a thread and thereby prevent changing the default stack
+   size.  The function pthread_default_stacksize_np is available in both
+   the archive and shared versions of libpthread.   It can be used to
+   determine the default pthread stack size.  There is a stub in some
+   shared libc versions which returns a zero size if pthreads are not
+   active.  We provide an equivalent stub to handle cases where libc
+   doesn't provide one.  */
+
+#if defined(__hppa__) && defined(__hpux__)
+
+static volatile int __gthread_active = -1;
+
+static inline int
+__gthread_active_p (void)
+{
+  /* Avoid reading __gthread_active twice on the main code path.  */
+  int __gthread_active_latest_value = __gthread_active;
+  size_t __s;
+
+  if (__builtin_expect (__gthread_active_latest_value < 0, 0))
+    {
+      pthread_default_stacksize_np (0, &__s);
+      __gthread_active = __s ? 1 : 0;
+      __gthread_active_latest_value = __gthread_active;
+    }
+
+  return __gthread_active_latest_value != 0;
+}
+
+#else /* not hppa-hpux */
 
 static inline int
 __gthread_active_p (void)
 {
   return 1;
 }
+
+#endif /* hppa-hpux */
 
 #endif /* SUPPORTS_WEAK */
 
@@ -648,6 +699,25 @@ __gthread_recursive_mutex_unlock (__gthread_recursive_mutex_t *mutex)
 	}
     }
   return 0;
+}
+
+static inline int
+__gthread_cond_broadcast (__gthread_cond_t *cond)
+{
+  return __gthrw_(pthread_cond_broadcast) (cond);
+}
+
+static inline int
+__gthread_cond_wait (__gthread_cond_t *cond, __gthread_mutex_t *mutex)
+{
+  return __gthrw_(pthread_cond_wait) (cond, mutex);
+}
+
+static inline int
+__gthread_cond_wait_recursive (__gthread_cond_t *cond,
+			       __gthread_recursive_mutex_t *mutex)
+{
+  return __gthrw_(pthread_cond_wait) (cond, &mutex->actual);
 }
 
 #endif /* _LIBOBJC */

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -50,18 +50,16 @@
 #include <performance/time/timing_test_base.hpp>
 #include <performance/io/xml_formatter.hpp>
 #include <common_type/assoc/string_form.hpp>
+#include <ext/pb_ds/detail/type_utils.hpp>
 #include <iterator>
+#include <cstdlib>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace test
   {
     namespace detail
     {
-#define PB_DS_STATIC_ASSERT(UNIQUE, E) \
-      typedef \
-      pb_ds::detail::static_assert_dumclass<sizeof(pb_ds::detail::static_assert<(bool)(E)>)> UNIQUE##static_assert_type
-
       template<typename Cntnr, bool Native>
       class order_statistics_functor
       {
@@ -75,7 +73,7 @@ namespace pb_ds
 	  enum
 	    {
 	      support_detected =
-	      pb_ds::test::detail::tree_supports_order_statistics<Cntnr>::value
+	      __gnu_pbds::test::detail::tree_supports_order_statistics<Cntnr>::value
 	    };
 
 	  PB_DS_STATIC_ASSERT(correct_type, support_detected);
@@ -87,7 +85,7 @@ namespace pb_ds
 	      const size_t max_size = m_r_container.size();
 	      while (it != e)
 		if (m_r_container.order_of_key(*(it++)) > max_size)
-		  abort();
+		  std::abort();
 	    }
 	}
 
@@ -116,7 +114,7 @@ namespace pb_ds
 		{
 		  const_iterator f_it = m_r_container.find(*(it++));
 		  if (static_cast<size_t>(std::distance(b, f_it)) > max_size)
-		    abort();
+		    std::abort();
 		}
 	    }
 	}
@@ -128,7 +126,7 @@ namespace pb_ds
 
     template<bool Support_Order_Statistics>
     class tree_order_statistics_test 
-    : private pb_ds::test::detail::timing_test_base
+    : private __gnu_pbds::test::detail::timing_test_base
     {
     public:
       tree_order_statistics_test(size_t vn, size_t vs, size_t vm)
@@ -144,11 +142,11 @@ namespace pb_ds
 
       template<typename Cntnr>
       void
-      order_statistics(Cntnr& r_container, pb_ds::detail::true_type);
+      order_statistics(Cntnr& r_container, __gnu_pbds::detail::true_type);
 
       template<typename Cntnr>
       void
-      order_statistics(Cntnr& r_container, pb_ds::detail::false_type);
+      order_statistics(Cntnr& r_container, __gnu_pbds::detail::false_type);
 
     private:
       const size_t m_vn;
@@ -172,17 +170,17 @@ namespace pb_ds
 	  for (size_t ins = 0; ins < v; ++ ins)
             cntnr.insert((typename Cntnr::value_type)ins);
 
-	  pb_ds::test::detail::order_statistics_functor<Cntnr, Support_Order_Statistics>
+	  __gnu_pbds::test::detail::order_statistics_functor<Cntnr, Support_Order_Statistics>
             fn(cntnr);
 
 	  const double res =
-            pb_ds::test::detail::timing_test_base::operator()(fn);
+            __gnu_pbds::test::detail::timing_test_base::operator()(fn);
 
 	  res_set_fmt.add_res(v, res / v);
 	}
     }
   } // namespace test
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif 
 
