@@ -191,7 +191,7 @@ namespace std
 
   // 27.4.2  Class ios_base
   /**
-   *  @brief  The very top of the I/O class hierarchy.
+   *  @brief  The base of the I/O class hierarchy.
    *
    *  This class defines everything that can be defined about I/O that does
    *  not depend on the type of characters being input or output.  Most
@@ -400,7 +400,6 @@ namespace std
     /// Request a seek relative to the current end of the sequence.
     static const seekdir end =		seekdir(SEEK_END);
 
-#ifdef _GLIBCXX_DEPRECATED
     // Annex D.6
     typedef int io_state;
     typedef int open_mode;
@@ -408,7 +407,6 @@ namespace std
 
     typedef std::streampos streampos;
     typedef std::streamoff streamoff;
-#endif
 
     // Callbacks;
     /**

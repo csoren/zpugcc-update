@@ -1,7 +1,9 @@
 /* { dg-do run { target powerpc*-*-* } } */
+/* { dg-xfail-if "" { "powerpc-*-eabispe*" "powerpc-ibm-aix*" } { "-mcpu=G5" } { "" } } */
 /* { dg-options "-mcpu=G5" } */
 
 #include <signal.h>
+#include <stdlib.h>
 
 void
 sig_ill_handler (int sig)
@@ -26,7 +28,7 @@ int main()
   /* Exit on systems without 64bit instructions.  */
   signal (SIGILL, sig_ill_handler);
 #ifdef __MACH__
-   asm volatile ("extsw r0,r0");
+  asm volatile ("extsw r0,r0");
 #else
   asm volatile ("extsw 0,0");
 #endif

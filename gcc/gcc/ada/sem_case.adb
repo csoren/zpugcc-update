@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2003 Free Software Foundation, Inc.          --
+--          Copyright (C) 1996-2005 Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -267,11 +267,12 @@ package body Sem_Case is
       C   : Int;
 
    begin
-      --  For character, or wide character. If we are in 7-bit ASCII graphic
+      --  For character, or wide [wide] character. If 7-bit ASCII graphic
       --  range, then build and return appropriate character literal name
 
       if Rtp = Standard_Character
         or else Rtp = Standard_Wide_Character
+        or else Rtp = Standard_Wide_Wide_Character
       then
          C := UI_To_Int (Value);
 
@@ -429,11 +430,13 @@ package body Sem_Case is
          if Root_Type (Choice_Type) = Standard_Character
               or else
             Root_Type (Choice_Type) = Standard_Wide_Character
+              or else
+            Root_Type (Choice_Type) = Standard_Wide_Wide_Character
          then
             Set_Character_Literal_Name (Char_Code (UI_To_Int (Value)));
             Lit := New_Node (N_Character_Literal, Loc);
             Set_Chars (Lit, Name_Find);
-            Set_Char_Literal_Value (Lit, Char_Code (UI_To_Int (Value)));
+            Set_Char_Literal_Value (Lit, Value);
             Set_Etype (Lit, Choice_Type);
             Set_Is_Static_Expression (Lit, True);
             return Lit;
@@ -556,6 +559,9 @@ package body Sem_Case is
       is
          E : Entity_Id;
 
+         Enode : Node_Id;
+         --  This is where we post error messages for bounds out of range
+
          Nb_Choices        : constant Nat := Choice_Table'Length;
          Sort_Choice_Table : Sort_Choice_Table_Type (0 .. Nb_Choices);
 
@@ -638,24 +644,55 @@ package body Sem_Case is
                end if;
             end if;
 
-            --  Check for bound out of range.
+            --  Check for low bound out of range
 
             if Lo_Val < Bounds_Lo then
-               if Is_Integer_Type (Bounds_Type) then
-                  Error_Msg_Uint_1 := Bounds_Lo;
-                  Error_Msg_N ("minimum allowed choice value is^", Lo);
+
+               --  If the choice is an entity name, then it is a type, and
+               --  we want to post the message on the reference to this
+               --  entity. Otherwise we want to post it on the lower bound
+               --  of the range.
+
+               if Is_Entity_Name (Choice) then
+                  Enode := Choice;
                else
-                  Error_Msg_Name_1 := Choice_Image (Bounds_Lo, Bounds_Type);
-                  Error_Msg_N ("minimum allowed choice value is%", Lo);
+                  Enode := Lo;
                end if;
 
-            elsif Hi_Val > Bounds_Hi then
+               --  Specialize message for integer/enum type
+
+               if Is_Integer_Type (Bounds_Type) then
+                  Error_Msg_Uint_1 := Bounds_Lo;
+                  Error_Msg_N ("minimum allowed choice value is^", Enode);
+               else
+                  Error_Msg_Name_1 := Choice_Image (Bounds_Lo, Bounds_Type);
+                  Error_Msg_N ("minimum allowed choice value is%", Enode);
+               end if;
+            end if;
+
+            --  Check for high bound out of range
+
+            if Hi_Val > Bounds_Hi then
+
+               --  If the choice is an entity name, then it is a type, and
+               --  we want to post the message on the reference to this
+               --  entity. Otherwise we want to post it on the upper bound
+               --  of the range.
+
+               if Is_Entity_Name (Choice) then
+                  Enode := Choice;
+               else
+                  Enode := Hi;
+               end if;
+
+               --  Specialize message for integer/enum type
+
                if Is_Integer_Type (Bounds_Type) then
                   Error_Msg_Uint_1 := Bounds_Hi;
-                  Error_Msg_N ("maximum allowed choice value is^", Hi);
+                  Error_Msg_N ("maximum allowed choice value is^", Enode);
                else
                   Error_Msg_Name_1 := Choice_Image (Bounds_Hi, Bounds_Type);
-                  Error_Msg_N ("maximum allowed choice value is%", Hi);
+                  Error_Msg_N ("maximum allowed choice value is%", Enode);
                end if;
             end if;
 
@@ -860,7 +897,7 @@ package body Sem_Case is
 
       function Number_Of_Choices (N : Node_Id) return Nat is
          Alt : Node_Id;
-         --  A case statement alternative or a record variant.
+         --  A case statement alternative or a record variant
 
          Choice : Node_Id;
          Count  : Nat := 0;

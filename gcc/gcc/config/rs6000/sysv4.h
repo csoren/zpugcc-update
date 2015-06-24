@@ -149,7 +149,7 @@ extern const char *rs6000_tls_size_string; /* For -mtls-size= */
     N_("Link with libmvme.a, libc.a and crt0.o") },			\
   { "emb",		 0,						\
     N_("Set the PPC_EMB bit in the ELF flags header") },		\
-  { "windiss",           0, N_("Use the WindISS simulator") },          \
+  { "windiss",		 0, N_("Use the WindISS simulator") },		\
   { "shlib",		 0, N_("no description yet") },			\
   { "64",		 MASK_64BIT | MASK_POWERPC64 | MASK_POWERPC,	\
 			 N_("Generate 64-bit code") },			\
@@ -196,7 +196,12 @@ do {									\
   else if (!strcmp (rs6000_abi_name, "freebsd"))			\
     rs6000_current_abi = ABI_V4;					\
   else if (!strcmp (rs6000_abi_name, "linux"))				\
-    rs6000_current_abi = ABI_V4;					\
+    {									\
+      if (TARGET_64BIT)							\
+	rs6000_current_abi = ABI_AIX;					\
+      else								\
+	rs6000_current_abi = ABI_V4;					\
+    }									\
   else if (!strcmp (rs6000_abi_name, "gnu"))				\
     rs6000_current_abi = ABI_V4;					\
   else if (!strcmp (rs6000_abi_name, "netbsd"))				\
@@ -321,6 +326,10 @@ do {									\
 #undef	PROCESSOR_DEFAULT
 #define	PROCESSOR_DEFAULT PROCESSOR_PPC750
 
+/* SVR4 only defined for PowerPC, so short-circuit POWER patterns.  */
+#undef  TARGET_POWER
+#define TARGET_POWER 0
+
 #define FIXED_R2 1
 /* System V.4 uses register 13 as a pointer to the small data area,
    so it is not available to the normal user.  */
@@ -329,7 +338,7 @@ do {									\
 /* Size of the V.4 varargs area if needed.  */
 /* Override rs6000.h definition.  */
 #undef	RS6000_VARARGS_AREA
-#define RS6000_VARARGS_AREA ((cfun->machine->sysv_varargs_p) ? RS6000_VARARGS_SIZE : 0)
+#define RS6000_VARARGS_AREA (current_function_stdarg ? RS6000_VARARGS_SIZE : 0)
 
 /* Override default big endianism definitions in rs6000.h.  */
 #undef	BYTES_BIG_ENDIAN
@@ -411,15 +420,6 @@ do {									\
 #define ADJUST_FIELD_ALIGN(FIELD, COMPUTED)				      \
 	((TARGET_ALTIVEC && TREE_CODE (TREE_TYPE (FIELD)) == VECTOR_TYPE)     \
 	 ? 128 : COMPUTED)
-
-/* Define this macro as an expression for the alignment of a type
-   (given by TYPE as a tree node) if the alignment computed in the
-   usual way is COMPUTED and the alignment explicitly specified was
-   SPECIFIED.  */
-#define ROUND_TYPE_ALIGN(TYPE, COMPUTED, SPECIFIED)			\
-	((TARGET_ALTIVEC  && TREE_CODE (TYPE) == VECTOR_TYPE)	        \
-	 ? MAX (MAX ((COMPUTED), (SPECIFIED)), 128)                     \
-         : MAX (COMPUTED, SPECIFIED))
 
 #undef  BIGGEST_FIELD_ALIGNMENT
 
@@ -773,38 +773,38 @@ extern int fixuplabelno;
 #define	TARGET_VERSION fprintf (stderr, " (PowerPC System V.4)");
 #endif
 
-#define TARGET_OS_SYSV_CPP_BUILTINS()	  \
-  do                                      \
-    {                                     \
-      if (flag_pic == 1)		  \
-        {				  \
-	  builtin_define ("__pic__=1");	  \
-	  builtin_define ("__PIC__=1");	  \
-        }				  \
-      else if (flag_pic == 2)		  \
-        {				  \
-	  builtin_define ("__pic__=2");	  \
-	  builtin_define ("__PIC__=2");	  \
-        }				  \
-      if (target_flags_explicit		  \
-	  & MASK_RELOCATABLE)		  \
-	builtin_define ("_RELOCATABLE");  \
-    }                                     \
+#define TARGET_OS_SYSV_CPP_BUILTINS()		\
+  do						\
+    {						\
+      if (flag_pic == 1)			\
+	{					\
+	  builtin_define ("__pic__=1");		\
+	  builtin_define ("__PIC__=1");		\
+	}					\
+      else if (flag_pic == 2)			\
+	{					\
+	  builtin_define ("__pic__=2");		\
+	  builtin_define ("__PIC__=2");		\
+	}					\
+      if (target_flags_explicit			\
+	  & MASK_RELOCATABLE)			\
+	builtin_define ("_RELOCATABLE");	\
+    }						\
   while (0)
 
 #ifndef	TARGET_OS_CPP_BUILTINS
-#define TARGET_OS_CPP_BUILTINS()          \
-  do                                      \
-    {                                     \
-      builtin_define_std ("PPC");         \
-      builtin_define_std ("unix");        \
-      builtin_define ("__svr4__");        \
-      builtin_assert ("system=unix");     \
-      builtin_assert ("system=svr4");     \
-      builtin_assert ("cpu=powerpc");     \
-      builtin_assert ("machine=powerpc"); \
-      TARGET_OS_SYSV_CPP_BUILTINS ();	  \
-    }                                     \
+#define TARGET_OS_CPP_BUILTINS()		\
+  do						\
+    {						\
+      builtin_define_std ("PPC");		\
+      builtin_define_std ("unix");		\
+      builtin_define ("__svr4__");		\
+      builtin_assert ("system=unix");		\
+      builtin_assert ("system=svr4");		\
+      builtin_assert ("cpu=powerpc");		\
+      builtin_assert ("machine=powerpc");	\
+      TARGET_OS_SYSV_CPP_BUILTINS ();		\
+    }						\
   while (0)
 #endif
 
@@ -1107,12 +1107,12 @@ extern int fixuplabelno;
 
 #ifdef HAVE_LD_PIE
 #define	STARTFILE_LINUX_SPEC "\
-%{!shared: %{pg|p:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}} \
+%{!shared: %{pg|p|profile:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}} \
 %{mnewlib:ecrti.o%s;:crti.o%s} \
 %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
 #else
 #define	STARTFILE_LINUX_SPEC "\
-%{!shared: %{pg|p:gcrt1.o%s;:crt1.o%s}} \
+%{!shared: %{pg|p|profile:gcrt1.o%s;:crt1.o%s}} \
 %{mnewlib:ecrti.o%s;:crti.o%s} \
 %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
 #endif
@@ -1237,7 +1237,7 @@ ncrtn.o%s"
 /* Override rs6000.h definition.  */
 #undef	SUBTARGET_EXTRA_SPECS
 #define	SUBTARGET_EXTRA_SPECS						\
-  { "crtsavres_default",        CRTSAVRES_DEFAULT_SPEC },              \
+  { "crtsavres_default",	CRTSAVRES_DEFAULT_SPEC },		\
   { "lib_ads",			LIB_ADS_SPEC },				\
   { "lib_yellowknife",		LIB_YELLOWKNIFE_SPEC },			\
   { "lib_mvme",			LIB_MVME_SPEC },			\
@@ -1247,7 +1247,7 @@ ncrtn.o%s"
   { "lib_linux",		LIB_LINUX_SPEC },			\
   { "lib_netbsd",		LIB_NETBSD_SPEC },			\
   { "lib_openbsd",		LIB_OPENBSD_SPEC },			\
-  { "lib_windiss",              LIB_WINDISS_SPEC },                     \
+  { "lib_windiss",		LIB_WINDISS_SPEC },			\
   { "lib_default",		LIB_DEFAULT_SPEC },			\
   { "startfile_ads",		STARTFILE_ADS_SPEC },			\
   { "startfile_yellowknife",	STARTFILE_YELLOWKNIFE_SPEC },		\
@@ -1258,7 +1258,7 @@ ncrtn.o%s"
   { "startfile_linux",		STARTFILE_LINUX_SPEC },			\
   { "startfile_netbsd",		STARTFILE_NETBSD_SPEC },		\
   { "startfile_openbsd",	STARTFILE_OPENBSD_SPEC },		\
-  { "startfile_windiss",        STARTFILE_WINDISS_SPEC },               \
+  { "startfile_windiss",	STARTFILE_WINDISS_SPEC },		\
   { "startfile_default",	STARTFILE_DEFAULT_SPEC },		\
   { "endfile_ads",		ENDFILE_ADS_SPEC },			\
   { "endfile_yellowknife",	ENDFILE_YELLOWKNIFE_SPEC },		\
@@ -1269,7 +1269,7 @@ ncrtn.o%s"
   { "endfile_linux",		ENDFILE_LINUX_SPEC },			\
   { "endfile_netbsd",		ENDFILE_NETBSD_SPEC },			\
   { "endfile_openbsd",		ENDFILE_OPENBSD_SPEC },			\
-  { "endfile_windiss",          ENDFILE_WINDISS_SPEC },                 \
+  { "endfile_windiss",		ENDFILE_WINDISS_SPEC },			\
   { "endfile_default",		ENDFILE_DEFAULT_SPEC },			\
   { "link_path",		LINK_PATH_SPEC },			\
   { "link_shlib",		LINK_SHLIB_SPEC },			\
@@ -1310,7 +1310,7 @@ ncrtn.o%s"
   { "cpp_os_linux",		CPP_OS_LINUX_SPEC },			\
   { "cpp_os_netbsd",		CPP_OS_NETBSD_SPEC },			\
   { "cpp_os_openbsd",		CPP_OS_OPENBSD_SPEC },			\
-  { "cpp_os_windiss",           CPP_OS_WINDISS_SPEC },                  \
+  { "cpp_os_windiss",		CPP_OS_WINDISS_SPEC },			\
   { "cpp_os_default",		CPP_OS_DEFAULT_SPEC },			\
   { "fbsd_dynamic_linker",	FBSD_DYNAMIC_LINKER },			\
   SUBSUBTARGET_EXTRA_SPECS

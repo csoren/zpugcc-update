@@ -1,6 +1,6 @@
 /* { dg-do run } */
 /* { dg-options "-O2" } */
-/* { dg-options "-mminimal-toc" { target powerpc64-*-* } } */
+/* { dg-options "-mminimal-toc" { target powerpc64-*-* powerpc-ibm-aix* } } */
 
 extern void abort (void);
 extern void exit (int);
@@ -22,7 +22,7 @@ test (void)
 {
   double x = foo ();
   x = bar (x);
-  x /= 1024 * 1024 * 1024;
+  x /= 1024L * 1024L * 1024L;
   x *= 70;
   x = x < 70 ? x : 70;
   x += 30;

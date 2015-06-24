@@ -1,5 +1,5 @@
 /* NameFinder.java -- Translates addresses to StackTraceElements.
-   Copyright (C) 2002 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004 Free Software Foundation, Inc.
 
    This file is part of libgcj.
 
@@ -37,8 +37,8 @@ import java.io.File;
  *     Whether calls to unknown functions (class and method names are unknown)
  *     should be removed from the stack trace. Only done when the stack is
  *     sanitized.</ul>
- * <ul><code>gnu.gcj.runtime.NameFinder.remove_interpreter</code>
- *     Whether runtime interpreter calls (methods in the _Jv_InterpMethod class
+ * <ul><code>gnu.gcj.runtime.NameFinder.remove_internal</code>
+ *     Whether runtime internal calls (methods in the internal _Jv_* classes
  *     and functions starting with 'ffi_') should be removed from the stack
  *     trace. Only done when the stack is sanitized.</ul>
  * <ul><code>gnu.gcj.runtime.NameFinder.use_addr2line</code>
@@ -72,10 +72,18 @@ public class NameFinder
 	  = Boolean.valueOf(System.getProperty
 		("gnu.gcj.runtime.NameFinder.remove_unknown", "true")
 	    ).booleanValue();
-  private static final boolean remove_interpreter
-	  = Boolean.valueOf(System.getProperty
+
+  // The remove_interpreter name is an old 3.3/3.4 (deprecated) synonym.
+  private static final boolean remove_internal
+	  = (Boolean.valueOf(System.getProperty
+		("gnu.gcj.runtime.NameFinder.remove_internal", "true")
+			     ).booleanValue()
+	     ||
+	     Boolean.valueOf(System.getProperty
 		("gnu.gcj.runtime.NameFinder.remove_interpreter", "true")
-	    ).booleanValue();
+                             ).booleanValue()
+	     );
+
   private static final boolean use_addr2line
 	  = Boolean.valueOf(System.getProperty
 		("gnu.gcj.runtime.NameFinder.use_addr2line", "true")
@@ -241,8 +249,11 @@ public class NameFinder
    * Given an Throwable and a native stacktrace returns an array of
    * StackTraceElement containing class, method, file and linenumbers.
    */
-  public StackTraceElement[] lookup(Throwable t, RawData addrs, int length)
+  public StackTraceElement[] lookup(Throwable t, StackTrace trace)
   {
+    RawData addrs = trace.stackTraceAddrs();
+    int length = trace.length();
+
     StackTraceElement[] elements = new StackTraceElement[length];
     for (int i=0; i < length; i++)
       elements[i] = lookup(addrs, i);
@@ -277,7 +288,7 @@ public class NameFinder
       consName = className.substring(lastDot + 1) + '(';
 
     int unknown = 0;
-    int interpreter = 0;
+    int internal = 0;
     int last_throw = -1;
     int length = elements.length;
     int end = length-1;
@@ -297,19 +308,23 @@ public class NameFinder
 		|| MName.startsWith("fillInStackTrace("))))
 	  {
 	    last_throw = i;
-	    // Reset counting of unknown and interpreter frames.
+	    // Reset counting of unknown and internal frames.
 	    unknown = 0;
-	    interpreter = 0;
+	    internal = 0;
 	  }
 	else if (remove_unknown && CName == null 
 		 && (MName == null || MName.startsWith("0x")))
 	  unknown++;
-	else if (remove_interpreter
+	else if (remove_internal
 		 && ((CName == null
 		      && MName != null && MName.startsWith("ffi_"))
-		     || (CName != null && CName.equals("_Jv_InterpMethod"))))
-	  interpreter++;
-	else if ("main(java.lang.String[])".equals(MName))
+		     || (CName != null && CName.startsWith("_Jv_"))
+		     || (CName == null && MName != null
+			 && MName.startsWith("_Jv_"))))
+	  internal++;
+	else if (("java.lang.Thread".equals(CName)
+		  || "gnu.java.lang.MainThread".equals(CName))
+		 && "run()".equals(MName))
 	  {
 	    end = i;
 	    break;
@@ -318,11 +333,11 @@ public class NameFinder
     int begin = last_throw+1;
 
     // Now filter out everything at the start and the end that is not part
-    // of the "normal" user program including any elements that are interpreter
+    // of the "normal" user program including any elements that are internal
     // calls or have no usefull information whatsoever.
     // Unless that means we filter out all info.
-    int nr_elements = end-begin-unknown-interpreter+1;
-    if ((begin > 0 || end < length-1 || unknown > 0 || interpreter > 0)
+    int nr_elements = end - begin - unknown - internal + 1;
+    if ((begin > 0 || end < length-1 || unknown > 0 || internal > 0)
 	&& nr_elements > 0)
       {
 	stack = new StackTraceElement[nr_elements];
@@ -334,14 +349,27 @@ public class NameFinder
 	    if (remove_unknown && CName == null 
 		 && (MName == null || MName.startsWith("0x")))
 	      ; // Skip unknown frame
-	    else if (remove_interpreter
+	    else if (remove_internal
 		     && ((CName == null
-			 && MName != null && MName.startsWith("ffi_"))
-			|| (CName != null && CName.equals("_Jv_InterpMethod"))))
-	      ; // Skip interpreter runtime frame
+			  && MName != null && MName.startsWith("ffi_"))
+			 || (CName != null && CName.startsWith("_Jv_"))
+			 || (CName == null && MName != null
+			     && MName.startsWith("_Jv_"))))
+	      ; // Skip internal runtime frame
 	    else
 	      {
-		stack[pos] = elements[i];
+		// Null Class or Method name in elements are not allowed.
+		if (MName == null || CName == null)
+		  {
+		    MName = MName == null ? "" : MName;
+		    CName = CName == null ? "" : CName;
+		    stack[pos] = newElement(elements[i].getFileName(),
+					    elements[i].getLineNumber(),
+					    CName, MName,
+					    elements[i].isNativeMethod());
+		  }
+		else
+		  stack[pos] = elements[i];
 		pos++;
 	      }
 	  }
@@ -351,6 +379,16 @@ public class NameFinder
 
     return stack;
   }
+
+  /**
+   * Native helper method to create a StackTraceElement. Needed to work
+   * around normal Java access restrictions.
+   */
+  native static private StackTraceElement newElement(String fileName,
+						     int lineNumber,
+						     String className,
+						     String methName,
+						     boolean isNative);
 
   /**
    * Creates a StackTraceElement given a string and a filename.
@@ -363,7 +401,7 @@ public class NameFinder
   private StackTraceElement createStackTraceElement(String name, String file)
   {
     if (!demangle)
-      return new StackTraceElement(file, -1, null, name, false);
+      return newElement(file, -1, null, name, false);
 
     String s = demangleName(name);
     String methodName = s;
@@ -409,7 +447,7 @@ public class NameFinder
 	  }
       }
 
-    return new StackTraceElement(fileName, line, className, methodName, false);
+    return newElement(fileName, line, className, methodName, false);
   }
 
   /**

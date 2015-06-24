@@ -64,7 +64,7 @@ void test4(void)
 
 void prime5(void)
 {
-  extern double bar5(double);	/* { dg-error "previous" "" { xfail *-*-* } } */
+  extern double bar5(double);	/* { dg-error "previous" "" } */
 }
 
 void test5(void)
@@ -94,7 +94,7 @@ static int test7(int x)
 void prime8(void)
 {
   test8();			/* { dg-warning "previous" "" } */
-                                /* { dg-warning "implicit" "" { target *-*-* } 96 } */
+                                /* { dg-warning "implicit" "implicit" { target *-*-* } 96 } */
 }
 
 static int test8(int x)

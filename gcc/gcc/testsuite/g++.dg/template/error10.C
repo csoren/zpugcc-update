@@ -9,8 +9,8 @@
 template <class T>
 class A {};
 
-A<A<int>> blah;  // { dg-error "should be `> >' within" }
-A<int>> blah2; // { dg-error "spurious `>>'" }
+A<A<int>> blah;  // { dg-error "should be '> >' within" }
+A<int>> blah2; // { dg-error "spurious '>>'" }
 
 
 /*

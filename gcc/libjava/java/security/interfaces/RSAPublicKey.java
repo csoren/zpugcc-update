@@ -1,5 +1,5 @@
 /* RSAPublicKey.java -- An RSA public key
-   Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2004 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -37,8 +37,8 @@ exception statement from your version. */
 
 package java.security.interfaces;
 
-import java.security.PublicKey;
 import java.math.BigInteger;
+import java.security.PublicKey;
 
 /**
  * This interface provides access to information about an RSA public key.
@@ -49,6 +49,8 @@ import java.math.BigInteger;
  */
 public interface RSAPublicKey extends PublicKey, RSAKey
 {
+  long serialVersionUID = -8727434096241101194L;
+
   /**
    * Returns the public exponent value for this key
    *

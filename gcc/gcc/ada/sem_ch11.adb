@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2003 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2004 Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,7 @@ with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
+with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Ch5;  use Sem_Ch5;
@@ -98,7 +99,6 @@ package body Sem_Ch11 is
          Handler := First_Non_Pragma (L);
          while Present (Handler) loop
             Id1 := First (Exception_Choices (Handler));
-
             while Present (Id1) loop
 
                --  Only check against the exception choices which precede
@@ -119,7 +119,9 @@ package body Sem_Ch11 is
                        ("exception choice duplicates &#", Id, Id1);
 
                   else
-                     if Ada_83 and then Comes_From_Source (Id) then
+                     if Ada_Version = Ada_83
+                       and then Comes_From_Source (Id)
+                     then
                         Error_Msg_N
                           ("(Ada 83): duplicate exception choice&", Id);
                      end if;
@@ -238,14 +240,16 @@ package body Sem_Ch11 is
 
                   else
                      if Present (Renamed_Entity (Entity (Id))) then
-                        if Entity (Id) = Standard_Numeric_Error
-                          and then Warn_On_Obsolescent_Feature
-                        then
-                           Error_Msg_N
-                             ("Numeric_Error is an " &
-                              "obsolescent feature ('R'M 'J.6(1))?", Id);
-                           Error_Msg_N
-                             ("|use Constraint_Error instead?", Id);
+                        if Entity (Id) = Standard_Numeric_Error then
+                           Check_Restriction (No_Obsolescent_Features, Id);
+
+                           if Warn_On_Obsolescent_Feature then
+                              Error_Msg_N
+                                ("Numeric_Error is an " &
+                                 "obsolescent feature ('R'M 'J.6(1))?", Id);
+                              Error_Msg_N
+                                ("\use Constraint_Error instead?", Id);
+                           end if;
                         end if;
                      end if;
 
@@ -477,7 +481,6 @@ package body Sem_Ch11 is
             Rewrite (N, Make_Null_Statement (Sloc (N)));
          end if;
       end if;
-
    end Analyze_Raise_xxx_Error;
 
    -----------------------------

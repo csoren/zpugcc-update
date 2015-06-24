@@ -1,5 +1,5 @@
 /* Number.java =- abstract superclass of numeric objects
-   Copyright (C) 1998, 2001, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1998, 2001, 2002, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -51,7 +51,7 @@ import java.io.Serializable;
  * @author Paul Fisher
  * @author John Keiser
  * @author Warren Levy
- * @author Eric Blake <ebb9@email.byu.edu>
+ * @author Eric Blake (ebb9@email.byu.edu)
  * @since 1.0
  * @status updated to 1.4
  */
@@ -69,7 +69,7 @@ public abstract class Number implements Serializable
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
     'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-    'u', 'v', 'w', 'x', 'y', 'z'
+    'u', 'v', 'w', 'x', 'y', 'z',
   };
 
   /**

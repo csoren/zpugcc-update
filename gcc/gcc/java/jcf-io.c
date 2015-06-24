@@ -1,5 +1,5 @@
 /* Utility routines for finding and reading Java(TM) .class files.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2002, 2003
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -140,7 +140,7 @@ opendir_in_zip (const char *zipfile, int is_system)
 	return NULL;
     }
 
-  SeenZipFiles = zipf;
+  SeenZipFiles = zipf;  
   return zipf;
 }
 
@@ -215,7 +215,7 @@ read_zip_member (JCF *jcf,  ZipDirectory *zipd, ZipFile *zipf)
       jcf->read_ptr = jcf->buffer;
       jcf->read_end = jcf->buffer_end;
       buffer = ALLOC (zipd->size);
-      d_stream.next_in = buffer;
+      d_stream.next_in = (unsigned char *) buffer;
       d_stream.avail_in = zipd->size;
       if (lseek (zipf->fd, zipd->filestart, 0) < 0
 	  || read (zipf->fd, buffer, zipd->size) != (long) zipd->size)
@@ -311,6 +311,14 @@ typedef struct memoized_dirlist_entry
   struct dirent **files;
 } memoized_dirlist_entry;
 
+/* A hash function for a memoized_dirlist_entry.  */
+static hashval_t
+memoized_dirlist_hash (const void *entry)
+{
+  const memoized_dirlist_entry *mde = (const memoized_dirlist_entry *) entry;
+  return htab_hash_string (mde->dir);
+}
+
 /* Returns true if ENTRY (a memoized_dirlist_entry *) corresponds to
    the directory given by KEY (a char *) giving the directory 
    name.  */
@@ -341,11 +349,12 @@ caching_stat (char *filename, struct stat *buf)
   char *base;
   memoized_dirlist_entry *dent;
   void **slot;
+  struct memoized_dirlist_entry temp;
   
   /* If the hashtable has not already been created, create it now.  */
   if (!memoized_dirlists)
     memoized_dirlists = htab_create (37,
-				     htab_hash_string,
+				     memoized_dirlist_hash,
 				     memoized_dirlist_lookup_eq,
 				     NULL);
 
@@ -364,8 +373,13 @@ caching_stat (char *filename, struct stat *buf)
   else
     base = filename;
 
-  /* Obtain the entry for this directory from the hash table.  */
-  slot = htab_find_slot (memoized_dirlists, filename, INSERT);
+  /* Obtain the entry for this directory from the hash table.  This
+     approach is ok since we know that the hash function only looks at
+     the directory name.  */
+  temp.dir = filename;
+  temp.num_files = 0;
+  temp.files = NULL;
+  slot = htab_find_slot (memoized_dirlists, &temp, INSERT);
   if (!*slot)
     {
       /* We have not already scanned this directory; scan it now.  */
@@ -376,10 +390,11 @@ caching_stat (char *filename, struct stat *buf)
 	 particular, the type of the function pointer passed as the
 	 third argument sometimes takes a "const struct dirent *"
 	 parameter, and sometimes just a "struct dirent *".  We cast
-	 to (void *) so that either way it is quietly accepted.  */
-      dent->num_files = scandir (filename, &dent->files, 
-				 (void *) java_or_class_file, 
-				 alphasort);
+	 to (void *) and use __extension__ so that either way it is
+	 quietly accepted.  FIXME: scandir is not in POSIX.  */
+      dent->num_files = __extension__ scandir (filename, &dent->files, 
+					       (void *) java_or_class_file, 
+					       alphasort);
       *slot = dent;
     }
   else
@@ -532,7 +547,7 @@ find_class (const char *classname, int classname_length, JCF *jcf,
   if (! java && ! class && java_buf.st_mtime > class_buf.st_mtime)
     {
       if (flag_newer)
-	warning ("source file for class `%s' is newer than its matching class file.  Source file `%s' used instead", classname, java_buffer);
+	warning ("source file for class %qs is newer than its matching class file.  Source file %qs used instead", classname, java_buffer);
       class = -1;
     }
 

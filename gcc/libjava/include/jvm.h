@@ -1,6 +1,6 @@
 // jvm.h - Header file for private implementation information. -*- c++ -*-
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -29,6 +29,9 @@ details.  */
 // Include cni.h before field.h to enable all definitions.  FIXME.
 #include <gcj/cni.h>
 #include <gcj/field.h>
+
+/* Macro for possible unused arguments.  */
+#define MAYBE_UNUSED __attribute__((__unused__))
 
 /* Structure of the virtual table.  */
 struct _Jv_VTable
@@ -76,12 +79,6 @@ struct _Jv_VTable
 // to keep this up to date by hand.
 #define NUM_OBJECT_METHODS 5
 
-// This structure is the type of an array's vtable.
-struct _Jv_ArrayVTable : public _Jv_VTable
-{
-  vtable_elt extra_method[NUM_OBJECT_METHODS - 1];
-};
-
 union _Jv_word
 {
   jobject o;
@@ -110,6 +107,18 @@ union _Jv_word2
   jlong l;
   jdouble d;
 };                              
+
+union _Jv_value
+{
+  jbyte byte_value;
+  jshort short_value;
+  jchar char_value;
+  jint int_value;
+  jlong long_value;
+  jfloat float_value;
+  jdouble double_value;
+  jobject object_value;
+};
 
 // An instance of this type is used to represent a single frame in a
 // backtrace.  If the interpreter has been built, we also include
@@ -222,9 +231,6 @@ inline _Jv_TempUTFString::~_Jv_TempUTFString ()
   char utfstr##_buf[utfstr##_len <= 256 ? utfstr##_len : 0]; \
   _Jv_TempUTFString utfstr(utfstr##thejstr, sizeof(utfstr##_buf)==0 ? 0 : utfstr##_buf)
 
-// FIXME: remove this define.
-#define StringClass java::lang::String::class$
-
 namespace gcj
 {
   /* Some constants used during lookup of special class methods.  */
@@ -235,7 +241,58 @@ namespace gcj
   
   /* Set to true by _Jv_CreateJavaVM. */
   extern bool runtimeInitialized;
+
+  /* Print out class names as they are initialized. */
+  extern bool verbose_class_flag;
+  
+  /* When true, enable the bytecode verifier and BC-ABI verification. */
+  extern bool verifyClasses;
+
+  /* Thread stack size specified by the -Xss runtime argument. */
+  extern size_t stack_size;
 }
+
+// This class handles all aspects of class preparation and linking.
+class _Jv_Linker
+{
+private:
+  static _Jv_Field *find_field_helper(jclass, _Jv_Utf8Const *, _Jv_Utf8Const *,
+				      jclass *);
+  static _Jv_Field *find_field(jclass, jclass, jclass *, _Jv_Utf8Const *,
+			       _Jv_Utf8Const *);
+  static void prepare_constant_time_tables(jclass);
+  static jshort get_interfaces(jclass, _Jv_ifaces *);
+  static void link_symbol_table(jclass);
+  static void link_exception_table(jclass);
+  static void layout_interface_methods(jclass);
+  static void layout_vtable_methods(jclass);
+  static void set_vtable_entries(jclass, _Jv_VTable *);
+  static void make_vtable(jclass);
+  static void ensure_fields_laid_out(jclass);
+  static void ensure_class_linked(jclass);
+  static void ensure_supers_installed(jclass);
+  static void add_miranda_methods(jclass, jclass);
+  static void ensure_method_table_complete(jclass);
+  static void verify_class(jclass);
+  static jshort find_iindex(jclass *, jshort *, jshort);
+  static jshort indexof(void *, void **, jshort);
+  static int get_alignment_from_class(jclass);
+  static void generate_itable(jclass, _Jv_ifaces *, jshort *);
+  static jshort append_partial_itable(jclass, jclass, void **, jshort);
+  static _Jv_Method *search_method_in_class (jclass, jclass,
+					     _Jv_Utf8Const *,
+					     _Jv_Utf8Const *);
+
+public:
+
+  static bool has_field_p (jclass, _Jv_Utf8Const *);
+  static void print_class_loaded (jclass);
+  static void resolve_class_ref (jclass, jclass *);
+  static void wait_for_state(jclass, int);
+  static _Jv_word resolve_pool_entry (jclass, int);
+  static void resolve_field (_Jv_Field *, java::lang::ClassLoader *);
+  static void verify_type_assertions (jclass);
+};
 
 /* Type of pointer used as finalizer.  */
 typedef void _Jv_FinalizerFunc (jobject);
@@ -319,9 +376,16 @@ void _Jv_SetInitialHeapSize (const char *arg);
    _Jv_GCSetMaximumHeapSize.  */
 void _Jv_SetMaximumHeapSize (const char *arg);
 
+/* Set the stack size for threads.  Parses ARG, a number which can 
+   optionally have "k" or "m" appended.  */
+void _Jv_SetStackSize (const char *arg);
+
 extern "C" void JvRunMain (jclass klass, int argc, const char **argv);
 void _Jv_RunMain (jclass klass, const char *name, int argc, const char **argv, 
 		  bool is_jar);
+
+void _Jv_RunMain (struct _Jv_VMInitArgs *vm_args, jclass klass,
+                  const char *name, int argc, const char **argv, bool is_jar);
 
 // Delayed until after _Jv_AllocBytes is declared.
 //
@@ -340,7 +404,7 @@ static inline jboolean _Jv_isVirtualMethod (_Jv_Method *meth)
 {
   using namespace java::lang::reflect;
   return (((meth->accflags & (Modifier::STATIC | Modifier::PRIVATE)) == 0)
-          && meth->name->data[0] != '<');
+          && meth->name->first() != '<');
 }
 
 // This function is used to determine the hash code of an object.
@@ -399,10 +463,13 @@ extern "C" void *_Jv_LookupInterfaceMethodIdx (jclass klass, jclass iface,
                                                int meth_idx);
 extern "C" void _Jv_CheckArrayStore (jobject array, jobject obj);
 extern "C" void _Jv_RegisterClass (jclass klass);
-extern "C" void _Jv_RegisterClasses (jclass *classes);
+extern "C" void _Jv_RegisterClasses (const jclass *classes);
+extern "C" void _Jv_RegisterClasses_Counted (const jclass *classes,
+					     size_t count);
 extern "C" void _Jv_RegisterResource (void *vptr);
 extern void _Jv_UnregisterClass (_Jv_Utf8Const*, java::lang::ClassLoader*);
-extern void _Jv_ResolveField (_Jv_Field *, java::lang::ClassLoader*);
+
+extern "C" jobject _Jv_UnwrapJNIweakReference (jobject);
 
 extern jclass _Jv_FindClass (_Jv_Utf8Const *name,
 			     java::lang::ClassLoader *loader);
@@ -419,7 +486,8 @@ extern jboolean _Jv_CheckAccess (jclass self_klass, jclass other_klass,
 extern jobject _Jv_CallAnyMethodA (jobject obj, jclass return_type,
 				   jmethodID meth, jboolean is_constructor,
 				   JArray<jclass> *parameter_types,
-				   jobjectArray args);
+				   jobjectArray args,
+				   jclass iface = NULL);
 
 union jvalue;
 extern void _Jv_CallAnyMethodA (jobject obj,
@@ -430,7 +498,8 @@ extern void _Jv_CallAnyMethodA (jobject obj,
 				JArray<jclass> *parameter_types,
 				jvalue *args,
 				jvalue *result,
-				jboolean is_jni_call = true);
+				jboolean is_jni_call = true,
+				jclass iface = NULL);
 
 extern jobject _Jv_NewMultiArray (jclass, jint ndims, jint* dims)
   __attribute__((__malloc__));
@@ -470,6 +539,12 @@ extern void _Jv_JNI_Init (void);
 _Jv_JNIEnv *_Jv_GetCurrentJNIEnv ();
 void _Jv_SetCurrentJNIEnv (_Jv_JNIEnv *);
 
+/* Free a JNIEnv. */
+void _Jv_FreeJNIEnv (_Jv_JNIEnv *);
+
+/* Free a JNIEnv. */
+void _Jv_FreeJNIEnv (_Jv_JNIEnv *);
+
 struct _Jv_JavaVM;
 _Jv_JavaVM *_Jv_GetJavaVM (); 
 
@@ -505,5 +580,68 @@ extern void (*_Jv_JVMPI_Notify_OBJECT_ALLOC) (JVMPI_Event *event);
 extern void (*_Jv_JVMPI_Notify_THREAD_START) (JVMPI_Event *event);
 extern void (*_Jv_JVMPI_Notify_THREAD_END) (JVMPI_Event *event);
 #endif
+
+/* FIXME: this should really be defined in some more generic place */
+#define ROUND(V, A) (((((unsigned) (V))-1) | ((A)-1))+1)
+
+extern void _Jv_RegisterBootstrapPackages ();
+
+#define FLAG_BINARYCOMPAT_ABI (1<<31)  /* Class is built with the BC-ABI. */
+
+#define FLAG_BOOTSTRAP_LOADER (1<<30)  /* Used when defining a class that 
+					should be loaded by the bootstrap
+					loader.  */
+
+// These are used to find ABI versions we recognize.
+#define GCJ_CXX_ABI_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 10)
+
+// This is the old-style BC version ID used by GCJ 4.0.0.
+#define OLD_GCJ_40_BC_ABI_VERSION (4 * 10000 + 0 * 10 + 5)
+
+// New style version IDs used by GCJ 4.0.1 and later.
+#define GCJ_40_BC_ABI_VERSION (4 * 100000 + 0 * 1000)
+
+inline bool
+_Jv_CheckABIVersion (unsigned long value)
+{
+  // We are compatible with GCJ 4.0.0 BC-ABI classes. This release used a
+  // different format for the version ID string.
+   if (value == OLD_GCJ_40_BC_ABI_VERSION)
+     return true;
+     
+  // The 20 low-end bits are used for the version number.
+  unsigned long version = value & 0xfffff;
+
+  if (value & FLAG_BINARYCOMPAT_ABI)
+    {
+      int abi_rev = version % 100;
+      int abi_ver = version - abi_rev;
+      if (abi_ver == GCJ_40_BC_ABI_VERSION && abi_rev <= 0)
+	return true;
+    }
+  else
+    // C++ ABI
+    return version == GCJ_CXX_ABI_VERSION;
+  
+  return false;
+}
+
+// It makes the source cleaner if we simply always define this
+// function.  If the interpreter is not built, it will never return
+// 'true'.
+extern inline jboolean
+_Jv_IsInterpretedClass (jclass c)
+{
+  return (c->accflags & java::lang::reflect::Modifier::INTERPRETED) != 0;
+}
+
+// Return true if the class was compiled with the BC ABI.
+extern inline jboolean
+_Jv_IsBinaryCompatibilityABI (jclass c)
+{
+  // There isn't really a better test for the ABI type at this point,
+  // that will work once the class has been registered.
+  return c->otable_syms || c->atable_syms || c->itable_syms;
+}
 
 #endif /* __JAVA_JVM_H__ */

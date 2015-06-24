@@ -1,4 +1,4 @@
-/* Copyright (C) 2003  Free Software Foundation
+/* Copyright (C) 2003, 2005  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -286,6 +286,8 @@ gnu::java::net::PlainDatagramSocketImpl::close ()
 void
 gnu::java::net::PlainDatagramSocketImpl::send (::java::net::DatagramPacket *p)
 {
+  JvSynchronize lock (SEND_LOCK);
+  
   // FIXME: Deal with Multicast and if the socket is connected.
   jint rport = p->getPort();
   union SockAddr u;
@@ -327,6 +329,8 @@ gnu::java::net::PlainDatagramSocketImpl::send (::java::net::DatagramPacket *p)
 void
 gnu::java::net::PlainDatagramSocketImpl::receive (::java::net::DatagramPacket *p)
 {
+  JvSynchronize lock (RECEIVE_LOCK);
+
   // FIXME: Deal with Multicast and if the socket is connected.
   union SockAddr u;
   socklen_t addrlen = sizeof(u);
@@ -425,9 +429,12 @@ gnu::java::net::PlainDatagramSocketImpl::mcastGrp (::java::net::InetAddress *ine
 {
   // FIXME: implement use of NetworkInterface
 
-  union McastReq u;
   jbyteArray haddress = inetaddr->addr;
+#if HAVE_STRUCT_IP_MREQ || HAVE_STRUCT_IPV6_MREQ
+  union McastReq u;
   jbyte *bytes = elements (haddress);
+#endif
+
   int len = haddress->length;
   int level, opname;
   const char *ptr;
@@ -476,6 +483,38 @@ gnu::java::net::PlainDatagramSocketImpl::mcastGrp (::java::net::InetAddress *ine
 
   char* strerr = strerror (errno);
   throw new ::java::io::IOException (JvNewStringUTF (strerr));
+}
+
+// Helper function to get the InetAddress for a given socket (file
+// descriptor).
+static ::java::net::InetAddress *
+getLocalAddress (int native_fd)
+{
+  jbyteArray laddr;
+  union SockAddr u;
+  socklen_t addrlen = sizeof(u);
+
+  if (::getsockname (native_fd, (sockaddr*) &u, &addrlen) != 0)
+    {
+      char* strerr = strerror (errno);
+      throw new ::java::net::SocketException (JvNewStringUTF (strerr));
+    }
+  if (u.address.sin_family == AF_INET)
+    {
+      laddr = JvNewByteArray (4);
+      memcpy (elements (laddr), &u.address.sin_addr, 4);
+    }
+#ifdef HAVE_INET6
+  else if (u.address.sin_family == AF_INET6)
+    {
+      laddr = JvNewByteArray (16);
+      memcpy (elements (laddr), &u.address6.sin6_addr, 16);
+    }
+#endif
+  else
+    throw new ::java::net::SocketException (JvNewStringUTF ("invalid family"));
+
+  return new ::java::net::InetAddress (laddr, NULL);
 }
 
 void
@@ -598,9 +637,29 @@ gnu::java::net::PlainDatagramSocketImpl::setOption (jint optID,
         return;
 	
       case _Jv_IP_MULTICAST_LOOP_ :
-        throw new ::java::net::SocketException (
-          JvNewStringUTF ("IP_MULTICAST_LOOP: not yet implemented"));
-        return;
+	// cache the local address
+	if (localAddress == NULL)
+	  localAddress = getLocalAddress (native_fd);
+	len = localAddress->addr->length;
+	if (len == 4)
+	  {
+	    level = IPPROTO_IP;
+	    opname = IP_MULTICAST_LOOP;
+	  }
+#if defined (HAVE_INET6) && defined (IPV6_MULTICAST_LOOP)
+	else if (len == 16)
+	  {
+	    level = IPPROTO_IPV6;
+	    opname = IPV6_MULTICAST_LOOP;
+	  }
+#endif
+	else
+	  throw
+	    new ::java::net::SocketException (JvNewStringUTF ("invalid address length"));
+	if (::setsockopt (native_fd, level, opname, (char *) &val,
+			  val_len) != 0)
+	  goto error;
+	return;
 	
       case _Jv_IP_TOS_ :
         if (::setsockopt (native_fd, SOL_SOCKET, IP_TOS, (char *) &val,
@@ -625,8 +684,7 @@ gnu::java::net::PlainDatagramSocketImpl::getOption (jint optID)
 {
   int val;
   socklen_t val_len = sizeof(val);
-  union SockAddr u;
-  socklen_t addrlen = sizeof(u);
+  int level, opname;
 
   switch (optID)
     {
@@ -671,27 +729,7 @@ gnu::java::net::PlainDatagramSocketImpl::getOption (jint optID)
       case _Jv_SO_BINDADDR_:
 	// cache the local address
 	if (localAddress == NULL)
-	  {	
-	    jbyteArray laddr;
-	    if (::getsockname (native_fd, (sockaddr*) &u, &addrlen) != 0)
-	      goto error;
-	    if (u.address.sin_family == AF_INET)
-	      {
-		laddr = JvNewByteArray (4);
-		memcpy (elements (laddr), &u.address.sin_addr, 4);
-	      }
-#ifdef HAVE_INET6
-            else if (u.address.sin_family == AF_INET6)
-	      {
-		laddr = JvNewByteArray (16);
-		memcpy (elements (laddr), &u.address6.sin6_addr, 16);
-	      }
-#endif
-	    else
-	      throw new ::java::net::SocketException (
-			      JvNewStringUTF ("invalid family"));
-	    localAddress = new ::java::net::InetAddress (laddr, NULL);
-	  }
+	  localAddress = getLocalAddress (native_fd);
 	return localAddress;  
 	break;
       case _Jv_SO_REUSEADDR_ :
@@ -734,8 +772,25 @@ gnu::java::net::PlainDatagramSocketImpl::getOption (jint optID)
         break;
 	
       case _Jv_IP_MULTICAST_LOOP_ :
-	if (::getsockopt (native_fd, SOL_SOCKET, IP_MULTICAST_LOOP, (char *) &val,
-	    &val_len) != 0)
+	// cache the local address
+	localAddress = getLocalAddress (native_fd);
+	if (localAddress->addr->length == 4) 
+	  {
+	    level = IPPROTO_IP;
+	    opname = IP_MULTICAST_LOOP;
+	  }
+#if defined (HAVE_INET6) && defined (IPV6_MULTICAST_LOOP)
+	else if (localAddress->addr->length == 16)
+	  {
+	    level = IPPROTO_IPV6;
+	    opname = IPV6_MULTICAST_LOOP;
+	  }
+#endif
+	else
+	  throw
+	    new ::java::net::SocketException (JvNewStringUTF ("invalid address length"));
+	if (::getsockopt (native_fd, level, opname, (char *) &val,
+			  &val_len) != 0)
 	  goto error;
 	return new ::java::lang::Boolean (val != 0);
 	

@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler. NEC V850 series
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
    Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
@@ -81,6 +81,8 @@
   builtin_define( "__v850" );			\
   builtin_assert( "machine=v850" );		\
   builtin_assert( "cpu=v850" );			\
+  if (TARGET_EP)				\
+    builtin_define ("__EP__");			\
 } while(0)
 
 /* Run-time compilation parameters selecting different hardware subsets.  */
@@ -124,7 +126,7 @@ extern int target_flags;
      as GHS.  We don't have enough documentation on their conventions
      to be compatible.
 
-     * Tests of SETUP_INCOMING_VARARGS need to be made runtime checks
+     * Tests of TARGET_SETUP_INCOMING_VARARGS need to be made runtime checks
      since it depends on TARGET_GHS.  */
 #define TARGET_GHS (target_flags & MASK_GHS)
  
@@ -281,7 +283,13 @@ extern struct small_memory_info small_memory[(int)SMALL_MEMORY_max];
 {									\
   target_flags |= MASK_STRICT_ALIGN;					\
   if (LEVEL)								\
-    target_flags |= (MASK_EP | MASK_PROLOG_FUNCTION);			\
+    /* Note - we no longer enable MASK_EP when optimizing.  This is	\
+       because of a hardware bug which stops the SLD and SST instructions\
+       from correctly detecting some hazards.  If the user is sure that \
+       their hardware is fixed or that their program will not encounter \
+       the conditions that trigger the bug then they can enable -mep by \
+       hand.  */							\
+    target_flags |= MASK_PROLOG_FUNCTION;				\
 }
 
 
@@ -707,9 +715,6 @@ enum reg_class
     abort ();								\
 }
 
-/* A guess for the V850.  */
-#define PROMOTE_PROTOTYPES 1
-
 /* Keep the stack pointer constant throughout the function.  */
 #define ACCUMULATE_OUTGOING_ARGS 1
 
@@ -749,9 +754,6 @@ struct cum_arg { int nbytes; int anonymous_args; };
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&CUM, MODE, TYPE, NAMED)
 
-#define FUNCTION_ARG_PARTIAL_NREGS(CUM, MODE, TYPE, NAMED) \
-  function_arg_partial_nregs (&CUM, MODE, TYPE, NAMED)
-
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
    for a call to a function whose data type is FNTYPE.
    For a library call, FNTYPE is 0.  */
@@ -776,20 +778,6 @@ struct cum_arg { int nbytes; int anonymous_args; };
    space allocated by the caller.  */
 #define OUTGOING_REG_PARM_STACK_SPACE
 
-/* Do any setup necessary for varargs/stdargs functions.  */
-#define SETUP_INCOMING_VARARGS(CUM, MODE, TYPE, PAS, SECOND) \
-  (CUM).anonymous_args = (!TARGET_GHS ? 1 : 0);
-
-/* Implement `va_arg'.  */
-#define EXPAND_BUILTIN_VA_ARG(valist, type) \
-  v850_va_arg (valist, type)
-
-#define FUNCTION_ARG_PASS_BY_REFERENCE(CUM, MODE, TYPE, NAMED)		\
-  ((TYPE) && int_size_in_bytes (TYPE) > 8)
- 
-#define FUNCTION_ARG_CALLEE_COPIES(CUM, MODE, TYPE, NAMED) \
-  ((TYPE) && int_size_in_bytes (TYPE) > 8)
-
 /* 1 if N is a possible register number for function argument passing.  */
 
 #define FUNCTION_ARG_REGNO_P(N) (N >= 6 && N <= 9)
@@ -812,16 +800,7 @@ struct cum_arg { int nbytes; int anonymous_args; };
 
 #define FUNCTION_VALUE_REGNO_P(N) ((N) == 10)
 
-/* Return values > 8 bytes in length in memory.  */
 #define DEFAULT_PCC_STRUCT_RETURN 0
-#define RETURN_IN_MEMORY(TYPE)  \
-  (int_size_in_bytes (TYPE) > 8 || TYPE_MODE (TYPE) == BLKmode)
-
-/* Register in which address to store a structure value
-   is passed to a function.  On the V850 it's passed as
-   the first parameter.  */
-
-#define STRUCT_VALUE 0
 
 /* EXIT_IGNORE_STACK should be nonzero if, when returning from a function,
    the stack pointer does not matter.  The value is tested only in
@@ -937,11 +916,11 @@ struct cum_arg { int nbytes; int anonymous_args; };
    register class that does not include r0 on the output.  */
 
 #define EXTRA_CONSTRAINT(OP, C)						\
- ((C) == 'Q'   ? ep_memory_operand (OP, GET_MODE (OP), 0)		\
+ ((C) == 'Q'   ? ep_memory_operand (OP, GET_MODE (OP), FALSE)		\
   : (C) == 'R' ? special_symbolref_operand (OP, VOIDmode)		\
   : (C) == 'S' ? (GET_CODE (OP) == SYMBOL_REF				\
 		  && !SYMBOL_REF_ZDA_P (OP))				\
-  : (C) == 'T' ? ep_memory_operand(OP,GET_MODE(OP),TRUE)		\
+  : (C) == 'T' ? ep_memory_operand (OP, GET_MODE (OP), TRUE)		\
   : (C) == 'U' ? ((GET_CODE (OP) == SYMBOL_REF				\
 		   && SYMBOL_REF_ZDA_P (OP))				\
 		  || (GET_CODE (OP) == CONST				\
@@ -992,21 +971,6 @@ do {									\
 } while (0)
 
 
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.  */
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)  {}
-
 /* Go to LABEL if ADDR (a legitimate address expression)
    has an effect that depends on the machine mode it is used for.  */
 
@@ -1280,11 +1244,6 @@ zbss_section ()								\
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE (TARGET_BIG_SWITCH ? SImode : HImode)
-
-/* Define this if the case instruction drops through after the table
-   when the index is out of range.  Don't define it if the case insn
-   jumps to the default label instead.  */
-/* #define CASE_DROPS_THROUGH */
 
 /* Define as C expression which evaluates to nonzero if the tablejump
    instruction expects the table to contain offsets from the address of the

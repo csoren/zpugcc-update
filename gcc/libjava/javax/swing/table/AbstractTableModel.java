@@ -1,5 +1,5 @@
 /* AbstractTableModel.java --
-   Copyright (C) 2002 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,6 +40,7 @@ package javax.swing.table;
 
 import java.io.Serializable;
 import java.util.EventListener;
+
 import javax.swing.event.EventListenerList;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
@@ -271,25 +272,4 @@ public abstract class AbstractTableModel implements TableModel, Serializable
   {
     return listenerList.getListeners (listenerType);
   }
-
-  /**
-   * getValueAt
-   * @param value0 TODO
-   * @param value1 TODO
-   * @return Object
-   */
-  public abstract Object getValueAt (int row, int column);
-
-  /**
-   * getColumnCount
-   * @return int
-   */
-  public abstract int getColumnCount();
-
-  /**
-   * getRowCount
-   * @return int
-   */
-  public abstract int getRowCount();
-
-} // AbstractTableModel
+}

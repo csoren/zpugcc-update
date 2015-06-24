@@ -1,7 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    Motorola 68HC11 and 68HC12.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
    Contributed by Stephane Carrez (stcarrez@nerim.fr)
 
 This file is part of GCC.
@@ -1009,9 +1008,6 @@ extern enum reg_class m68hc11_tmp_regs_class;
 
 /* Passing Function Arguments on the Stack.  */
 
-/* When a prototype says `char' or `short', really pass an `int'.  */
-/* #define PROMOTE_PROTOTYPES */
-
 /* If we generate an insn to push BYTES bytes, this says how many the
    stack pointer really advances by. No rounding or alignment needed
    for MC6811.  */
@@ -1025,15 +1021,6 @@ extern enum reg_class m68hc11_tmp_regs_class;
    The standard MC6811 call, with arg count word, includes popping the
    args as part of the call template.  */
 #define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE)	0
-
-/* Nonzero if type TYPE should be returned in memory.
-   Blocks and data types largers than 4 bytes cannot be returned
-   in the register (D + X = 4).  */
-#define RETURN_IN_MEMORY(TYPE)				\
-    ((TYPE_MODE (TYPE) == BLKmode)			\
-     ? (int_size_in_bytes (TYPE) > 4)			\
-     : (GET_MODE_SIZE (TYPE_MODE (TYPE)) > 4))
-
 
 /* Passing Arguments in Registers.  */
 
@@ -1049,17 +1036,6 @@ typedef struct m68hc11_args
   int nregs;
 } CUMULATIVE_ARGS;
 
-/* A C expression that indicates when an argument must be passed by reference.
-   If nonzero for an argument, a copy of that argument is made in memory and a
-   pointer to the argument is passed instead of the argument itself.
-   The pointer is passed in whatever way is appropriate for passing a pointer
-   to that type.
- 
-   64-bit numbers are passed by reference.  */
-#define FUNCTION_ARG_PASS_BY_REFERENCE(CUM, MODE, TYPE, NAMED) \
-    m68hc11_function_arg_pass_by_reference (& (CUM), (MODE), (TYPE), (NAMED))
-
-
 /* If defined, a C expression which determines whether, and in which direction,
    to pad out an argument with extra space.  The value should be of type
    `enum direction': either `upward' to pad above the argument,
@@ -1072,18 +1048,6 @@ typedef struct m68hc11_args
 #undef PAD_VARARGS_DOWN
 #define PAD_VARARGS_DOWN \
   (m68hc11_function_arg_padding (TYPE_MODE (type), type) == downward)
-
-/* A C expression that indicates when it is the called function's
-   responsibility to make a copy of arguments passed by invisible
-   reference.  Normally, the caller makes a copy and passes the
-   address of the copy to the routine being called.  When
-   FUNCTION_ARG_CALLEE_COPIES is defined and is nonzero, the caller
-   does not make a copy.  Instead, it passes a pointer to the "live"
-   value.  The called function must not modify this value.  If it can
-   be determined that the value won't be modified, it need not make a
-   copy; otherwise a copy must be made.  */
-#define FUNCTION_ARG_CALLEE_COPIES(CUM, MODE, TYPE, NAMED)		\
-    ((NAMED) && FUNCTION_ARG_PASS_BY_REFERENCE (CUM, MODE, TYPE, NAMED))
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS for a call to a
    function whose data type is FNTYPE. For a library call, FNTYPE is 0.  */
@@ -1119,14 +1083,6 @@ typedef struct m68hc11_args
    caller saving results in spill failure.  */
 #define CALLER_SAVE_PROFITABLE(REFS,CALLS) 0
 
-/* For an arg passed partly in registers and partly in memory,
-   this is the number of registers used.
-   For args passed entirely in registers or entirely in memory, zero.
-
-   Passing an arg partly in register and memory does not work at all.
-   Don't do that.  */
-#define FUNCTION_ARG_PARTIAL_NREGS(CUM, MODE, TYPE, NAMED) (0)
-
 /* 1 if N is a possible register number for function argument passing.
    D is for 16-bit values, X is for 32-bit (X+D).  */
 #define FUNCTION_ARG_REGNO_P(N)	\
@@ -1139,23 +1095,19 @@ typedef struct m68hc11_args
       The high part is passed in X and the low part in D.
       For GCC, the register number must be HARD_X_REGNUM.  */
 #define FUNCTION_VALUE(VALTYPE, FUNC)					\
-     gen_rtx (REG, TYPE_MODE (VALTYPE),					\
+     gen_rtx_REG (TYPE_MODE (VALTYPE),					\
               ((TYPE_MODE (VALTYPE) == BLKmode				\
 	        || GET_MODE_SIZE (TYPE_MODE (VALTYPE)) <= 2)		\
 		   ? HARD_D_REGNUM : HARD_X_REGNUM))
 
 #define LIBCALL_VALUE(MODE)						\
-     gen_rtx (REG, MODE,						\
+     gen_rtx_REG (MODE,						\
               (((MODE) == BLKmode || GET_MODE_SIZE (MODE) <= 2)		\
                    ? HARD_D_REGNUM : HARD_X_REGNUM))
 
 /* 1 if N is a possible register number for a function value.  */
 #define FUNCTION_VALUE_REGNO_P(N) \
      ((N) == HARD_D_REGNUM || (N) == HARD_X_REGNUM)
-
-/* Register in which address to store a structure value is passed to a
-   function.  */
-#define STRUCT_VALUE_REGNUM	HARD_D_REGNUM
 
 /* EXIT_IGNORE_STACK should be nonzero if, when returning from a function,
    the stack pointer does not matter.  The value is tested only in functions
@@ -1620,7 +1572,7 @@ do {                                                                    \
    sections when it shrinks the code.  This results in invalid addresses
    when debugging.  This does not bless too much the HC11/HC12 as most
    applications are embedded and small, hence a reasonable debug info.
-   This problem is known for binutils 2.13, 2.14 and mainline.   */
+   This problem is known for binutils 2.13, 2.14 and mainline.  */
 #undef HAVE_AS_DWARF2_DEBUG_LINE
 
 /* The prefix for local labels.  You should be able to define this as

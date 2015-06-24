@@ -1,6 +1,6 @@
 // natThread.cc - Native part of Thread class.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2005  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -16,6 +16,7 @@ details.  */
 #include <jvm.h>
 #include <java-threads.h>
 
+#include <gnu/gcj/RawDataManaged.h>
 #include <java/lang/Thread.h>
 #include <java/lang/ThreadGroup.h>
 #include <java/lang/IllegalArgumentException.h>
@@ -59,11 +60,7 @@ java::lang::Thread::initialize_native (void)
 {
   natThread *nt = (natThread *) _Jv_AllocBytes (sizeof (natThread));
   
-  // The native thread data is kept in a Object field, not a RawData, so that
-  // the GC allocator can be used and a finalizer run after the thread becomes
-  // unreachable. Note that this relies on the GC's ability to finalize 
-  // non-Java objects. FIXME?
-  data = reinterpret_cast<jobject> (nt);
+  data = (gnu::gcj::RawDataManaged *) nt;
   
   // Register a finalizer to clean up the native thread resources.
   _Jv_RegisterFinalizer (data, finalize_native);
@@ -81,6 +78,13 @@ finalize_native (jobject ptr)
 {
   natThread *nt = (natThread *) ptr;
   _Jv_ThreadDestroyData (nt->thread);
+#ifdef _Jv_HaveCondDestroy
+  _Jv_CondDestroy (&nt->join_cond);
+#endif
+#ifdef _Jv_HaveMutexDestroy
+  _Jv_MutexDestroy (&nt->join_mutex);
+#endif
+  _Jv_FreeJNIEnv(nt->jni_env);
 }
 
 jint
@@ -98,15 +102,6 @@ java::lang::Thread::currentThread (void)
   return _Jv_ThreadCurrent ();
 }
 
-void
-java::lang::Thread::destroy (void)
-{
-  // NOTE: This is marked as unimplemented in the JDK 1.2
-  // documentation.
-  throw new UnsupportedOperationException
-    (JvNewStringLatin1 ("Thread.destroy unimplemented"));
-}
-
 jboolean
 java::lang::Thread::holdsLock (jobject obj)
 {
@@ -118,8 +113,11 @@ java::lang::Thread::holdsLock (jobject obj)
 void
 java::lang::Thread::interrupt (void)
 {
+  checkAccess ();
   natThread *nt = (natThread *) data;
-  _Jv_ThreadInterrupt (nt->thread);
+  JvSynchronize sync (this);
+  if (alive_flag)
+    _Jv_ThreadInterrupt (nt->thread);
 }
 
 void
@@ -219,7 +217,12 @@ java::lang::Thread::finish_ ()
   
   // Signal any threads that are waiting to join() us.
   _Jv_MutexLock (&nt->join_mutex);
-  alive_flag = false;
+
+  {
+    JvSynchronize sync (this);
+    alive_flag = false;
+  }
+
   _Jv_CondNotifyAll (&nt->join_cond, &nt->join_mutex);
   _Jv_MutexUnlock (&nt->join_mutex);  
 }
@@ -327,6 +330,7 @@ java::lang::Thread::start (void)
 void
 java::lang::Thread::stop (java::lang::Throwable *)
 {
+  checkAccess ();
   throw new UnsupportedOperationException
     (JvNewStringLatin1 ("Thread.stop unimplemented"));
 }
@@ -395,6 +399,7 @@ _Jv_SetCurrentJNIEnv (JNIEnv *env)
 jint
 _Jv_AttachCurrentThread(java::lang::Thread* thread)
 {
+  JvSynchronize sync (thread);
   if (thread == NULL || thread->startable_flag == false)
     return -1;
   thread->startable_flag = false;

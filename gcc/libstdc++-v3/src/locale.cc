@@ -33,6 +33,13 @@
 #include <cwctype>     // For towupper, etc.
 #include <locale>
 #include <bits/atomicity.h>
+#include <bits/concurrence.h>
+
+namespace __gnu_internal
+{
+  // Mutex object for cache access
+  static __glibcxx_mutex_define_initialized(locale_cache_mutex);
+}
 
 namespace std 
 {
@@ -71,15 +78,21 @@ namespace std
   bool
   locale::operator==(const locale& __rhs) const throw()
   {
-    bool __ret = false;
+    // Deal first with the common cases, fast to process: refcopies,
+    // unnamed (i.e., !_M_names[0]), "simple" (!_M_names[1] => all the
+    // categories same name, i.e., _M_names[0]). Otherwise fall back
+    // to the general locale::name().
+    bool __ret;
     if (_M_impl == __rhs._M_impl)
       __ret = true;
+    else if (!_M_impl->_M_names[0] || !__rhs._M_impl->_M_names[0]
+	     || std::strcmp(_M_impl->_M_names[0],
+			    __rhs._M_impl->_M_names[0]) != 0)
+      __ret = false;
+    else if (!_M_impl->_M_names[1] && !__rhs._M_impl->_M_names[1])
+      __ret = true;
     else
-      {
-	const string __name = this->name();
-	if (__name != "*" && __name == __rhs.name())
-	  __ret = true;
-      }
+      __ret = this->name() == __rhs.name();
     return __ret;
   }
 
@@ -96,10 +109,13 @@ namespace std
   locale::name() const
   {
     string __ret;
-    if (_M_impl->_M_check_same_name())
+    if (!_M_impl->_M_names[0])
+      __ret = '*';
+    else if (_M_impl->_M_check_same_name())
       __ret = _M_impl->_M_names[0];
     else
       {
+	__ret.reserve(128);
 	__ret += _S_categories[0];
 	__ret += '=';
 	__ret += _M_impl->_M_names[0]; 
@@ -242,12 +258,13 @@ namespace std
 	for (size_t __k = 0; __k < _S_categories_size; ++__k)
 	  _M_names[__k] = 0;
 
-	// Name all the categories.
-	for (size_t __l = 0; __l < _S_categories_size; ++__l)
+	// Name the categories.
+	for (size_t __l = 0; (__l < _S_categories_size
+			      && __imp._M_names[__l]); ++__l)
 	  {
-	    char* __new = new char[std::strlen(__imp._M_names[__l]) + 1];
-	    std::strcpy(__new, __imp._M_names[__l]);
-	    _M_names[__l] = __new;
+	    const size_t __len = std::strlen(__imp._M_names[__l]) + 1;
+	    _M_names[__l] = new char[__len];
+	    std::memcpy(_M_names[__l], __imp._M_names[__l], __len);
 	  }
       }
     catch(...)
@@ -356,6 +373,22 @@ namespace std
       }
   }
 
+  void
+  locale::_Impl::
+  _M_install_cache(const facet* __cache, size_t __index)
+  {
+    __gnu_cxx::lock sentry(__gnu_internal::locale_cache_mutex);
+    if (_M_caches[__index] != 0)
+      {
+	// Some other thread got in first.
+	delete __cache;
+      }
+    else
+      {
+	__cache->_M_add_reference();
+	_M_caches[__index] = __cache;
+      }
+  }
 
   // locale::id
   // Definitions for static const data members of locale::id

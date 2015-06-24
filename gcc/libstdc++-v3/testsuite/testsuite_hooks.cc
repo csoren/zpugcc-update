@@ -1,7 +1,8 @@
 // -*- C++ -*-
+
 // Utility subroutines for the C++ library testsuite. 
 //
-// Copyright (C) 2002, 2003, 2004 Free Software Foundation, Inc.
+// Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -41,6 +42,20 @@
 #include <clocale>
 #include <locale>
 #include <cxxabi.h>
+
+// If we have <sys/types.h>, <sys/ipc.h>, and <sys/sem.h>, then assume
+// that System V semaphores are available.
+#if defined(_GLIBCXX_HAVE_SYS_TYPES_H)		\
+    && defined(_GLIBCXX_HAVE_SYS_IPC_H)		\
+    && defined(_GLIBCXX_HAVE_SYS_SEM_H)
+#define _GLIBCXX_SYSV_SEM
+#endif
+
+#ifdef _GLIBCXX_SYSV_SEM
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#endif
 
 namespace __gnu_test
 {
@@ -137,31 +152,8 @@ namespace __gnu_test
 
     std::string w(wanted);
     if (w != s)
-      __throw_exception_again std::runtime_error(std::string(s));
+      std::__throw_runtime_error(s);
   }
-
-  
-  // Useful exceptions.
-  class locale_data : public std::runtime_error 
-  {
-  public:
-    explicit 
-    locale_data(const std::string&  __arg) : runtime_error(__arg) { }
-  };
-
-  class environment_variable: public std::runtime_error 
-  {
-  public:
-    explicit 
-    environment_variable(const std::string&  __arg) : runtime_error(__arg) { }
-  };
-
-  class not_found : public std::runtime_error 
-  {
-  public:
-    explicit 
-    not_found(const std::string&  __arg) : runtime_error(__arg) { }
-  };
 
   void 
   run_tests_wrapped_locale(const char* name, const func_callback& l)
@@ -184,8 +176,11 @@ namespace __gnu_test
 	VERIFY( preLC_ALL == postLC_ALL );
       }
     else
-      __throw_exception_again
-	environment_variable(string("LC_ALL for ") + string(name));
+      {
+	string s("LC_ALL for ");
+	s += name;
+	__throw_runtime_error(s.c_str());
+      }
   }
   
   void 
@@ -210,8 +205,12 @@ namespace __gnu_test
 	setenv(env, oldENV ? oldENV : "", 1);
       }
     else
-      __throw_exception_again
-	environment_variable(string(env) + string(" to ") + string(name));
+      {
+	string s(env);
+	s += string(" to ");
+	s += string(name);
+	__throw_runtime_error(s.c_str());
+      }
 #endif
   }
 
@@ -234,17 +233,6 @@ namespace __gnu_test
 #endif
   }
 
-  int
-  try_mkfifo (const char* filename, mode_t mode)
-  {
-#if defined (_NEWLIB_VERSION) || defined (__MINGW32_VERSION)
-    /* Newlib and MinGW32 do not have mkfifo.  */
-    exit(0);
-#else
-    return mkfifo(filename, mode);
-#endif
-  }
-
   counter::size_type  counter::count = 0;
   unsigned int copy_constructor::count_ = 0;
   unsigned int copy_constructor::throw_on_ = 0;
@@ -252,156 +240,85 @@ namespace __gnu_test
   unsigned int assignment_operator::throw_on_ = 0;
   unsigned int destructor::_M_count = 0;
   int copy_tracker::next_id_ = 0;
+
+#ifdef _GLIBCXX_SYSV_SEM
+  // This union is not declared in system headers.  Instead, it must
+  // be defined by user programs.
+  union semun 
+  {
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+  };
+#endif
+
+  semaphore::semaphore() 
+  {
+#ifdef _GLIBCXX_SYSV_SEM
+    // Remeber the PID for the process that created the semaphore set
+    // so that only one process will destroy the set.
+    pid_ = getpid();
+
+    // GLIBC does not define SEM_R and SEM_A.
+#ifndef SEM_R
+#define SEM_R 0400
+#endif
+    
+#ifndef SEM_A
+#define SEM_A 0200
+#endif
+
+    // Get a semaphore set with one semaphore.
+    sem_set_ = semget(IPC_PRIVATE, 1, SEM_R | SEM_A);
+    if (sem_set_ == -1)
+      std::__throw_runtime_error("could not obtain semaphore set");
+
+    // Initialize the semaphore.
+    union semun val;
+    val.val = 0;
+    if (semctl(sem_set_, 0, SETVAL, val) == -1)
+      std::__throw_runtime_error("could not initialize semaphore");
+#else
+    // There are no semaphores on this system.  We have no way to mark
+    // a test as "unsupported" at runtime, so we just exit, pretending
+    // that the test passed.
+    exit(0);
+#endif
+  }
+
+  semaphore::~semaphore() 
+  {
+#ifdef _GLIBCXX_SYSV_SEM
+    union semun val;
+    // Destroy the semaphore set only in the process that created it. 
+    if (pid_ == getpid())
+      semctl(sem_set_, 0, IPC_RMID, val);
+#endif
+  }
+
+  void
+  semaphore::signal() 
+  {
+#ifdef _GLIBCXX_SYSV_SEM
+    struct sembuf op[1] = 
+      {
+	{ 0, 1, 0 }
+      };
+    if (semop(sem_set_, op, 1) == -1)
+      std::__throw_runtime_error("could not signal semaphore");
+#endif
+  }
+
+  void
+  semaphore::wait() 
+  {
+#ifdef _GLIBCXX_SYSV_SEM
+    struct sembuf op[1] = 
+      {
+	{ 0, -1, SEM_UNDO }
+      };
+    if (semop(sem_set_, op, 1) == -1)
+      std::__throw_runtime_error("could not wait for semaphore");
+#endif    
+  }
 }; // namespace __gnu_test
-
-namespace std
-{
-  // Member specializations for the existing facet classes.  
-  // NB: This isn't especially portable. Perhaps a better way would be
-  // to just specialize all of numpunct and ctype.
-  using __gnu_test::int_type;
-  using __gnu_test::value_type;
-  using __gnu_test::pod_type;
-
-  template<>
-    bool 
-    ctype<pod_type>::
-    do_is(mask, char_type) const { return true; }
-
-  template<>
-    const pod_type*
-    ctype<pod_type>::
-    do_is(const char_type* __lo, const char_type*, mask*) const
-    { return __lo; }
-
-  template<>
-    const pod_type*
-    ctype<pod_type>::
-    do_scan_is(mask, const char_type* __lo, const char_type*) const
-    { return __lo; }
-
-  template<>
-    const pod_type*
-    ctype<pod_type>::
-    do_scan_not(mask, const char_type* __lo, const char_type*) const
-    { return __lo; }
-
-  template<>
-    pod_type 
-    ctype<pod_type>::
-    do_toupper(char_type __c) const
-    { return __c; }
-
-  template<>
-    const pod_type*
-    ctype<pod_type>::
-    do_toupper(char_type*, const char_type* __hi) const
-    { return __hi; }
-
-  template<>
-    pod_type 
-    ctype<pod_type>::
-    do_tolower(char_type __c) const
-    { return __c; }
-
-  template<>
-    const pod_type*
-    ctype<pod_type>::
-    do_tolower(char_type*, const char_type* __hi) const
-    { return __hi; }
-
-  template<>
-    pod_type
-    ctype<pod_type>::
-    do_widen(char __c) const
-    { 
-      char_type ret = { value_type(__c) };
-      return ret;
-    }
-
-  template<>
-    const char*
-    ctype<pod_type>::
-    do_widen(const char* __lo, const char* __hi, char_type* __dest) const
-    {
-      while (__lo < __hi)
-	{
-	  *__dest = this->do_widen(*__lo);
-	  ++__lo;
-	  ++__dest;
-	}
-      return __hi;
-    }
-
-  template<>
-    char
-    ctype<pod_type>::
-    do_narrow(char_type __wc, char) const
-    { return static_cast<char>(__wc.value); }
-
-  template<>
-    const pod_type*
-    ctype<pod_type>::
-    do_narrow(const pod_type* __lo, const pod_type* __hi, 
-	      char, char* __dest) const
-    {
-      while (__lo < __hi)
-	{
-	  *__dest = this->do_narrow(*__lo, char());
-	  ++__lo;
-	  ++__dest;
-	}
-      return __hi;
-    }
-
-  template<>
-    ctype<pod_type>::~ctype() { }
-
-  template<>
-    void
-    numpunct<pod_type>::_M_initialize_numpunct(__c_locale)
-    {
-      if (!_M_data)
-	_M_data = new __numpunct_cache<pod_type>;
-
-      _M_data->_M_grouping = "";
-      _M_data->_M_use_grouping = false;
-
-      _M_data->_M_decimal_point.value =  value_type('.');
-      _M_data->_M_thousands_sep.value = value_type(',');
-      
-      for (size_t i = 0; i < __num_base::_S_oend; ++i)
-	{
-	  value_type v = __num_base::_S_atoms_out[i];
-	  _M_data->_M_atoms_out[i].value = v;
-	}
-      _M_data->_M_atoms_out[__num_base::_S_oend] = pod_type();
-      
-      for (size_t j = 0; j < __num_base::_S_iend; ++j)
-	_M_data->_M_atoms_in[j].value = value_type(__num_base::_S_atoms_in[j]);
-      _M_data->_M_atoms_in[__num_base::_S_iend] = pod_type();
-
-      // "true"
-      pod_type* __truename = new pod_type[4 + 1];
-      __truename[0].value = value_type('t');
-      __truename[1].value = value_type('r');
-      __truename[2].value = value_type('u');
-      __truename[3].value = value_type('e');
-      __truename[4] = pod_type();
-      _M_data->_M_truename = __truename;
-
-      // "false"
-      pod_type* __falsename = new pod_type[5 + 1];
-      __falsename[0].value = value_type('f');
-      __falsename[1].value = value_type('a');
-      __falsename[2].value = value_type('l');
-      __falsename[3].value = value_type('s');
-      __falsename[4].value = value_type('e');
-      __falsename[5] = pod_type();
-      _M_data->_M_falsename = __falsename;
-    }
-
-  template<>
-    numpunct<pod_type>::~numpunct()
-    { delete _M_data; }
-} // namespace std

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1999-2003 Free Software Foundation, Inc.          --
+--          Copyright (C) 1999-2004 Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -53,6 +53,7 @@ package body Targparm is
       FFO,  --   Fractional_Fixed_Ops
       MOV,  --   Machine_Overflows
       MRN,  --   Machine_Rounds
+      PAS,  --   Preallocated_Stacks
       S64,  --   Support_64_Bit_Divides
       SAG,  --   Support_Aggregates
       SCA,  --   Support_Composite_Assign
@@ -94,6 +95,7 @@ package body Targparm is
    FFO_Str : aliased constant Source_Buffer := "Fractional_Fixed_Ops";
    MOV_Str : aliased constant Source_Buffer := "Machine_Overflows";
    MRN_Str : aliased constant Source_Buffer := "Machine_Rounds";
+   PAS_Str : aliased constant Source_Buffer := "Preallocated_Stacks";
    S64_Str : aliased constant Source_Buffer := "Support_64_Bit_Divides";
    SAG_Str : aliased constant Source_Buffer := "Support_Aggregates";
    SCA_Str : aliased constant Source_Buffer := "Support_Composite_Assign";
@@ -132,6 +134,7 @@ package body Targparm is
       FFO_Str'Access,
       MOV_Str'Access,
       MRN_Str'Access,
+      PAS_Str'Access,
       S64_Str'Access,
       SAG_Str'Access,
       SCA_Str'Access,
@@ -151,6 +154,33 @@ package body Targparm is
 
       HIM_Str'Access,
       LSI_Str'Access);
+
+   -----------------------
+   -- Local Subprograms --
+   -----------------------
+
+   procedure Set_Profile_Restrictions (P : Profile_Name);
+   --  Set Restrictions_On_Target for the given profile
+
+   ------------------------------
+   -- Set_Profile_Restrictions --
+   ------------------------------
+
+   procedure Set_Profile_Restrictions (P : Profile_Name) is
+      R : Restriction_Flags  renames Profile_Info (P).Set;
+      V : Restriction_Values renames Profile_Info (P).Value;
+
+   begin
+      for J in R'Range loop
+         if R (J) then
+            Restrictions_On_Target.Set (J) := True;
+
+            if J in All_Parameter_Restrictions then
+               Restrictions_On_Target.Value (J) := V (J);
+            end if;
+         end if;
+      end loop;
+   end Set_Profile_Restrictions;
 
    ---------------------------
    -- Get_Target_Parameters --
@@ -192,7 +222,7 @@ package body Targparm is
       Source_Last  : Source_Ptr)
    is
       P : Source_Ptr;
-      V : Uint;
+      --  Scans source buffer containing source of system.ads
 
       Fatal : Boolean := False;
       --  Set True if a fatal error is detected
@@ -215,12 +245,32 @@ package body Targparm is
          if System_Text (P) = '-' then
             goto Line_Loop_Continue;
 
+         --  Test for pragma Profile (Ravenscar);
+
+         elsif System_Text (P .. P + 26) =
+                 "pragma Profile (Ravenscar);"
+         then
+            Set_Profile_Restrictions (Ravenscar);
+            Opt.Task_Dispatching_Policy := 'F';
+            Opt.Locking_Policy     := 'C';
+            P := P + 27;
+            goto Line_Loop_Continue;
+
+         --  Test for pragma Profile (Restricted);
+
+         elsif System_Text (P .. P + 27) =
+                 "pragma Profile (Restricted);"
+         then
+            Set_Profile_Restrictions (Restricted);
+            P := P + 28;
+            goto Line_Loop_Continue;
+
          --  Test for pragma Restrictions
 
          elsif System_Text (P .. P + 20) = "pragma Restrictions (" then
             P := P + 21;
 
-            Rloop : for K in Partition_Restrictions loop
+            Rloop : for K in All_Boolean_Restrictions loop
                declare
                   Rname : constant String := Restriction_Id'Image (K);
 
@@ -234,7 +284,7 @@ package body Targparm is
                   end loop;
 
                   if System_Text (P + Rname'Length) = ')' then
-                     Restrictions_On_Target (K) := True;
+                     Restrictions_On_Target.Set (K) := True;
                      goto Line_Loop_Continue;
                   end if;
                end;
@@ -243,10 +293,13 @@ package body Targparm is
                null;
             end loop Rloop;
 
-            Ploop : for K in Restriction_Parameter_Id loop
+            Ploop : for K in All_Parameter_Restrictions loop
                declare
                   Rname : constant String :=
-                            Restriction_Parameter_Id'Image (K);
+                            All_Parameter_Restrictions'Image (K);
+
+                  V : Natural;
+                  --  Accumulates value
 
                begin
                   for J in Rname'Range loop
@@ -261,22 +314,45 @@ package body Targparm is
                                                       " => "
                   then
                      P := P + Rname'Length + 4;
-                     V := Uint_0;
 
+                     V := 0;
                      loop
                         if System_Text (P) in '0' .. '9' then
-                           V := 10 * V + Character'Pos (System_Text (P)) - 48;
+                           declare
+                              pragma Unsuppress (Overflow_Check);
+
+                           begin
+                              --  Accumulate next digit
+
+                              V := 10 * V +
+                                   Character'Pos (System_Text (P)) -
+                                   Character'Pos ('0');
+
+                           exception
+                              --  On overflow, we just ignore the pragma since
+                              --  that is the standard handling in this case.
+
+                              when Constraint_Error =>
+                                 goto Line_Loop_Continue;
+                           end;
+
                         elsif System_Text (P) = '_' then
                            null;
+
                         elsif System_Text (P) = ')' then
-                           Restriction_Parameters_On_Target (K) := V;
-                           goto  Line_Loop_Continue;
+                           Restrictions_On_Target.Value (K) := V;
+                           Restrictions_On_Target.Set (K) := True;
+                           goto Line_Loop_Continue;
+
                         else
-                           goto Ploop_Continue;
+                           exit Ploop;
                         end if;
 
                         P := P + 1;
                      end loop;
+
+                  else
+                     exit Ploop;
                   end if;
                end;
 
@@ -287,7 +363,7 @@ package body Targparm is
             Set_Standard_Error;
             Write_Line
                ("fatal error: system.ads is incorrectly formatted");
-            Write_Str ("unrecognized restrictions pragma: ");
+            Write_Str ("unrecognized or incorrect restrictions pragma: ");
 
             while System_Text (P) /= ')'
                     and then
@@ -300,6 +376,13 @@ package body Targparm is
             Write_Eol;
             Fatal := True;
             Set_Standard_Output;
+
+         --  Test for pragma Detect_Blocking;
+
+         elsif System_Text (P .. P + 22) = "pragma Detect_Blocking;" then
+            P := P + 23;
+            Opt.Detect_Blocking := True;
+            goto Line_Loop_Continue;
 
          --  Discard_Names
 
@@ -477,6 +560,7 @@ package body Targparm is
                      when FFO => Fractional_Fixed_Ops_On_Target      := Result;
                      when MOV => Machine_Overflows_On_Target         := Result;
                      when MRN => Machine_Rounds_On_Target            := Result;
+                     when PAS => Preallocated_Stacks_On_Target       := Result;
                      when S64 => Support_64_Bit_Divides_On_Target    := Result;
                      when SAG => Support_Aggregates_On_Target        := Result;
                      when SCA => Support_Composite_Assign_On_Target  := Result;
@@ -520,7 +604,9 @@ package body Targparm is
          if P >= Source_Last then
             Set_Standard_Error;
             Write_Line ("fatal error, system.ads not formatted correctly");
+            Write_Line ("unexpected end of file");
             Set_Standard_Output;
+            raise Unrecoverable_Error;
          end if;
       end loop Line_Loop;
 

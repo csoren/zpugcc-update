@@ -1,6 +1,8 @@
 /* Bug 16325.  */
 /* { dg-options "-O -fprofile-generate" } */
 
+extern void abort (void);
+
 int *p1;
 int *p2;
 int *p3;
@@ -31,3 +33,5 @@ main(void)
     abort ();
   return 0;
 }
+
+/* { dg-final { cleanup-coverage-files } } */

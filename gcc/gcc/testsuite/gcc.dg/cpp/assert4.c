@@ -78,7 +78,7 @@
 # error
 #endif
 
-#if defined __unix__ && !defined __CYGWIN__ 
+#if ( defined __unix__ && !defined __CYGWIN__ ) || defined _AIX
 # if !#system(unix)
 #  error
 # endif
@@ -118,7 +118,7 @@
 # error
 #endif
 
-#if defined __WINNT__ || defined __CYGWIN__ 
+#if defined __WINNT__ || defined __CYGWIN__
 # if !#system(winnt)
 #  error
 # endif
@@ -192,14 +192,6 @@
 # error
 #endif
 
-#if defined __d30v__
-# if !#cpu(d30v) || !#machine(d30v)
-#  error
-# endif
-#elif #cpu(d30v) || #machine(d30v)
-# error
-#endif
-
 #if defined __fr30__
 # if !#cpu(fr30) || !#machine(fr30)
 #  error
@@ -270,14 +262,6 @@
 # error
 #endif
 
-#if defined __i960__
-# if !#cpu(i960) || !#machine(i960)
-#  error
-# endif
-#elif #cpu(i960) || #machine(i960)
-# error
-#endif
-
 #if defined __ia64__
 # if !#cpu(ia64) || !#machine(ia64)
 #  error
@@ -324,14 +308,6 @@
 #  error
 # endif
 #elif #cpu(mips) || #machine(sgi) || #machine(mips)
-# error
-#endif
-
-#if defined __mmix__
-# if !#cpu(mmix) || !#machine(mmix)
-#  error
-# endif
-#elif #cpu(mmix) || #machine(mcore)
 # error
 #endif
 

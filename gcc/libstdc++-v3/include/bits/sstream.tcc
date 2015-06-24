@@ -1,6 +1,6 @@
 // String based streams -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2001, 2002, 2003
+// Copyright (C) 1997, 1998, 1999, 2001, 2002, 2003, 2004
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -28,6 +28,11 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/** @file sstream.tcc
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
 //
 // ISO C++ 14882: 27.7  String-based streams
 //
@@ -47,24 +52,29 @@ namespace std
     pbackfail(int_type __c)
     {
       int_type __ret = traits_type::eof();
-      const bool __testeof = traits_type::eq_int_type(__c, __ret);
-
       if (this->eback() < this->gptr())
 	{
-	  const bool __testeq = traits_type::eq(traits_type::to_char_type(__c),
-						this->gptr()[-1]);
-	  this->gbump(-1);
-
 	  // Try to put back __c into input sequence in one of three ways.
 	  // Order these tests done in is unspecified by the standard.
-	  if (!__testeof && __testeq)
-	    __ret = __c;
-	  else if (__testeof)
-	    __ret = traits_type::not_eof(__c);
+	  const bool __testeof = traits_type::eq_int_type(__c, __ret);
+	  if (!__testeof)
+	    {
+	      const bool __testeq = traits_type::eq(traits_type::
+						    to_char_type(__c),
+						    this->gptr()[-1]);	  
+	      const bool __testout = this->_M_mode & ios_base::out;
+	      if (__testeq || __testout)
+		{
+		  this->gbump(-1);
+		  if (!__testeq)
+		    *this->gptr() = traits_type::to_char_type(__c);
+		  __ret = __c;
+		}
+	    }
 	  else
 	    {
-	      *this->gptr() = traits_type::to_char_type(__c);
-	      __ret = __c;
+	      this->gbump(-1);
+	      __ret = traits_type::not_eof(__c);
 	    }
 	}
       return __ret;
@@ -104,7 +114,8 @@ namespace std
 	  const __size_type __len = std::min(__opt_len, __max_size);
 	  __string_type __tmp;
 	  __tmp.reserve(__len);
-	  __tmp.assign(_M_string.data(), this->epptr() - this->pbase());
+	  if (this->pbase())
+	    __tmp.assign(this->pbase(), this->epptr() - this->pbase());
 	  _M_string.swap(__tmp);
 	  _M_sync(const_cast<char_type*>(_M_string.data()),
 		  this->gptr() - this->eback(), this->pptr() - this->pbase());
@@ -149,28 +160,28 @@ namespace std
 	{
 	  _M_update_egptr();
 
-	  off_type __newoffi = 0;
-	  off_type __newoffo = 0;
+	  off_type __newoffi = __off;
+	  off_type __newoffo = __newoffi;
 	  if (__way == ios_base::cur)
 	    {
-	      __newoffi = this->gptr() - __beg;
-	      __newoffo = this->pptr() - __beg;
+	      __newoffi += this->gptr() - __beg;
+	      __newoffo += this->pptr() - __beg;
 	    }
 	  else if (__way == ios_base::end)
-	    __newoffo = __newoffi = this->egptr() - __beg;
+	    __newoffo = __newoffi += this->egptr() - __beg;
 
 	  if ((__testin || __testboth)
-	      && __newoffi + __off >= 0
-	      && this->egptr() - __beg >= __newoffi + __off)
+	      && __newoffi >= 0
+	      && this->egptr() - __beg >= __newoffi)
 	    {
-	      this->gbump((__beg + __newoffi + __off) - this->gptr());
+	      this->gbump((__beg + __newoffi) - this->gptr());
 	      __ret = pos_type(__newoffi);
 	    }
 	  if ((__testout || __testboth)
-	      && __newoffo + __off >= 0
-	      && this->egptr() - __beg >= __newoffo + __off)
+	      && __newoffo >= 0
+	      && this->egptr() - __beg >= __newoffo)
 	    {
-	      this->pbump((__beg + __newoffo + __off) - this->pptr());
+	      this->pbump((__beg + __newoffo) - this->pptr());
 	      __ret = pos_type(__newoffo);
 	    }
 	}
@@ -187,14 +198,14 @@ namespace std
       const bool __testout = (ios_base::out & this->_M_mode & __mode) != 0;
 
       const char_type* __beg = __testin ? this->eback() : this->pbase();
-      if (__beg)
+      if (__beg && (__testin || __testout))
 	{
 	  _M_update_egptr();
 
-	  off_type __pos(__sp);
+	  const off_type __pos(__sp);
 	  const bool __testpos = 0 <= __pos
 	                         && __pos <=  this->egptr() - __beg;
-	  if ((__testin || __testout) && __testpos)
+	  if (__testpos)
 	    {
 	      if (__testin)
 		this->gbump((__beg + __pos) - this->gptr());

@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler,
    for PowerPC machines running Linux.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
    Free Software Foundation, Inc.
    Contributed by Michael Meissner (meissner@cygnus.com).
 
@@ -33,15 +33,15 @@
 #define TARGET_C99_FUNCTIONS 1
 
 #undef  TARGET_OS_CPP_BUILTINS
-#define TARGET_OS_CPP_BUILTINS()          \
-  do                                      \
-    {                                     \
-      builtin_define_std ("PPC");         \
-      builtin_define_std ("powerpc");     \
-      builtin_assert ("cpu=powerpc");     \
-      builtin_assert ("machine=powerpc"); \
-      TARGET_OS_SYSV_CPP_BUILTINS ();	  \
-    }                                     \
+#define TARGET_OS_CPP_BUILTINS()		\
+  do						\
+    {						\
+      builtin_define_std ("PPC");		\
+      builtin_define_std ("powerpc");		\
+      builtin_assert ("cpu=powerpc");		\
+      builtin_assert ("machine=powerpc");	\
+      TARGET_OS_SYSV_CPP_BUILTINS ();		\
+    }						\
   while (0)
 
 #undef	CPP_OS_DEFAULT_SPEC
@@ -74,6 +74,11 @@
 #define LINK_GCC_C_SEQUENCE_SPEC \
   "%{static:--start-group} %G %L %{static:--end-group}%{!static:%G}"
 
+/* Use --as-needed -lgcc_s for eh support.  */
+#ifdef HAVE_LD_AS_NEEDED
+#define USE_LD_AS_NEEDED 1
+#endif
+
 #undef  TARGET_VERSION
 #define TARGET_VERSION fprintf (stderr, " (PowerPC GNU/Linux)");
 
@@ -104,6 +109,4 @@
 
 #define TARGET_HAS_F_SETLKW
 
-#ifdef IN_LIBGCC2
-#include "config/rs6000/linux-unwind.h"
-#endif
+#define MD_UNWIND_SUPPORT "config/rs6000/linux-unwind.h"

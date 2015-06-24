@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2004, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2005, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -147,6 +147,8 @@ struct vstring
 #if defined (_WIN32)
 #include <dir.h>
 #include <windows.h>
+#undef DIR_SEPARATOR
+#define DIR_SEPARATOR '\\'
 #endif
 
 #include "adaint.h"
@@ -275,6 +277,37 @@ int max_path_len = GNAT_MAX_PATH_LEN;
    system provides the routine readdir_r.  */
 #undef HAVE_READDIR_R
 
+#if defined(VMS) && defined (__LONG_POINTERS)
+
+/* Return a 32 bit pointer to an array of 32 bit pointers
+   given a 64 bit pointer to an array of 64 bit pointers */
+
+typedef __char_ptr32 *__char_ptr_char_ptr32 __attribute__ ((mode (SI)));
+
+static __char_ptr_char_ptr32
+to_ptr32 (char **ptr64)
+{
+  int argc;
+  __char_ptr_char_ptr32 short_argv;
+
+  for (argc=0; ptr64[argc]; argc++);
+
+  /* Reallocate argv with 32 bit pointers. */
+  short_argv = (__char_ptr_char_ptr32) decc$malloc
+    (sizeof (__char_ptr32) * (argc + 1));
+
+  for (argc=0; ptr64[argc]; argc++)
+    short_argv[argc] = (__char_ptr32) decc$strdup (ptr64[argc]);
+
+  short_argv[argc] = (__char_ptr32) 0;
+  return short_argv;
+
+}
+#define MAYBE_TO_PTR32(argv) to_ptr32 (argv)
+#else
+#define MAYBE_TO_PTR32(argv) argv
+#endif
+
 void
 __gnat_to_gm_time
   (OS_Time *p_time,
@@ -409,7 +442,8 @@ __gnat_try_lock (char *dir, char *file)
   int fd;
 
   sprintf (full_path, "%s%c%s", dir, DIR_SEPARATOR, file);
-  sprintf (temp_file, "%s-%ld-%ld", dir, (long) getpid(), (long) getppid ());
+  sprintf (temp_file, "%s%cTMP-%ld-%ld",
+           dir, DIR_SEPARATOR, (long)getpid(), (long)getppid ());
 
   /* Create the temporary file and write the process number.  */
   fd = open (temp_file, O_CREAT | O_WRONLY, 0600);
@@ -616,6 +650,21 @@ __gnat_open_create (char *path, int fmode)
 }
 
 int
+__gnat_create_output_file (char *path)
+{
+  int fd;
+#if defined (VMS)
+  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, PERM,
+             "rfm=stmlf", "ctx=rec", "rat=none", "rop=nlk",
+             "shr=del,get,put,upd");
+#else
+  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_TEXT, PERM);
+#endif
+
+  return fd < 0 ? -1 : fd;
+}
+
+int
 __gnat_open_append (char *path, int fmode)
 {
   int fd;
@@ -705,6 +754,21 @@ __gnat_file_length (int fd)
   return (statbuf.st_size);
 }
 
+/* Return the number of bytes in the specified named file.  */
+
+long
+__gnat_named_file_length (char *name)
+{
+  int ret;
+  struct stat statbuf;
+
+  ret = __gnat_stat (name, &statbuf);
+  if (ret || !S_ISREG (statbuf.st_mode))
+    return 0;
+
+  return (statbuf.st_size);
+}
+
 /* Create a temporary filename and put it in string pointed to by
    TMP_FILENAME.  */
 
@@ -773,7 +837,7 @@ __gnat_readdir (DIR *dirp, char *buffer)
     return NULL;
 
 #else
-  struct dirent *dirent = readdir (dirp);
+  struct dirent *dirent = (struct dirent *) readdir (dirp);
 
   if (dirent != NULL)
     {
@@ -829,7 +893,7 @@ win32_filetime (HANDLE h)
 
 /* Return a GNAT time stamp given a file name.  */
 
-time_t
+OS_Time
 __gnat_file_time_name (char *name)
 {
 
@@ -837,7 +901,7 @@ __gnat_file_time_name (char *name)
   int fd = open (name, O_RDONLY | O_BINARY);
   time_t ret = __gnat_file_time_fd (fd);
   close (fd);
-  return ret;
+  return (OS_Time)ret;
 
 #elif defined (_WIN32)
   time_t ret = 0;
@@ -849,22 +913,25 @@ __gnat_file_time_name (char *name)
       ret = win32_filetime (h);
       CloseHandle (h);
     }
-  return ret;
+  return (OS_Time) ret;
 #else
   struct stat statbuf;
-  (void) __gnat_stat (name, &statbuf);
+  if (__gnat_stat (name, &statbuf) != 0) {
+     return (OS_Time)-1;
+  } else {
 #ifdef VMS
-  /* VMS has file versioning.  */
-  return statbuf.st_ctime;
+     /* VMS has file versioning.  */
+     return (OS_Time)statbuf.st_ctime;
 #else
-  return statbuf.st_mtime;
+     return (OS_Time)statbuf.st_mtime;
 #endif
+  }
 #endif
 }
 
 /* Return a GNAT time stamp given a file descriptor.  */
 
-time_t
+OS_Time
 __gnat_file_time_fd (int fd)
 {
   /* The following workaround code is due to the fact that under EMX and
@@ -932,24 +999,26 @@ __gnat_file_time_fd (int fd)
   tot_secs += file_hour * 3600;
   tot_secs += file_min * 60;
   tot_secs += file_tsec * 2;
-  return tot_secs;
+  return (OS_Time) tot_secs;
 
 #elif defined (_WIN32)
   HANDLE h = (HANDLE) _get_osfhandle (fd);
   time_t ret = win32_filetime (h);
-  return ret;
+  return (OS_Time) ret;
 
 #else
   struct stat statbuf;
 
-  (void) fstat (fd, &statbuf);
-
+  if (fstat (fd, &statbuf) != 0) {
+     return (OS_Time) -1;
+  } else {
 #ifdef VMS
-  /* VMS has file versioning.  */
-  return statbuf.st_ctime;
+     /* VMS has file versioning.  */
+     return (OS_Time) statbuf.st_ctime;
 #else
-  return statbuf.st_mtime;
+     return (OS_Time) statbuf.st_mtime;
 #endif
+  }
 #endif
 }
 
@@ -1175,13 +1244,13 @@ static char *to_host_path_spec (char *);
 struct descriptor_s
 {
   unsigned short len, mbz;
-  char *adr;
+  __char_ptr32 adr;
 };
 
 typedef struct _ile3
 {
   unsigned short len, code;
-  char *adr;
+  __char_ptr32 adr;
   unsigned short *retlen_adr;
 } ile_s;
 
@@ -1310,7 +1379,7 @@ __gnat_get_libraries_from_registry (void)
     {
       value_size = name_size = 256;
       res = RegEnumValue (reg_key, index, name, &name_size, 0,
-                          &type, value, &value_size);
+                          &type, (LPBYTE)value, &value_size);
 
       if (res == ERROR_SUCCESS && type == REG_SZ)
         {
@@ -1372,11 +1441,12 @@ __gnat_file_exists (char *name)
 }
 
 int
-__gnat_is_absolute_path (char *name)
+__gnat_is_absolute_path (char *name, int length)
 {
-  return (*name == '/' || *name == DIR_SEPARATOR
+  return (length != 0) &&
+     (*name == '/' || *name == DIR_SEPARATOR
 #if defined (__EMX__) || defined (MSDOS) || defined (WINNT)
-      || (strlen (name) > 1 && isalpha (name[0]) && name[1] == ':')
+      || (length > 1 && isalpha (name[0]) && name[1] == ':')
 #endif
 	  );
 }
@@ -1440,6 +1510,20 @@ __gnat_set_writable (char *name)
 }
 
 void
+__gnat_set_executable (char *name)
+{
+#ifndef __vxworks
+  struct stat statbuf;
+
+  if (stat (name, &statbuf) == 0)
+  {
+    statbuf.st_mode = statbuf.st_mode | S_IXUSR;
+    chmod (name, statbuf.st_mode);
+  }
+#endif
+}
+
+void
 __gnat_set_readonly (char *name)
 {
 #ifndef __vxworks
@@ -1459,7 +1543,7 @@ __gnat_is_symbolic_link (char *name ATTRIBUTE_UNUSED)
 #if defined (__vxworks)
   return 0;
 
-#elif defined (_AIX) || defined (unix)
+#elif defined (_AIX) || defined (__APPLE__) || defined (__unix__)
   int ret;
   struct stat statbuf;
 
@@ -1470,17 +1554,6 @@ __gnat_is_symbolic_link (char *name ATTRIBUTE_UNUSED)
   return 0;
 #endif
 }
-
-#ifdef VMS
-/* Defined in VMS header files. */
-#if defined (__ALPHA)
-#define fork() (decc$$alloc_vfork_blocks() >= 0 ? \
-		LIB$GET_CURRENT_INVO_CONTEXT (decc$$get_vfork_jmpbuf()) : -1)
-#elif defined (__IA64)
-#define fork() (decc$$alloc_vfork_blocks() >= 0 ? \
-		LIB$I64_GET_CURR_INVO_CONTEXT(decc$$get_vfork_jmpbuf()) : -1)
-#endif
-#endif
 
 #if defined (sun) && defined (__SVR4)
 /* Using fork on Solaris will duplicate all the threads. fork1, which
@@ -1497,7 +1570,19 @@ __gnat_portable_spawn (char *args[])
   int pid ATTRIBUTE_UNUSED;
 
 #if defined (MSDOS) || defined (_WIN32)
-  status = spawnvp (P_WAIT, args[0],(const char* const*)args);
+  /* args[0] must be quotes as it could contain a full pathname with spaces */
+  char *args_0 = args[0];
+  args[0] = (char *)xmalloc (strlen (args_0) + 3);
+  strcpy (args[0], "\"");
+  strcat (args[0], args_0);
+  strcat (args[0], "\"");
+
+  status = spawnvp (P_WAIT, args_0, (char* const*)args);
+
+  /* restore previous value */
+  free (args[0]);
+  args[0] = (char *)args_0;
+
   if (status < 0)
     return -1;
   else
@@ -1520,7 +1605,7 @@ __gnat_portable_spawn (char *args[])
   if (pid == 0)
     {
       /* The child. */
-      if (execv (args[0], args) != 0)
+      if (execv (args[0], MAYBE_TO_PTR32 (args)) != 0)
 #if defined (VMS)
 	return -1; /* execv is in parent context on VMS.  */
 #else
@@ -1539,6 +1624,34 @@ __gnat_portable_spawn (char *args[])
 #endif
 
   return 0;
+}
+
+/* Create a copy of the given file descriptor.
+   Return -1 if an error occurred.  */
+
+int
+__gnat_dup (int oldfd)
+{
+#if defined (__vxworks)
+   /* Not supported on VxWorks.  */
+   return -1;
+#else
+   return dup (oldfd);
+#endif
+}
+
+/* Make newfd be the copy of oldfd, closing newfd first if necessary.
+   Return -1 if an error occured.  */
+
+int
+__gnat_dup2 (int oldfd, int newfd)
+{
+#if defined (__vxworks)
+  /* Not supported on VxWorks.  */
+  return -1;
+#else
+  return dup2 (oldfd, newfd);
+#endif
 }
 
 /* WIN32 code to implement a wait call that wait for any child process.  */
@@ -1678,8 +1791,9 @@ win32_no_block_spawn (char *command, char *args[])
       k++;
     }
 
-  result = CreateProcess (NULL, (char *) full_command, &SA, NULL, TRUE,
-                          NORMAL_PRIORITY_CLASS, NULL, NULL, &SI, &PI);
+  result = CreateProcess
+	     (NULL, (char *) full_command, &SA, NULL, TRUE,
+              GetPriorityClass (GetCurrentProcess()), NULL, NULL, &SI, &PI);
 
   free (full_command);
 
@@ -1772,7 +1886,7 @@ __gnat_portable_no_block_spawn (char *args[])
   if (pid == 0)
     {
       /* The child.  */
-      if (execv (args[0], args) != 0)
+      if (execv (args[0], MAYBE_TO_PTR32 (args)) != 0)
 #if defined (VMS)
 	return -1; /* execv is in parent context on VMS. */
 #else
@@ -1840,7 +1954,7 @@ char *
 __gnat_locate_regular_file (char *file_name, char *path_val)
 {
   char *ptr;
-  int absolute = __gnat_is_absolute_path (file_name);
+  int absolute = __gnat_is_absolute_path (file_name, strlen (file_name));
 
   /* Handle absolute pathnames.  */
   if (absolute)
@@ -2375,10 +2489,12 @@ _flush_cache()
 #if defined (CROSS_COMPILE)  \
   || (! (defined (sparc) && defined (sun) && defined (__SVR4)) \
       && ! (defined (linux) && defined (i386)) \
-      && ! defined (hpux) \
+      && ! defined (__FreeBSD__) \
+      && ! defined (__hpux__) \
       && ! defined (_AIX) \
       && ! (defined (__alpha__)  && defined (__osf__)) \
-      && ! defined (__MINGW32__))
+      && ! defined (__MINGW32__) \
+      && ! (defined (__mips) && defined (__sgi)))
 
 /* Dummy function to satisfy g-trasym.o.  Currently Solaris sparc, HP/UX,
    GNU/Linux x86, Tru64 & Windows provide a non-dummy version of this
@@ -2402,8 +2518,11 @@ int __gnat_argument_needs_quote = 0;
 
 /* This option is used to enable/disable object files handling from the
    binder file by the GNAT Project module. For example, this is disabled on
-   Windows as it is already done by the mdll module. */
-#if defined (_WIN32)
+   Windows (prior to GCC 3.4) as it is already done by the mdll module.
+   Stating with GCC 3.4 the shared libraries are not based on mdll
+   anymore as it uses the GCC's -shared option  */
+#if defined (_WIN32) \
+    && ((__GNUC__ < 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ < 4)))
 int __gnat_prj_add_obj_files = 0;
 #else
 int __gnat_prj_add_obj_files = 1;
@@ -2495,3 +2614,23 @@ get_gcc_version (void)
   return 3;
 }
 
+int
+__gnat_set_close_on_exec (int fd, int close_on_exec_p)
+{
+#if defined (F_GETFD) && defined (FD_CLOEXEC) && ! defined (__vxworks)
+  int flags = fcntl (fd, F_GETFD, 0);
+  if (flags < 0)
+    return flags;
+  if (close_on_exec_p)
+    flags |= FD_CLOEXEC;
+  else
+    flags &= ~FD_CLOEXEC;
+  return fcntl (fd, F_SETFD, flags | FD_CLOEXEC);
+#else
+  return -1;
+  /* For the Windows case, we should use SetHandleInformation to remove
+     the HANDLE_INHERIT property from fd. This is not implemented yet,
+     but for our purposes (support of GNAT.Expect) this does not matter,
+     as by default handles are *not* inherited. */
+#endif
+}

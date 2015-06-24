@@ -67,7 +67,7 @@ import java.util.ResourceBundle;
  * of isHorizontal() and isLeftToRight() rather than comparing objects with
  * ==, especially since more constants may be added in the future.
  *
- * @author Bryce McKinlay <bryce@albatross.co.nz>
+ * @author Bryce McKinlay (bryce@albatross.co.nz)
  * @since 1.0
  * @status updated to 1.4
  */
@@ -171,13 +171,15 @@ public final class ComponentOrientation implements Serializable
   }
 
   /**
-   * Gets an orientation from a resource bundle. This tries the following:<ol>
+   * Gets an orientation from a resource bundle. This tries the following:
+   *
+   * <ul>
    * <li>Use the key "Orientation" to find an instance of ComponentOrientation
    * in the bundle.</li>
    * <li>Get the locale of the resource bundle, and get the orientation of
    * that locale.</li>
-   * <li>Give up and get the orientation of the default locale.<li>
-   * <ol>
+   * <li>Give up and get the orientation of the default locale.</li>
+   * </ul>
    *
    * @param bdl the bundle to use
    * @return the orientation

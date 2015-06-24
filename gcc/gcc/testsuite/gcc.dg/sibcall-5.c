@@ -3,6 +3,8 @@
 /* { dg-require-effective-target ilp32 } */
 /* { dg-options "-O2" } */
 
+extern void abort (void);
+
 int (*f)(int, int) __attribute__((regparm(2)));
 int (*g)(int, int, int) __attribute__((regparm(3)));
 

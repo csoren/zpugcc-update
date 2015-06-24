@@ -1,5 +1,5 @@
 /* StringTokenizer -- breaks a String into tokens
-   Copyright (C) 1998, 1999, 2001, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2002, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -54,7 +54,7 @@ package java.util;
  * single character.
  *
  * @author Jochen Hoenicke
- * @author Warren Levy <warrenl@cygnus.com>
+ * @author Warren Levy (warrenl@cygnus.com)
  * @see java.io.StreamTokenizer
  * @status updated to 1.4
  */
@@ -196,7 +196,7 @@ public class StringTokenizer implements Enumeration
 
   /**
    * This does the same as hasMoreTokens. This is the
-   * <code>Enumeration</code interface method.
+   * <code>Enumeration</code> interface method.
    *
    * @return true, if the next call of nextElement() will succeed
    * @see #hasMoreTokens()
@@ -208,7 +208,7 @@ public class StringTokenizer implements Enumeration
 
   /**
    * This does the same as nextTokens. This is the
-   * <code>Enumeration</code interface method.
+   * <code>Enumeration</code> interface method.
    *
    * @return the next token with respect to the current delimiter characters
    * @throws NoSuchElementException if there are no more tokens

@@ -1,5 +1,5 @@
 /* ParsePosition.java -- Keep track of position while parsing.
-   Copyright (C) 1998, 1999, 2001 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -43,7 +43,7 @@ package java.text;
  * operations.
  *
  * @author Aaron M. Renn (arenn@urbanophile.com)
- * @author Per Bothner <bothner@cygnus.com>
+ * @author Per Bothner (bothner@cygnus.com)
  */
 public class ParsePosition
 {
@@ -116,10 +116,10 @@ public class ParsePosition
    * all of the following conditions are met.
    * <p>
    * <ul>
-   * <li>The specified object is not <code>null</code>.
-   * <li>The specified object is an instance of <code>ParsePosition</code>.
+   * <li>The specified object is not <code>null</code>.</li>
+   * <li>The specified object is an instance of <code>ParsePosition</code>.</li>
    * <li>The specified object has the same index and error index as
-   *     this object.  
+   *     this object.</li>
    * </ul>
    *
    * @param obj The <code>Object</code> to test for equality against

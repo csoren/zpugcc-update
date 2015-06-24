@@ -1,5 +1,5 @@
 /* Frame.java -- AWT toplevel window
-   Copyright (C) 1999, 2000, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2002, 2004, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -39,8 +39,15 @@ exception statement from your version. */
 package java.awt;
 
 import java.awt.peer.FramePeer;
-import java.util.Enumeration;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Vector;
+
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
+import javax.accessibility.AccessibleState;
+import javax.accessibility.AccessibleStateSet;
 
 /**
   * This class is a top-level window with a title bar and window
@@ -50,11 +57,6 @@ import java.util.Vector;
   */
 public class Frame extends Window implements MenuContainer
 {
-
-/*
- * Static Variables
- */
-
 /**
   * Constant for the default cursor.
   * @deprecated Replaced by <code>Cursor.DEFAULT_CURSOR</code> instead.
@@ -148,12 +150,6 @@ public static final int NORMAL = 0;
 // Serialization version constant
 private static final long serialVersionUID = 2673458971256075116L;
 
-/*************************************************************************/
-
-/*
- * Instance Variables
- */
-
 /**
   * @serial The version of the class data being serialized
   * // FIXME: what is this value?
@@ -208,11 +204,10 @@ private String title = "";
    */
   private boolean undecorated = false;
 
-/*************************************************************************/
-
-/*
- * Constructors
- */
+  /*
+   * The number used to generate the name returned by getName.
+   */
+  private static transient long next_frame_number;
 
 /**
   * Initializes a new instance of <code>Frame</code> that is not visible
@@ -222,9 +217,8 @@ public
 Frame()
 {
   this("");
+  noteFrame(this);
 }
-
-/*************************************************************************/
 
 /**
   * Initializes a new instance of <code>Frame</code> that is not visible
@@ -239,6 +233,7 @@ Frame(String title)
   this.title = title;
   // Top-level frames are initially invisible.
   visible = false;
+  noteFrame(this);
 }
 
 public
@@ -246,6 +241,7 @@ Frame(GraphicsConfiguration gc)
 {
   super(gc);
   visible = false;
+  noteFrame(this);
 }
 
 public
@@ -254,13 +250,8 @@ Frame(String title, GraphicsConfiguration gc)
   super(gc);
   setTitle(title);
   visible = false;
+  noteFrame(this);
 }
-
-/*************************************************************************/
-
-/*
- * Instance Methods
- */
 
 /**
   * Returns this frame's title string.
@@ -272,8 +263,6 @@ getTitle()
 {
   return(title);
 }
-
-/*************************************************************************/
 
 /*
  * Sets this frame's title to the specified value.
@@ -288,8 +277,6 @@ setTitle(String title)
     ((FramePeer) peer).setTitle(title);
 }
 
-/*************************************************************************/
-
 /**
   * Returns this frame's icon.
   *
@@ -301,8 +288,6 @@ getIconImage()
 {
   return(icon);
 }
-
-/*************************************************************************/
 
 /**
   * Sets this frame's icon to the specified value.
@@ -317,8 +302,6 @@ setIconImage(Image icon)
     ((FramePeer) peer).setIconImage(icon);
 }
 
-/*************************************************************************/
-
 /**
   * Returns this frame's menu bar.
   *
@@ -331,8 +314,6 @@ getMenuBar()
   return(menuBar);
 }
 
-/*************************************************************************/
-
 /**
   * Sets this frame's menu bar.
   *
@@ -341,12 +322,17 @@ getMenuBar()
 public synchronized void
 setMenuBar(MenuBar menuBar)
 {
-  this.menuBar = menuBar;
   if (peer != null)
+  {
+    if (this.menuBar != null)
+      this.menuBar.removeNotify();  
+    if (menuBar != null)
+      menuBar.addNotify();
+    invalidateTree ();
     ((FramePeer) peer).setMenuBar(menuBar);
+  }
+  this.menuBar = menuBar;
 }
-
-/*************************************************************************/
 
 /**
   * Tests whether or not this frame is resizable.  This will be 
@@ -360,8 +346,6 @@ isResizable()
 {
   return(resizable);
 }
-
-/*************************************************************************/
 
 /**
   * Sets the resizability of this frame to the specified value.
@@ -377,8 +361,6 @@ setResizable(boolean resizable)
     ((FramePeer) peer).setResizable(resizable);
 }
 
-/*************************************************************************/
-
 /**
   * Returns the cursor type of the cursor for this window.  This will
   * be one of the constants in this class.
@@ -392,8 +374,6 @@ getCursorType()
 {
   return(getCursor().getType());
 }
-
-/*************************************************************************/
 
 /**
   * Sets the cursor for this window to the specified type.  The specified
@@ -409,8 +389,6 @@ setCursor(int type)
   setCursor(new Cursor(type));
 }
 
-/*************************************************************************/
-
 /**
   * Removes the specified component from this frame's menu.
   *
@@ -422,39 +400,120 @@ remove(MenuComponent menu)
   menuBar.remove(menu);
 }
 
-/*************************************************************************/
-
 /**
   * Notifies this frame that it should create its native peer.
   */
+private static void fireDummyEvent()
+{
+  EventQueue.invokeLater(new Runnable()
+    {
+      public void run()
+      {
+	// Do nothing here.
+      }
+    });
+}
+
 public void
 addNotify()
 {
+  if (menuBar != null)
+    menuBar.addNotify();
   if (peer == null)
     peer = getToolkit ().createFrame (this);
+
+  // We now know there's a Frame (us) with a live peer, so we can start the
+  // fundamental queue and dispatch thread, by inserting a dummy event.
+  if (parent != null && parent.isDisplayable())
+    fireDummyEvent();
+  
   super.addNotify();
 }
 
-/*************************************************************************/
-
-/**
-  * Returns a debugging string describing this window.
-  *
-  * @return A debugging string describing this window.
-  */
-protected String
-paramString()
+public void removeNotify()
 {
-  return(getClass().getName());
+  if (menuBar != null)
+    menuBar.removeNotify();
+  super.removeNotify();
+
+  // By now we've been disconnected from the peer, and the peer set to
+  // null.  This is formally the same as saying "we just became
+  // un-displayable", so we wake up the event queue with a dummy event to
+  // see if it's time to shut down.
+  fireDummyEvent();
 }
 
-public static Frame[]
-getFrames()
+  /**
+   * Returns a debugging string describing this window.
+   *
+   * @return A debugging string describing this window.
+   */
+  protected String paramString ()
+  {
+    String title = getTitle ();
+
+    String resizable = "";
+    if (isResizable ())
+      resizable = ",resizable";
+
+    String state = "";
+    switch (getState ())
+      {
+      case NORMAL:
+        state = ",normal";
+        break;
+      case ICONIFIED:
+        state = ",iconified";
+        break;
+      case MAXIMIZED_BOTH:
+        state = ",maximized-both";
+        break;
+      case MAXIMIZED_HORIZ:
+        state = ",maximized-horiz";
+        break;
+      case MAXIMIZED_VERT:
+        state = ",maximized-vert";
+        break;
+      }
+
+    return super.paramString () + ",title=" + title + resizable + state;
+  }
+
+private static ArrayList weakFrames = new ArrayList();
+
+private static void noteFrame(Frame f)
 {
-  //Frame[] array = new Frames[frames.size()];
-  //return frames.toArray(array);
-  String msg = "FIXME: can't be implemented without weak references";
-  throw new UnsupportedOperationException(msg);
+  weakFrames.add(new WeakReference(f));
+}
+
+public static Frame[] getFrames()
+{
+  int n = 0;
+  synchronized (weakFrames)
+    {
+      Iterator i = weakFrames.iterator();
+      while (i.hasNext())
+        {
+          WeakReference wr = (WeakReference) i.next();
+          if (wr.get() != null)
+            ++n;
+        }
+      if (n == 0)
+        return new Frame[0];
+      else
+        {
+          Frame[] frames = new Frame[n];
+          n = 0;
+          i = weakFrames.iterator();
+          while (i.hasNext())
+            {
+              WeakReference wr = (WeakReference) i.next();
+              if (wr.get() != null)
+                frames[n++] = (Frame) wr.get();
+            }
+          return frames;
+        }
+    }
 }
 
   public void setState (int state)
@@ -538,5 +597,52 @@ getFrames()
 
     this.undecorated = undecorated;
   }
-} // class Frame 
 
+  /**
+   * Generate a unique name for this frame.
+   *
+   * @return A unique name for this frame.
+   */
+  String generateName ()
+  {
+    return "frame" + getUniqueLong ();
+  }
+
+  private static synchronized long getUniqueLong ()
+  {
+    return next_frame_number++;
+  }
+  
+  protected class AccessibleAWTFrame extends AccessibleAWTWindow
+  {
+    public AccessibleRole getAccessibleRole()
+    {
+      return AccessibleRole.FRAME;
+    }
+    
+    public AccessibleStateSet getAccessibleState()
+    {
+      AccessibleStateSet states = super.getAccessibleStateSet();
+      if (isResizable())
+        states.add(AccessibleState.RESIZABLE);
+      if ((state & ICONIFIED) != 0)
+        states.add(AccessibleState.ICONIFIED);
+      return states;
+    }
+  }
+  
+  /**
+   * Gets the AccessibleContext associated with this <code>Frame</code>.
+   * The context is created, if necessary.
+   *
+   * @return the associated context
+   */
+  public AccessibleContext getAccessibleContext()
+  {
+    /* Create the context if this is the first request */
+    if (accessibleContext == null)
+      accessibleContext = new AccessibleAWTFrame();
+    return accessibleContext;
+  }
+
+}

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2002 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2004 Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -169,6 +169,11 @@ package Style is
      renames Style_Inst.Check_Vertical_Bar;
    --  Called after scanning a vertical bar to check spacing
 
+   procedure Check_Xtra_Parens (Loc : Source_Ptr)
+     renames Style_Inst.Check_Xtra_Parens;
+   --  Called after scanning a conditional expression that has at least one
+   --  level of parentheses around the entire expression.
+
    procedure No_End_Name (Name : Node_Id)
      renames Style_Inst.No_End_Name;
    --  Called if an END is encountered where a name is allowed but not present.
@@ -193,7 +198,6 @@ package Style is
 
    function RM_Column_Check return Boolean
      renames Style_Inst.RM_Column_Check;
-   pragma Inline (RM_Column_Check);
    --  Determines whether style checking is active and the RM column check
    --  mode is set requiring checking of RM format layout.
 

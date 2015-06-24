@@ -24,11 +24,10 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "tm.h"
 #include "rtl.h"
 #include "hard-reg-set.h"
+#include "obstack.h"
 #include "basic-block.h"
 #include "cfgloop.h"
 #include "cfglayout.h"
-
-static void fixup_loop_exit_succesor (basic_block, basic_block);
 
 /* Initialize loop optimizer.  */
 
@@ -37,32 +36,32 @@ loop_optimizer_init (FILE *dumpfile)
 {
   struct loops *loops = xcalloc (1, sizeof (struct loops));
   edge e;
+  edge_iterator ei;
+  static bool first_time = true;
 
-  /* Initialize structures for layout changes.  */
-  cfg_layout_initialize (0);
+  if (first_time)
+    {
+      first_time = false;
+      init_set_costs ();
+    }
 
   /* Avoid annoying special cases of edges going to exit
      block.  */
-  for (e = EXIT_BLOCK_PTR->pred; e; e = e->pred_next)
-    if ((e->flags & EDGE_FALLTHRU) && e->src->succ->succ_next)
+
+  for (ei = ei_start (EXIT_BLOCK_PTR->preds); (e = ei_safe_edge (ei)); )
+    if ((e->flags & EDGE_FALLTHRU) && EDGE_COUNT (e->src->succs) > 1)
       split_edge (e);
+    else
+      ei_next (&ei);
 
   /* Find the loops.  */
 
   if (flow_loops_find (loops, LOOP_TREE) <= 1)
     {
-      basic_block bb;
-
       /* No loops.  */
       flow_loops_free (loops);
-      free_dominance_info (CDI_DOMINATORS);
       free (loops);
 
-      /* Make chain.  */
-      FOR_EACH_BB (bb)
-	if (bb->next_bb != EXIT_BLOCK_PTR)
-	  bb->rbi->next = bb->next_bb;
-	  cfg_layout_finalize ();
       return NULL;
     }
 
@@ -92,126 +91,25 @@ loop_optimizer_init (FILE *dumpfile)
   return loops;
 }
 
-/* The first basic block is moved after the second in the reorder chain.  */
-static void
-fixup_loop_exit_succesor (basic_block exit_succ, basic_block latch)
-{
-  basic_block bb = exit_succ;
-  basic_block bb1 = latch;
-
-  if (!(bb && bb->rbi->next))
-    return;
-
-  if (!bb1)
-    return;
- 
-
-  if (bb && bb->rbi->next)
-    {
-      basic_block c = ENTRY_BLOCK_PTR->next_bb;
-
-      while (c->rbi->next != bb)
-	c = c->rbi->next;
-
-      c->rbi->next = bb->rbi->next;
-    }
-
-  if(bb1->rbi->next == NULL)
-    {
-      bb1->rbi->next=bb;
-      bb->rbi->next=NULL;
-    }
-  else
-    
-    {
-      basic_block tmp;
-
-      tmp = bb1->rbi->next;
-      bb1->rbi->next = bb;
-      bb->rbi->next = tmp;
-    }
-}
-
 /* Finalize loop optimizer.  */
 void
 loop_optimizer_finalize (struct loops *loops, FILE *dumpfile)
 {
-  basic_block bb;
-  unsigned int i;
+  unsigned i;
 
-  /* Finalize layout changes.  */
-  /* Make chain.  */
-  FOR_EACH_BB (bb)
-    if (bb->next_bb != EXIT_BLOCK_PTR)
-      bb->rbi->next = bb->next_bb;
+  if (!loops)
+    return;
+
+  for (i = 1; i < loops->num; i++)
+    if (loops->parray[i])
+      free_simple_loop_desc (loops->parray[i]);
 
   /* Another dump.  */
   flow_loops_dump (loops, dumpfile, NULL, 1);
 
-  /* For loops ending with a branch and count instruction, move the basic 
-     block found before the unrolling on the fallthru path of this branch,
-     after the unrolled code.  This will allow branch simplification.  */
-  for (i = 1; i < loops->num; i++)
-    {
-      struct loop *loop = loops->parray[i];
-      struct loop_desc *desc;
-      basic_block loop_real_latch, bb, bb_exit;
-      edge e;
-
-      if (loop == NULL)
-	continue;
-      if (!loop->simple)
-        continue;
-      if (!loop->has_desc)
-	continue;
-
-      if (loop->lpt_decision.decision != LPT_UNROLL_RUNTIME)
-	continue;
-
-      desc = &loop->desc;
-      if (desc == NULL)
-        continue;
-      if (loop->latch->pred == NULL)
-        continue;
-
-      loop_real_latch = loop->latch->pred->src;
- 
-
-      if (desc->postincr)
-	continue; 
-      if (!is_bct_cond (BB_END (loop_real_latch)))
-	 continue;
-
-      for (e = loop_real_latch->succ; e ; e = e->succ_next)
-	if (e->flags & EDGE_FALLTHRU)
-          break;
-
-      if (e == NULL)
-	continue;
-
-      bb_exit = e->dest;
-     
-      bb = NULL;
-
-      /* Leave the case of the bb_exit falling through to exit to 
-         fixed_fallthru_exit_predecessor */
-      for (e = EXIT_BLOCK_PTR->pred; e; e = e->pred_next)
-         if (e->flags & EDGE_FALLTHRU)
-        bb = e->src;
-  
-      if (bb_exit == bb)
-	continue;
-      
-      fixup_loop_exit_succesor (bb_exit, loop->latch);
-    }
-
   /* Clean up.  */
   flow_loops_free (loops);
-  free_dominance_info (CDI_DOMINATORS);
   free (loops);
-
-  /* Finalize changes.  */
-  cfg_layout_finalize ();
 
   /* Checking.  */
 #ifdef ENABLE_CHECKING

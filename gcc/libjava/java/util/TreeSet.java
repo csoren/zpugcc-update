@@ -1,5 +1,5 @@
 /* TreeSet.java -- a class providing a TreeMap-backed SortedSet
-   Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2004, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -39,9 +39,9 @@ exception statement from your version. */
 package java.util;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 
 /**
  * This class provides a TreeMap-backed implementation of the SortedSet
@@ -67,7 +67,7 @@ import java.io.ObjectOutputStream;
  *
  * @author Jon Zeppieri
  * @author Bryce McKinlay
- * @author Eric Blake <ebb9@email.byu.edu>
+ * @author Eric Blake (ebb9@email.byu.edu)
  * @see Collection
  * @see Set
  * @see HashSet

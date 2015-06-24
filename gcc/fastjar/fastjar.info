@@ -1,5 +1,5 @@
 This is fastjar.info, produced by makeinfo version 4.8 from
-/home/gdr/build/gcc-3.4.6/gcc-3.4.6/fastjar/fastjar.texi.
+/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/fastjar/fastjar.texi.
 
 INFO-DIR-SECTION Programming
 START-INFO-DIR-ENTRY
@@ -8,7 +8,7 @@ END-INFO-DIR-ENTRY
 
 INFO-DIR-SECTION Individual utilities
 START-INFO-DIR-ENTRY
-* jar: (fastjar)Invoking jar.
+* fastjar: (fastjar)Invoking fastjar.
                             An archive tool for Java archives
 * grepjar: (fastjar)Invoking grepjar.
                             Search files in a jar file for a pattern
@@ -23,24 +23,24 @@ later version. A copy of the license is included in the section
 entitled "GNU General Public License".
 
 
-File: fastjar.info,  Node: Top,  Next: Invoking jar,  Up: (dir)
+File: fastjar.info,  Node: Top,  Next: Invoking fastjar,  Up: (dir)
 
 Introduction
 ************
 
-This manual describes how to use `jar' and `grepjar'.
+This manual describes how to use `fastjar' and `grepjar'.
 
 * Menu:
 
-* Invoking jar::	Options supported by `jar'
+* Invoking fastjar::	Options supported by `fastjar'
 * Invoking grepjar::    Options supported by `grepjar'
 * Copying::		The GNU General Public License
 
 
-File: fastjar.info,  Node: Invoking jar,  Next: Invoking grepjar,  Prev: Top,  Up: Top
+File: fastjar.info,  Node: Invoking fastjar,  Next: Invoking grepjar,  Prev: Top,  Up: Top
 
-1 Invoking jar
-**************
+1 Invoking fastjar
+******************
 
 `fastjar' is an implementation of Sun's jar utility that comes with the
 JDK, written entirely in C, and runs in a fraction of the time while
@@ -62,8 +62,7 @@ the same order the `-m' and `-f' flags are specified.
      Extract named (or all) files from archive.
 
 `-u'
-     Update existing archive. This option is disabled due to bugs
-     (currently fails with exit status 1 and does nothing).
+     Update existing archive.
 
 
    The following parameters are optional:
@@ -105,7 +104,7 @@ the same order the `-m' and `-f' flags are specified.
    All remaining options are considered to be names of files.
 
 
-File: fastjar.info,  Node: Invoking grepjar,  Next: Copying,  Prev: Invoking jar,  Up: Top
+File: fastjar.info,  Node: Invoking grepjar,  Next: Copying,  Prev: Invoking fastjar,  Up: Top
 
 2 Invoking grepjar
 ******************
@@ -503,9 +502,9 @@ GNU Library General Public License instead of this License.
 
 
 Tag Table:
-Node: Top866
-Node: Invoking jar1168
-Node: Invoking grepjar2952
-Node: Copying3559
+Node: Top886
+Node: Invoking fastjar1204
+Node: Invoking grepjar2904
+Node: Copying3515
 
 End Tag Table

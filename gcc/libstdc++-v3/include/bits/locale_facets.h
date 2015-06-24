@@ -1507,7 +1507,7 @@ namespace std
   // Include host and configuration specific ctype inlines.
   #include <bits/ctype_inline.h>
 
-  // 22.2.1.2  Template class ctype_byname
+  /// @brief  class ctype_byname [22.2.1.2].
   template<typename _CharT>
     class ctype_byname : public ctype<_CharT>
     {
@@ -1522,7 +1522,7 @@ namespace std
       ~ctype_byname() { };
     };
 
-  // 22.2.1.4  Class ctype_byname specializations.
+  /// 22.2.1.4  Class ctype_byname specializations.
   template<>
     ctype_byname<char>::ctype_byname(const char*, size_t refs);
 
@@ -1884,6 +1884,7 @@ namespace std
     numpunct<wchar_t>::_M_initialize_numpunct(__c_locale __cloc);
 #endif
 
+  /// @brief  class numpunct_byname [22.2.3.2].
   template<typename _CharT>
     class numpunct_byname : public numpunct<_CharT>
     {
@@ -1949,7 +1950,7 @@ namespace std
        *  @brief  Numeric parsing.
        *
        *  Parses the input stream into the bool @a v.  It does so by calling
-       *  num_put::do_put().
+       *  num_get::do_get().
        *
        *  If ios_base::boolalpha is set, attempts to read
        *  ctype<CharT>::truename() or ctype<CharT>::falsename().  Sets
@@ -1978,7 +1979,7 @@ namespace std
        *  @brief  Numeric parsing.
        *
        *  Parses the input stream into the integral variable @a v.  It does so
-       *  by calling num_put::do_put().
+       *  by calling num_get::do_get().
        *
        *  Parsing is affected by the flag settings in @a io.
        *
@@ -2042,7 +2043,7 @@ namespace std
        *  @brief  Numeric parsing.
        *
        *  Parses the input stream into the integral variable @a v.  It does so
-       *  by calling num_put::do_put().
+       *  by calling num_get::do_get().
        *
        *  The input characters are parsed like the scanf %g specifier.  The
        *  matching type length modifier is also used.
@@ -2083,7 +2084,7 @@ namespace std
        *  @brief  Numeric parsing.
        *
        *  Parses the input stream into the pointer variable @a v.  It does so
-       *  by calling num_put::do_put().
+       *  by calling num_get::do_get().
        *
        *  The input characters are parsed like the scanf %p specifier.
        *
@@ -2636,6 +2637,7 @@ namespace std
     collate<wchar_t>::_M_transform(wchar_t*, const wchar_t*, size_t) const;
 #endif
 
+  /// @brief  class collate_byname [22.2.4.2].
   template<typename _CharT>
     class collate_byname : public collate<_CharT>
     {
@@ -2830,6 +2832,8 @@ namespace std
       explicit
       __timepunct(__c_locale __cloc, const char* __s, size_t __refs = 0);
 
+      // FIXME: for error checking purposes _M_put should return the return
+      // value of strftime/wcsftime.
       void
       _M_put(_CharT* __s, size_t __maxlen, const _CharT* __format,
 	     const tm* __tm) const;
@@ -3286,6 +3290,7 @@ namespace std
   template<typename _CharT, typename _InIter>
     locale::id time_get<_CharT, _InIter>::id;
 
+  /// @brief  class time_get_byname [22.2.5.2].
   template<typename _CharT, typename _InIter>
     class time_get_byname : public time_get<_CharT, _InIter>
     {
@@ -3409,6 +3414,7 @@ namespace std
   template<typename _CharT, typename _OutIter>
     locale::id time_put<_CharT, _OutIter>::id;
 
+  /// @brief  class time_put_byname [22.2.5.4].
   template<typename _CharT, typename _OutIter>
     class time_put_byname : public time_put<_CharT, _OutIter>
     {
@@ -3916,6 +3922,7 @@ namespace std
 							 const char*);
 #endif
 
+  /// @brief  class moneypunct_byname [22.2.6.4].
   template<typename _CharT, bool _Intl>
     class moneypunct_byname : public moneypunct<_CharT, _Intl>
     {
@@ -4463,7 +4470,8 @@ namespace std
     messages<wchar_t>::do_get(catalog, int, int, const wstring&) const;
 #endif
 
-  template<typename _CharT>
+   /// @brief class messages_byname [22.2.7.2].
+   template<typename _CharT>
     class messages_byname : public messages<_CharT>
     {
     public:
@@ -4487,72 +4495,84 @@ namespace std
   // NB: These are inline because, when used in a loop, some compilers
   // can hoist the body out of the loop; then it's just as fast as the
   // C is*() function.
-  //@{
-  /// Convenience interface to ctype.is().
+
+  /// Convenience interface to ctype.is(ctype_base::space, __c).
   template<typename _CharT>
     inline bool
     isspace(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::space, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::print, __c).
   template<typename _CharT>
     inline bool
     isprint(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::print, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::cntrl, __c).
   template<typename _CharT>
     inline bool
     iscntrl(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::cntrl, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::upper, __c).
   template<typename _CharT>
     inline bool
     isupper(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::upper, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::lower, __c).
   template<typename _CharT>
-    inline bool islower(_CharT __c, const locale& __loc)
+    inline bool 
+    islower(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::lower, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::alpha, __c).
   template<typename _CharT>
     inline bool
     isalpha(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::alpha, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::digit, __c).
   template<typename _CharT>
     inline bool
     isdigit(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::digit, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::punct, __c).
   template<typename _CharT>
     inline bool
     ispunct(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::punct, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::xdigit, __c).
   template<typename _CharT>
     inline bool
     isxdigit(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::xdigit, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::alnum, __c).
   template<typename _CharT>
     inline bool
     isalnum(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::alnum, __c); }
 
+  /// Convenience interface to ctype.is(ctype_base::graph, __c).
   template<typename _CharT>
     inline bool
     isgraph(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).is(ctype_base::graph, __c); }
 
+  /// Convenience interface to ctype.toupper(__c).
   template<typename _CharT>
     inline _CharT
     toupper(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).toupper(__c); }
 
+  /// Convenience interface to ctype.tolower(__c).
   template<typename _CharT>
     inline _CharT
     tolower(_CharT __c, const locale& __loc)
     { return use_facet<ctype<_CharT> >(__loc).tolower(__c); }
-  //@}
 } // namespace std
 
 #endif

@@ -76,7 +76,7 @@ main()
        "call %P0\n\t"
        "addl $12, %%esp\n\t"
        "popl %%ebp"
-       : : "i"(ustrzcat));
+       : : "i"(ustrzcat) : "memory" );
 
   return 0;
 }

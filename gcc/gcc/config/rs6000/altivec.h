@@ -115,14 +115,14 @@ inline void vec_dss (const int) __attribute__ ((always_inline));
 
 inline void vec_dst (const __vector unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const __vector signed char *, int, const int) __attribute__ ((always_inline));
-inline void vec_dst (const __vector __bool char *, int, const int) __attribute__ ((always_inline));
+inline void vec_dst (const __vector bool char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const __vector unsigned short *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const __vector signed short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dst (const __vector __bool short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dst (const __vector __pixel *, int, const int) __attribute__ ((always_inline));
+inline void vec_dst (const __vector bool short *, int, const int) __attribute__ ((always_inline));
+inline void vec_dst (const __vector pixel *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const __vector unsigned int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const __vector signed int *, int, const int) __attribute__ ((always_inline));
-inline void vec_dst (const __vector __bool int *, int, const int) __attribute__ ((always_inline));
+inline void vec_dst (const __vector bool int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const __vector float *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dst (const signed char *, int, const int) __attribute__ ((always_inline));
@@ -136,14 +136,14 @@ inline void vec_dst (const float *, int, const int) __attribute__ ((always_inlin
 
 inline void vec_dstst (const __vector unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const __vector signed char *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstst (const __vector __bool char *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstst (const __vector bool char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const __vector unsigned short *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const __vector signed short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstst (const __vector __bool short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstst (const __vector __pixel *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstst (const __vector bool short *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstst (const __vector pixel *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const __vector unsigned int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const __vector signed int *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstst (const __vector __bool int *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstst (const __vector bool int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const __vector float *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstst (const signed char *, int, const int) __attribute__ ((always_inline));
@@ -157,14 +157,14 @@ inline void vec_dstst (const float *, int, const int) __attribute__ ((always_inl
 
 inline void vec_dststt (const __vector unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const __vector signed char *, int, const int) __attribute__ ((always_inline));
-inline void vec_dststt (const __vector __bool char *, int, const int) __attribute__ ((always_inline));
+inline void vec_dststt (const __vector bool char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const __vector unsigned short *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const __vector signed short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dststt (const __vector __bool short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dststt (const __vector __pixel *, int, const int) __attribute__ ((always_inline));
+inline void vec_dststt (const __vector bool short *, int, const int) __attribute__ ((always_inline));
+inline void vec_dststt (const __vector pixel *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const __vector unsigned int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const __vector signed int *, int, const int) __attribute__ ((always_inline));
-inline void vec_dststt (const __vector __bool int *, int, const int) __attribute__ ((always_inline));
+inline void vec_dststt (const __vector bool int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const __vector float *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dststt (const signed char *, int, const int) __attribute__ ((always_inline));
@@ -178,14 +178,14 @@ inline void vec_dststt (const float *, int, const int) __attribute__ ((always_in
 
 inline void vec_dstt (const __vector unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const __vector signed char *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstt (const __vector __bool char *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstt (const __vector bool char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const __vector unsigned short *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const __vector signed short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstt (const __vector __bool short *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstt (const __vector __pixel *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstt (const __vector bool short *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstt (const __vector pixel *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const __vector unsigned int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const __vector signed int *, int, const int) __attribute__ ((always_inline));
-inline void vec_dstt (const __vector __bool int *, int, const int) __attribute__ ((always_inline));
+inline void vec_dstt (const __vector bool int *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const __vector float *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const unsigned char *, int, const int) __attribute__ ((always_inline));
 inline void vec_dstt (const signed char *, int, const int) __attribute__ ((always_inline));
@@ -200,25 +200,25 @@ inline void vec_dstt (const float *, int, const int) __attribute__ ((always_inli
 inline __vector float vec_sld (__vector float, __vector float, const int) __attribute__ ((always_inline));
 inline __vector signed int vec_sld (__vector signed int, __vector signed int, const int) __attribute__ ((always_inline));
 inline __vector unsigned int vec_sld (__vector unsigned int, __vector unsigned int, const int) __attribute__ ((always_inline));
-inline __vector __bool int vec_sld (__vector __bool int, __vector __bool int, const int) __attribute__ ((always_inline));
+inline __vector bool int vec_sld (__vector bool int, __vector bool int, const int) __attribute__ ((always_inline));
 inline __vector signed short vec_sld (__vector signed short, __vector signed short, const int) __attribute__ ((always_inline));
 inline __vector unsigned short vec_sld (__vector unsigned short, __vector unsigned short, const int) __attribute__ ((always_inline));
-inline __vector __bool short vec_sld (__vector __bool short, __vector __bool short, const int) __attribute__ ((always_inline));
-inline __vector __pixel vec_sld (__vector __pixel, __vector __pixel, const int) __attribute__ ((always_inline));
+inline __vector bool short vec_sld (__vector bool short, __vector bool short, const int) __attribute__ ((always_inline));
+inline __vector pixel vec_sld (__vector pixel, __vector pixel, const int) __attribute__ ((always_inline));
 inline __vector signed char vec_sld (__vector signed char, __vector signed char, const int) __attribute__ ((always_inline));
 inline __vector unsigned char vec_sld (__vector unsigned char, __vector unsigned char, const int) __attribute__ ((always_inline));
-inline __vector __bool char vec_sld (__vector __bool char, __vector __bool char, const int) __attribute__ ((always_inline));
+inline __vector bool char vec_sld (__vector bool char, __vector bool char, const int) __attribute__ ((always_inline));
 inline __vector signed char vec_splat (__vector signed char, const int) __attribute__ ((always_inline));
 inline __vector unsigned char vec_splat (__vector unsigned char, const int) __attribute__ ((always_inline));
-inline __vector __bool char vec_splat (__vector __bool char, const int) __attribute__ ((always_inline));
+inline __vector bool char vec_splat (__vector bool char, const int) __attribute__ ((always_inline));
 inline __vector signed short vec_splat (__vector signed short, const int) __attribute__ ((always_inline));
 inline __vector unsigned short vec_splat (__vector unsigned short, const int) __attribute__ ((always_inline));
-inline __vector __bool short vec_splat (__vector __bool short, const int) __attribute__ ((always_inline));
-inline __vector __pixel vec_splat (__vector __pixel, const int) __attribute__ ((always_inline));
+inline __vector bool short vec_splat (__vector bool short, const int) __attribute__ ((always_inline));
+inline __vector pixel vec_splat (__vector pixel, const int) __attribute__ ((always_inline));
 inline __vector float vec_splat (__vector float, const int) __attribute__ ((always_inline));
 inline __vector signed int vec_splat (__vector signed int, const int) __attribute__ ((always_inline));
 inline __vector unsigned int vec_splat (__vector unsigned int, const int) __attribute__ ((always_inline));
-inline __vector __bool int vec_splat (__vector __bool int, const int) __attribute__ ((always_inline));
+inline __vector bool int vec_splat (__vector bool int, const int) __attribute__ ((always_inline));
 inline __vector signed char vec_splat_s8 (const int) __attribute__ ((always_inline));
 inline __vector signed short vec_splat_s16 (const int) __attribute__ ((always_inline));
 inline __vector signed int vec_splat_s32 (const int) __attribute__ ((always_inline));
@@ -226,14 +226,14 @@ inline __vector unsigned char vec_splat_u8 (const int) __attribute__ ((always_in
 inline __vector unsigned short vec_splat_u16 (const int) __attribute__ ((always_inline));
 inline __vector unsigned int vec_splat_u32 (const int) __attribute__ ((always_inline));
 inline __vector float vec_vspltw (__vector float a1, const int a2) __attribute__ ((always_inline));
-inline __vector __bool int vec_vspltw (__vector __bool int a1, const int a2) __attribute__ ((always_inline));
+inline __vector bool int vec_vspltw (__vector bool int a1, const int a2) __attribute__ ((always_inline));
 inline __vector signed int vec_vspltw (__vector signed int a1, const int a2) __attribute__ ((always_inline));
 inline __vector unsigned int vec_vspltw (__vector unsigned int a1, const int a2) __attribute__ ((always_inline));
-inline __vector __bool short vec_vsplth (__vector __bool short a1, const int a2) __attribute__ ((always_inline));
+inline __vector bool short vec_vsplth (__vector bool short a1, const int a2) __attribute__ ((always_inline));
 inline __vector signed short vec_vsplth (__vector signed short a1, const int a2) __attribute__ ((always_inline));
 inline __vector unsigned short vec_vsplth (__vector unsigned short a1, const int a2) __attribute__ ((always_inline));
-inline __vector __pixel vec_vsplth (__vector __pixel a1, const int a2) __attribute__ ((always_inline));
-inline __vector __bool char vec_vspltb (__vector __bool char a1, const int a2) __attribute__ ((always_inline));
+inline __vector pixel vec_vsplth (__vector pixel a1, const int a2) __attribute__ ((always_inline));
+inline __vector bool char vec_vspltb (__vector bool char a1, const int a2) __attribute__ ((always_inline));
 inline __vector signed char vec_vspltb (__vector signed char a1, const int a2) __attribute__ ((always_inline));
 inline __vector unsigned char vec_vspltb (__vector unsigned char a1, const int a2) __attribute__ ((always_inline));
 
@@ -252,19 +252,43 @@ struct __vec_step_help<__vector signed short>
 };
 
 template<>
+struct __vec_step_help<const __vector signed short>
+{
+  static const int _S_elem = 8;
+};
+
+template<>
 struct __vec_step_help<__vector unsigned short>
 {
   static const int _S_elem = 8;
 };
 
 template<>
-struct __vec_step_help<__vector __bool short>
+struct __vec_step_help<const __vector unsigned short>
 {
   static const int _S_elem = 8;
 };
 
 template<>
-struct __vec_step_help<__vector __pixel>
+struct __vec_step_help<__vector bool short>
+{
+  static const int _S_elem = 8;
+};
+
+template<>
+struct __vec_step_help<const __vector bool short>
+{
+  static const int _S_elem = 8;
+};
+
+template<>
+struct __vec_step_help<__vector pixel>
+{
+  static const int _S_elem = 8;
+};
+
+template<>
+struct __vec_step_help<const __vector pixel>
 {
   static const int _S_elem = 8;
 };
@@ -276,13 +300,31 @@ struct __vec_step_help<__vector signed int>
 };
 
 template<>
+struct __vec_step_help<const __vector signed int>
+{
+  static const int _S_elem = 4;
+};
+
+template<>
 struct __vec_step_help<__vector unsigned int>
 {
   static const int _S_elem = 4;
 };
 
 template<>
-struct __vec_step_help<__vector __bool int>
+struct __vec_step_help<const __vector unsigned int>
+{
+  static const int _S_elem = 4;
+};
+
+template<>
+struct __vec_step_help<__vector bool int>
+{
+  static const int _S_elem = 4;
+};
+
+template<>
+struct __vec_step_help<const __vector bool int>
 {
   static const int _S_elem = 4;
 };
@@ -294,13 +336,31 @@ struct __vec_step_help<__vector unsigned char>
 };
 
 template<>
+struct __vec_step_help<const __vector unsigned char>
+{
+  static const int _S_elem = 16;
+};
+
+template<>
 struct __vec_step_help<__vector signed char>
 {
   static const int _S_elem = 16;
 };
 
 template<>
-struct __vec_step_help<__vector __bool char>
+struct __vec_step_help<const __vector signed char>
+{
+  static const int _S_elem = 16;
+};
+
+template<>
+struct __vec_step_help<__vector bool char>
+{
+  static const int _S_elem = 16;
+};
+
+template<>
+struct __vec_step_help<const __vector bool char>
 {
   static const int _S_elem = 16;
 };
@@ -311,7 +371,13 @@ struct __vec_step_help<__vector float>
   static const int _S_elem = 4;
 };
 
-#define vec_step(t)  __vec_step_help<typeof(t)>::_S_elem
+template<>
+struct __vec_step_help<const __vector float>
+{
+  static const int _S_elem = 4;
+};
+
+#define vec_step(t)  __vec_step_help<__typeof__(t)>::_S_elem
 
 /* vec_abs */
 
@@ -362,13 +428,13 @@ vec_abss (__vector signed int a1)
 /* vec_add */
 
 inline __vector signed char
-vec_add (__vector __bool char a1, __vector signed char a2)
+vec_add (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_add (__vector signed char a1, __vector __bool char a2)
+vec_add (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -380,13 +446,13 @@ vec_add (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_add (__vector __bool char a1, __vector unsigned char a2)
+vec_add (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_add (__vector unsigned char a1, __vector __bool char a2)
+vec_add (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -398,13 +464,13 @@ vec_add (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline __vector signed short
-vec_add (__vector __bool short a1, __vector signed short a2)
+vec_add (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_add (__vector signed short a1, __vector __bool short a2)
+vec_add (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -416,13 +482,13 @@ vec_add (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_add (__vector __bool short a1, __vector unsigned short a2)
+vec_add (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_add (__vector unsigned short a1, __vector __bool short a2)
+vec_add (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -434,13 +500,13 @@ vec_add (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed int
-vec_add (__vector __bool int a1, __vector signed int a2)
+vec_add (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_add (__vector signed int a1, __vector __bool int a2)
+vec_add (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -452,13 +518,13 @@ vec_add (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_add (__vector __bool int a1, __vector unsigned int a2)
+vec_add (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_add (__vector unsigned int a1, __vector __bool int a2)
+vec_add (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -486,13 +552,13 @@ vec_vaddfp (__vector float a1, __vector float a2)
 /* vec_vadduwm */
 
 inline __vector signed int
-vec_vadduwm (__vector __bool int a1, __vector signed int a2)
+vec_vadduwm (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_vadduwm (__vector signed int a1, __vector __bool int a2)
+vec_vadduwm (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -504,13 +570,13 @@ vec_vadduwm (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_vadduwm (__vector __bool int a1, __vector unsigned int a2)
+vec_vadduwm (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_vadduwm (__vector unsigned int a1, __vector __bool int a2)
+vec_vadduwm (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -524,13 +590,13 @@ vec_vadduwm (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_vadduhm */
 
 inline __vector signed short
-vec_vadduhm (__vector __bool short a1, __vector signed short a2)
+vec_vadduhm (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_vadduhm (__vector signed short a1, __vector __bool short a2)
+vec_vadduhm (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -542,13 +608,13 @@ vec_vadduhm (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_vadduhm (__vector __bool short a1, __vector unsigned short a2)
+vec_vadduhm (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_vadduhm (__vector unsigned short a1, __vector __bool short a2)
+vec_vadduhm (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -562,13 +628,13 @@ vec_vadduhm (__vector unsigned short a1, __vector unsigned short a2)
 /* vec_vaddubm */
 
 inline __vector signed char
-vec_vaddubm (__vector __bool char a1, __vector signed char a2)
+vec_vaddubm (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_vaddubm (__vector signed char a1, __vector __bool char a2)
+vec_vaddubm (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -580,13 +646,13 @@ vec_vaddubm (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_vaddubm (__vector __bool char a1, __vector unsigned char a2)
+vec_vaddubm (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_vaddubm (__vector unsigned char a1, __vector __bool char a2)
+vec_vaddubm (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -608,13 +674,13 @@ vec_addc (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_adds */
 
 inline __vector unsigned char
-vec_adds (__vector __bool char a1, __vector unsigned char a2)
+vec_adds (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_adds (__vector unsigned char a1, __vector __bool char a2)
+vec_adds (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -626,13 +692,13 @@ vec_adds (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline __vector signed char
-vec_adds (__vector __bool char a1, __vector signed char a2)
+vec_adds (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_adds (__vector signed char a1, __vector __bool char a2)
+vec_adds (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -644,13 +710,13 @@ vec_adds (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned short
-vec_adds (__vector __bool short a1, __vector unsigned short a2)
+vec_adds (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_adds (__vector unsigned short a1, __vector __bool short a2)
+vec_adds (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -662,13 +728,13 @@ vec_adds (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed short
-vec_adds (__vector __bool short a1, __vector signed short a2)
+vec_adds (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vaddshs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_adds (__vector signed short a1, __vector __bool short a2)
+vec_adds (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vaddshs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -680,13 +746,13 @@ vec_adds (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned int
-vec_adds (__vector __bool int a1, __vector unsigned int a2)
+vec_adds (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_adds (__vector unsigned int a1, __vector __bool int a2)
+vec_adds (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -698,13 +764,13 @@ vec_adds (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline __vector signed int
-vec_adds (__vector __bool int a1, __vector signed int a2)
+vec_adds (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vaddsws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_adds (__vector signed int a1, __vector __bool int a2)
+vec_adds (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vaddsws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -718,13 +784,13 @@ vec_adds (__vector signed int a1, __vector signed int a2)
 /* vec_vaddsws */
 
 inline __vector signed int
-vec_vaddsws (__vector __bool int a1, __vector signed int a2)
+vec_vaddsws (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vaddsws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_vaddsws (__vector signed int a1, __vector __bool int a2)
+vec_vaddsws (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vaddsws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -738,13 +804,13 @@ vec_vaddsws (__vector signed int a1, __vector signed int a2)
 /* vec_vadduws */
 
 inline __vector unsigned int
-vec_vadduws (__vector __bool int a1, __vector unsigned int a2)
+vec_vadduws (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_vadduws (__vector unsigned int a1, __vector __bool int a2)
+vec_vadduws (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vadduws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -758,13 +824,13 @@ vec_vadduws (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_vaddshs */
 
 inline __vector signed short
-vec_vaddshs (__vector __bool short a1, __vector signed short a2)
+vec_vaddshs (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vaddshs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_vaddshs (__vector signed short a1, __vector __bool short a2)
+vec_vaddshs (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vaddshs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -778,13 +844,13 @@ vec_vaddshs (__vector signed short a1, __vector signed short a2)
 /* vec_vadduhs */
 
 inline __vector unsigned short
-vec_vadduhs (__vector __bool short a1, __vector unsigned short a2)
+vec_vadduhs (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_vadduhs (__vector unsigned short a1, __vector __bool short a2)
+vec_vadduhs (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vadduhs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -798,13 +864,13 @@ vec_vadduhs (__vector unsigned short a1, __vector unsigned short a2)
 /* vec_vaddsbs */
 
 inline __vector signed char
-vec_vaddsbs (__vector __bool char a1, __vector signed char a2)
+vec_vaddsbs (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_vaddsbs (__vector signed char a1, __vector __bool char a2)
+vec_vaddsbs (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vaddsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -818,13 +884,13 @@ vec_vaddsbs (__vector signed char a1, __vector signed char a2)
 /* vec_vaddubs */
 
 inline __vector unsigned char
-vec_vaddubs (__vector __bool char a1, __vector unsigned char a2)
+vec_vaddubs (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_vaddubs (__vector unsigned char a1, __vector __bool char a2)
+vec_vaddubs (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vaddubs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -844,31 +910,31 @@ vec_and (__vector float a1, __vector float a2)
 }
 
 inline __vector float
-vec_and (__vector float a1, __vector __bool int a2)
+vec_and (__vector float a1, __vector bool int a2)
 {
   return (__vector float) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector float
-vec_and (__vector __bool int a1, __vector float a2)
+vec_and (__vector bool int a1, __vector float a2)
 {
   return (__vector float) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_and (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_and (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_and (__vector __bool int a1, __vector signed int a2)
+vec_and (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_and (__vector signed int a1, __vector __bool int a2)
+vec_and (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -880,13 +946,13 @@ vec_and (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_and (__vector __bool int a1, __vector unsigned int a2)
+vec_and (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_and (__vector unsigned int a1, __vector __bool int a2)
+vec_and (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -897,20 +963,20 @@ vec_and (__vector unsigned int a1, __vector unsigned int a2)
   return (__vector unsigned int) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_and (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_and (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_and (__vector __bool short a1, __vector signed short a2)
+vec_and (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_and (__vector signed short a1, __vector __bool short a2)
+vec_and (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -922,13 +988,13 @@ vec_and (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_and (__vector __bool short a1, __vector unsigned short a2)
+vec_and (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned short
-vec_and (__vector unsigned short a1, __vector __bool short a2)
+vec_and (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -940,19 +1006,19 @@ vec_and (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed char
-vec_and (__vector __bool char a1, __vector signed char a2)
+vec_and (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_and (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_and (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
-vec_and (__vector signed char a1, __vector __bool char a2)
+vec_and (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -964,13 +1030,13 @@ vec_and (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_and (__vector __bool char a1, __vector unsigned char a2)
+vec_and (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned char
-vec_and (__vector unsigned char a1, __vector __bool char a2)
+vec_and (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vand ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -990,31 +1056,31 @@ vec_andc (__vector float a1, __vector float a2)
 }
 
 inline __vector float
-vec_andc (__vector float a1, __vector __bool int a2)
+vec_andc (__vector float a1, __vector bool int a2)
 {
   return (__vector float) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector float
-vec_andc (__vector __bool int a1, __vector float a2)
+vec_andc (__vector bool int a1, __vector float a2)
 {
   return (__vector float) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_andc (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_andc (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_andc (__vector __bool int a1, __vector signed int a2)
+vec_andc (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_andc (__vector signed int a1, __vector __bool int a2)
+vec_andc (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -1026,13 +1092,13 @@ vec_andc (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_andc (__vector __bool int a1, __vector unsigned int a2)
+vec_andc (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_andc (__vector unsigned int a1, __vector __bool int a2)
+vec_andc (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -1043,20 +1109,20 @@ vec_andc (__vector unsigned int a1, __vector unsigned int a2)
   return (__vector unsigned int) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_andc (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_andc (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_andc (__vector __bool short a1, __vector signed short a2)
+vec_andc (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_andc (__vector signed short a1, __vector __bool short a2)
+vec_andc (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -1068,13 +1134,13 @@ vec_andc (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_andc (__vector __bool short a1, __vector unsigned short a2)
+vec_andc (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned short
-vec_andc (__vector unsigned short a1, __vector __bool short a2)
+vec_andc (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -1086,19 +1152,19 @@ vec_andc (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed char
-vec_andc (__vector __bool char a1, __vector signed char a2)
+vec_andc (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_andc (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_andc (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
-vec_andc (__vector signed char a1, __vector __bool char a2)
+vec_andc (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -1110,13 +1176,13 @@ vec_andc (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_andc (__vector __bool char a1, __vector unsigned char a2)
+vec_andc (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned char
-vec_andc (__vector unsigned char a1, __vector __bool char a2)
+vec_andc (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vandc ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -1231,256 +1297,256 @@ vec_cmpb (__vector float a1, __vector float a2)
 
 /* vec_cmpeq */
 
-inline __vector __bool char
+inline __vector bool char
 vec_cmpeq (__vector signed char a1, __vector signed char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
-inline __vector __bool char
+inline __vector bool char
 vec_cmpeq (__vector unsigned char a1, __vector unsigned char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
-inline __vector __bool short
+inline __vector bool short
 vec_cmpeq (__vector signed short a1, __vector signed short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __bool short
+inline __vector bool short
 vec_cmpeq (__vector unsigned short a1, __vector unsigned short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmpeq (__vector signed int a1, __vector signed int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmpeq (__vector unsigned int a1, __vector unsigned int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmpeq (__vector float a1, __vector float a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpeqfp ((__vector float) a1, (__vector float) a2);
+  return (__vector bool int) __builtin_altivec_vcmpeqfp ((__vector float) a1, (__vector float) a2);
 }
 
 /* vec_vcmpeqfp */
 
-inline __vector __bool int
+inline __vector bool int
 vec_vcmpeqfp (__vector float a1, __vector float a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpeqfp ((__vector float) a1, (__vector float) a2);
+  return (__vector bool int) __builtin_altivec_vcmpeqfp ((__vector float) a1, (__vector float) a2);
 }
 
 /* vec_vcmpequw */
 
-inline __vector __bool int
+inline __vector bool int
 vec_vcmpequw (__vector signed int a1, __vector signed int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_vcmpequw (__vector unsigned int a1, __vector unsigned int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpequw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_vcmpequh */
 
-inline __vector __bool short
+inline __vector bool short
 vec_vcmpequh (__vector signed short a1, __vector signed short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __bool short
+inline __vector bool short
 vec_vcmpequh (__vector unsigned short a1, __vector unsigned short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpequh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 /* vec_vcmpequb */
 
-inline __vector __bool char
+inline __vector bool char
 vec_vcmpequb (__vector signed char a1, __vector signed char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
-inline __vector __bool char
+inline __vector bool char
 vec_vcmpequb (__vector unsigned char a1, __vector unsigned char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpequb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 /* vec_cmpge */
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmpge (__vector float a1, __vector float a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgefp ((__vector float) a1, (__vector float) a2);
+  return (__vector bool int) __builtin_altivec_vcmpgefp ((__vector float) a1, (__vector float) a2);
 }
 
 /* vec_cmpgt */
 
-inline __vector __bool char
+inline __vector bool char
 vec_cmpgt (__vector unsigned char a1, __vector unsigned char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpgtub ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpgtub ((__vector signed char) a1, (__vector signed char) a2);
 }
 
-inline __vector __bool char
+inline __vector bool char
 vec_cmpgt (__vector signed char a1, __vector signed char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpgtsb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpgtsb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
-inline __vector __bool short
+inline __vector bool short
 vec_cmpgt (__vector unsigned short a1, __vector unsigned short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpgtuh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpgtuh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __bool short
+inline __vector bool short
 vec_cmpgt (__vector signed short a1, __vector signed short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpgtsh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpgtsh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmpgt (__vector unsigned int a1, __vector unsigned int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtuw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpgtuw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmpgt (__vector signed int a1, __vector signed int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtsw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpgtsw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmpgt (__vector float a1, __vector float a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtfp ((__vector float) a1, (__vector float) a2);
+  return (__vector bool int) __builtin_altivec_vcmpgtfp ((__vector float) a1, (__vector float) a2);
 }
 
 /* vec_vcmpgtfp */
 
-inline __vector __bool int
+inline __vector bool int
 vec_vcmpgtfp (__vector float a1, __vector float a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtfp ((__vector float) a1, (__vector float) a2);
+  return (__vector bool int) __builtin_altivec_vcmpgtfp ((__vector float) a1, (__vector float) a2);
 }
 
 /* vec_vcmpgtsw */
 
-inline __vector __bool int
+inline __vector bool int
 vec_vcmpgtsw (__vector signed int a1, __vector signed int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtsw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpgtsw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_vcmpgtuw */
 
-inline __vector __bool int
+inline __vector bool int
 vec_vcmpgtuw (__vector unsigned int a1, __vector unsigned int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtuw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vcmpgtuw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_vcmpgtsh */
 
-inline __vector __bool short
+inline __vector bool short
 vec_vcmpgtsh (__vector signed short a1, __vector signed short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpgtsh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpgtsh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 /* vec_vcmpgtuh */
 
-inline __vector __bool short
+inline __vector bool short
 vec_vcmpgtuh (__vector unsigned short a1, __vector unsigned short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpgtuh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vcmpgtuh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 /* vec_vcmpgtsb */
 
-inline __vector __bool char
+inline __vector bool char
 vec_vcmpgtsb (__vector signed char a1, __vector signed char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpgtsb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpgtsb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 /* vec_vcmpgtub */
 
-inline __vector __bool char
+inline __vector bool char
 vec_vcmpgtub (__vector unsigned char a1, __vector unsigned char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpgtub ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vcmpgtub ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 /* vec_cmple */
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmple (__vector float a1, __vector float a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgefp ((__vector float) a2, (__vector float) a1);
+  return (__vector bool int) __builtin_altivec_vcmpgefp ((__vector float) a2, (__vector float) a1);
 }
 
 /* vec_cmplt */
 
-inline __vector __bool char
+inline __vector bool char
 vec_cmplt (__vector unsigned char a1, __vector unsigned char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpgtub ((__vector signed char) a2, (__vector signed char) a1);
+  return (__vector bool char) __builtin_altivec_vcmpgtub ((__vector signed char) a2, (__vector signed char) a1);
 }
 
-inline __vector __bool char
+inline __vector bool char
 vec_cmplt (__vector signed char a1, __vector signed char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vcmpgtsb ((__vector signed char) a2, (__vector signed char) a1);
+  return (__vector bool char) __builtin_altivec_vcmpgtsb ((__vector signed char) a2, (__vector signed char) a1);
 }
 
-inline __vector __bool short
+inline __vector bool short
 vec_cmplt (__vector unsigned short a1, __vector unsigned short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpgtuh ((__vector signed short) a2, (__vector signed short) a1);
+  return (__vector bool short) __builtin_altivec_vcmpgtuh ((__vector signed short) a2, (__vector signed short) a1);
 }
 
-inline __vector __bool short
+inline __vector bool short
 vec_cmplt (__vector signed short a1, __vector signed short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vcmpgtsh ((__vector signed short) a2, (__vector signed short) a1);
+  return (__vector bool short) __builtin_altivec_vcmpgtsh ((__vector signed short) a2, (__vector signed short) a1);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmplt (__vector unsigned int a1, __vector unsigned int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtuw ((__vector signed int) a2, (__vector signed int) a1);
+  return (__vector bool int) __builtin_altivec_vcmpgtuw ((__vector signed int) a2, (__vector signed int) a1);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmplt (__vector signed int a1, __vector signed int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtsw ((__vector signed int) a2, (__vector signed int) a1);
+  return (__vector bool int) __builtin_altivec_vcmpgtsw ((__vector signed int) a2, (__vector signed int) a1);
 }
 
-inline __vector __bool int
+inline __vector bool int
 vec_cmplt (__vector float a1, __vector float a2)
 {
-  return (__vector __bool int) __builtin_altivec_vcmpgtfp ((__vector float) a2, (__vector float) a1);
+  return (__vector bool int) __builtin_altivec_vcmpgtfp ((__vector float) a2, (__vector float) a1);
 }
 
 /* vec_ctf */
@@ -1560,7 +1626,7 @@ vec_dst (const __vector signed char *a1, int a2, const int a3)
 }
 
 inline void
-vec_dst (const __vector __bool char *a1, int a2, const int a3)
+vec_dst (const __vector bool char *a1, int a2, const int a3)
 {
   __builtin_altivec_dst ((void *) a1, a2, a3);
 }
@@ -1578,13 +1644,13 @@ vec_dst (const __vector signed short *a1, int a2, const int a3)
 }
 
 inline void
-vec_dst (const __vector __bool short *a1, int a2, const int a3)
+vec_dst (const __vector bool short *a1, int a2, const int a3)
 {
   __builtin_altivec_dst ((void *) a1, a2, a3);
 }
 
 inline void
-vec_dst (const __vector __pixel *a1, int a2, const int a3)
+vec_dst (const __vector pixel *a1, int a2, const int a3)
 {
   __builtin_altivec_dst ((void *) a1, a2, a3);
 }
@@ -1602,7 +1668,7 @@ vec_dst (const __vector signed int *a1, int a2, const int a3)
 }
 
 inline void
-vec_dst (const __vector __bool int *a1, int a2, const int a3)
+vec_dst (const __vector bool int *a1, int a2, const int a3)
 {
   __builtin_altivec_dst ((void *) a1, a2, a3);
 }
@@ -1682,7 +1748,7 @@ vec_dstst (const __vector signed char *a1, int a2, const int a3)
 }
 
 inline void
-vec_dstst (const __vector __bool char *a1, int a2, const int a3)
+vec_dstst (const __vector bool char *a1, int a2, const int a3)
 {
   __builtin_altivec_dstst ((void *) a1, a2, a3);
 }
@@ -1700,13 +1766,13 @@ vec_dstst (const __vector signed short *a1, int a2, const int a3)
 }
 
 inline void
-vec_dstst (const __vector __bool short *a1, int a2, const int a3)
+vec_dstst (const __vector bool short *a1, int a2, const int a3)
 {
   __builtin_altivec_dstst ((void *) a1, a2, a3);
 }
 
 inline void
-vec_dstst (const __vector __pixel *a1, int a2, const int a3)
+vec_dstst (const __vector pixel *a1, int a2, const int a3)
 {
   __builtin_altivec_dstst ((void *) a1, a2, a3);
 }
@@ -1724,7 +1790,7 @@ vec_dstst (const __vector signed int *a1, int a2, const int a3)
 }
 
 inline void
-vec_dstst (const __vector __bool int *a1, int a2, const int a3)
+vec_dstst (const __vector bool int *a1, int a2, const int a3)
 {
   __builtin_altivec_dstst ((void *) a1, a2, a3);
 }
@@ -1804,7 +1870,7 @@ vec_dststt (const __vector signed char *a1, int a2, const int a3)
 }
 
 inline void
-vec_dststt (const __vector __bool char *a1, int a2, const int a3)
+vec_dststt (const __vector bool char *a1, int a2, const int a3)
 {
   __builtin_altivec_dststt ((void *) a1, a2, a3);
 }
@@ -1822,13 +1888,13 @@ vec_dststt (const __vector signed short *a1, int a2, const int a3)
 }
 
 inline void
-vec_dststt (const __vector __bool short *a1, int a2, const int a3)
+vec_dststt (const __vector bool short *a1, int a2, const int a3)
 {
   __builtin_altivec_dststt ((void *) a1, a2, a3);
 }
 
 inline void
-vec_dststt (const __vector __pixel *a1, int a2, const int a3)
+vec_dststt (const __vector pixel *a1, int a2, const int a3)
 {
   __builtin_altivec_dststt ((void *) a1, a2, a3);
 }
@@ -1846,7 +1912,7 @@ vec_dststt (const __vector signed int *a1, int a2, const int a3)
 }
 
 inline void
-vec_dststt (const __vector __bool int *a1, int a2, const int a3)
+vec_dststt (const __vector bool int *a1, int a2, const int a3)
 {
   __builtin_altivec_dststt ((void *) a1, a2, a3);
 }
@@ -1926,7 +1992,7 @@ vec_dstt (const __vector signed char *a1, int a2, const int a3)
 }
 
 inline void
-vec_dstt (const __vector __bool char *a1, int a2, const int a3)
+vec_dstt (const __vector bool char *a1, int a2, const int a3)
 {
   __builtin_altivec_dstt ((void *) a1, a2, a3);
 }
@@ -1944,13 +2010,13 @@ vec_dstt (const __vector signed short *a1, int a2, const int a3)
 }
 
 inline void
-vec_dstt (const __vector __bool short *a1, int a2, const int a3)
+vec_dstt (const __vector bool short *a1, int a2, const int a3)
 {
   __builtin_altivec_dstt ((void *) a1, a2, a3);
 }
 
 inline void
-vec_dstt (const __vector __pixel *a1, int a2, const int a3)
+vec_dstt (const __vector pixel *a1, int a2, const int a3)
 {
   __builtin_altivec_dstt ((void *) a1, a2, a3);
 }
@@ -1968,7 +2034,7 @@ vec_dstt (const __vector signed int *a1, int a2, const int a3)
 }
 
 inline void
-vec_dstt (const __vector __bool int *a1, int a2, const int a3)
+vec_dstt (const __vector bool int *a1, int a2, const int a3)
 {
   __builtin_altivec_dstt ((void *) a1, a2, a3);
 }
@@ -2063,10 +2129,10 @@ vec_ld (int a1, const float *a2)
   return (__vector float) __builtin_altivec_lvx (a1, (void *) a2);
 }
 
-inline __vector __bool int
-vec_ld (int a1, const __vector __bool int *a2)
+inline __vector bool int
+vec_ld (int a1, const __vector bool int *a2)
 {
-  return (__vector __bool int) __builtin_altivec_lvx (a1, (void *) a2);
+  return (__vector bool int) __builtin_altivec_lvx (a1, (void *) a2);
 }
 
 inline __vector signed int
@@ -2105,16 +2171,16 @@ vec_ld (int a1, const unsigned long *a2)
   return (__vector unsigned int) __builtin_altivec_lvx (a1, (void *) a2);
 }
 
-inline __vector __bool short
-vec_ld (int a1, const __vector __bool short *a2)
+inline __vector bool short
+vec_ld (int a1, const __vector bool short *a2)
 {
-  return (__vector __bool short) __builtin_altivec_lvx (a1, (void *) a2);
+  return (__vector bool short) __builtin_altivec_lvx (a1, (void *) a2);
 }
 
-inline __vector __pixel
-vec_ld (int a1, const __vector __pixel *a2)
+inline __vector pixel
+vec_ld (int a1, const __vector pixel *a2)
 {
-  return (__vector __pixel) __builtin_altivec_lvx (a1, (void *) a2);
+  return (__vector pixel) __builtin_altivec_lvx (a1, (void *) a2);
 }
 
 inline __vector signed short
@@ -2141,10 +2207,10 @@ vec_ld (int a1, const unsigned short *a2)
   return (__vector unsigned short) __builtin_altivec_lvx (a1, (void *) a2);
 }
 
-inline __vector __bool char
-vec_ld (int a1, const __vector __bool char *a2)
+inline __vector bool char
+vec_ld (int a1, const __vector bool char *a2)
 {
-  return (__vector __bool char) __builtin_altivec_lvx (a1, (void *) a2);
+  return (__vector bool char) __builtin_altivec_lvx (a1, (void *) a2);
 }
 
 inline __vector signed char
@@ -2301,10 +2367,10 @@ vec_ldl (int a1, const float *a2)
   return (__vector float) __builtin_altivec_lvxl (a1, (void *) a2);
 }
 
-inline __vector __bool int
-vec_ldl (int a1, const __vector __bool int *a2)
+inline __vector bool int
+vec_ldl (int a1, const __vector bool int *a2)
 {
-  return (__vector __bool int) __builtin_altivec_lvxl (a1, (void *) a2);
+  return (__vector bool int) __builtin_altivec_lvxl (a1, (void *) a2);
 }
 
 inline __vector signed int
@@ -2343,16 +2409,16 @@ vec_ldl (int a1, const unsigned long *a2)
   return (__vector unsigned int) __builtin_altivec_lvxl (a1, (void *) a2);
 }
 
-inline __vector __bool short
-vec_ldl (int a1, const __vector __bool short *a2)
+inline __vector bool short
+vec_ldl (int a1, const __vector bool short *a2)
 {
-  return (__vector __bool short) __builtin_altivec_lvxl (a1, (void *) a2);
+  return (__vector bool short) __builtin_altivec_lvxl (a1, (void *) a2);
 }
 
-inline __vector __pixel
-vec_ldl (int a1, const __vector __pixel *a2)
+inline __vector pixel
+vec_ldl (int a1, const __vector pixel *a2)
 {
-  return (__vector __pixel) __builtin_altivec_lvxl (a1, (void *) a2);
+  return (__vector pixel) __builtin_altivec_lvxl (a1, (void *) a2);
 }
 
 inline __vector signed short
@@ -2379,10 +2445,10 @@ vec_ldl (int a1, const unsigned short *a2)
   return (__vector unsigned short) __builtin_altivec_lvxl (a1, (void *) a2);
 }
 
-inline __vector __bool char
-vec_ldl (int a1, const __vector __bool char *a2)
+inline __vector bool char
+vec_ldl (int a1, const __vector bool char *a2)
 {
-  return (__vector __bool char) __builtin_altivec_lvxl (a1, (void *) a2);
+  return (__vector bool char) __builtin_altivec_lvxl (a1, (void *) a2);
 }
 
 inline __vector signed char
@@ -2548,13 +2614,13 @@ vec_madds (__vector signed short a1, __vector signed short a2, __vector signed s
 /* vec_max */
 
 inline __vector unsigned char
-vec_max (__vector __bool char a1, __vector unsigned char a2)
+vec_max (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vmaxub ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_max (__vector unsigned char a1, __vector __bool char a2)
+vec_max (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vmaxub ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -2566,13 +2632,13 @@ vec_max (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline __vector signed char
-vec_max (__vector __bool char a1, __vector signed char a2)
+vec_max (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vmaxsb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_max (__vector signed char a1, __vector __bool char a2)
+vec_max (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vmaxsb ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -2584,13 +2650,13 @@ vec_max (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned short
-vec_max (__vector __bool short a1, __vector unsigned short a2)
+vec_max (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vmaxuh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_max (__vector unsigned short a1, __vector __bool short a2)
+vec_max (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vmaxuh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -2602,13 +2668,13 @@ vec_max (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed short
-vec_max (__vector __bool short a1, __vector signed short a2)
+vec_max (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vmaxsh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_max (__vector signed short a1, __vector __bool short a2)
+vec_max (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vmaxsh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -2620,13 +2686,13 @@ vec_max (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned int
-vec_max (__vector __bool int a1, __vector unsigned int a2)
+vec_max (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vmaxuw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_max (__vector unsigned int a1, __vector __bool int a2)
+vec_max (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vmaxuw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -2638,13 +2704,13 @@ vec_max (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline __vector signed int
-vec_max (__vector __bool int a1, __vector signed int a2)
+vec_max (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vmaxsw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_max (__vector signed int a1, __vector __bool int a2)
+vec_max (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vmaxsw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -2672,13 +2738,13 @@ vec_vmaxfp (__vector float a1, __vector float a2)
 /* vec_vmaxsw */
 
 inline __vector signed int
-vec_vmaxsw (__vector __bool int a1, __vector signed int a2)
+vec_vmaxsw (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vmaxsw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_vmaxsw (__vector signed int a1, __vector __bool int a2)
+vec_vmaxsw (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vmaxsw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -2692,13 +2758,13 @@ vec_vmaxsw (__vector signed int a1, __vector signed int a2)
 /* vec_vmaxuw */
 
 inline __vector unsigned int
-vec_vmaxuw (__vector __bool int a1, __vector unsigned int a2)
+vec_vmaxuw (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vmaxuw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_vmaxuw (__vector unsigned int a1, __vector __bool int a2)
+vec_vmaxuw (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vmaxuw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -2712,13 +2778,13 @@ vec_vmaxuw (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_vmaxsh */
 
 inline __vector signed short
-vec_vmaxsh (__vector __bool short a1, __vector signed short a2)
+vec_vmaxsh (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vmaxsh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_vmaxsh (__vector signed short a1, __vector __bool short a2)
+vec_vmaxsh (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vmaxsh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -2732,13 +2798,13 @@ vec_vmaxsh (__vector signed short a1, __vector signed short a2)
 /* vec_vmaxuh */
 
 inline __vector unsigned short
-vec_vmaxuh (__vector __bool short a1, __vector unsigned short a2)
+vec_vmaxuh (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vmaxuh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_vmaxuh (__vector unsigned short a1, __vector __bool short a2)
+vec_vmaxuh (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vmaxuh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -2752,13 +2818,13 @@ vec_vmaxuh (__vector unsigned short a1, __vector unsigned short a2)
 /* vec_vmaxsb */
 
 inline __vector signed char
-vec_vmaxsb (__vector __bool char a1, __vector signed char a2)
+vec_vmaxsb (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vmaxsb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_vmaxsb (__vector signed char a1, __vector __bool char a2)
+vec_vmaxsb (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vmaxsb ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -2772,13 +2838,13 @@ vec_vmaxsb (__vector signed char a1, __vector signed char a2)
 /* vec_vmaxub */
 
 inline __vector unsigned char
-vec_vmaxub (__vector __bool char a1, __vector unsigned char a2)
+vec_vmaxub (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vmaxub ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_vmaxub (__vector unsigned char a1, __vector __bool char a2)
+vec_vmaxub (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vmaxub ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -2791,10 +2857,10 @@ vec_vmaxub (__vector unsigned char a1, __vector unsigned char a2)
 
 /* vec_mergeh */
 
-inline __vector __bool char
-vec_mergeh (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_mergeh (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vmrghb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vmrghb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
@@ -2809,16 +2875,16 @@ vec_mergeh (__vector unsigned char a1, __vector unsigned char a2)
   return (__vector unsigned char) __builtin_altivec_vmrghb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
-inline __vector __bool short
-vec_mergeh (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_mergeh (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __pixel
-vec_mergeh (__vector __pixel a1, __vector __pixel a2)
+inline __vector pixel
+vec_mergeh (__vector pixel a1, __vector pixel a2)
 {
-  return (__vector __pixel) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector pixel) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
@@ -2839,10 +2905,10 @@ vec_mergeh (__vector float a1, __vector float a2)
   return (__vector float) __builtin_altivec_vmrghw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_mergeh (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_mergeh (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vmrghw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vmrghw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
@@ -2865,10 +2931,10 @@ vec_vmrghw (__vector float a1, __vector float a2)
   return (__vector float) __builtin_altivec_vmrghw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_vmrghw (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_vmrghw (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vmrghw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vmrghw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
@@ -2885,10 +2951,10 @@ vec_vmrghw (__vector unsigned int a1, __vector unsigned int a2)
 
 /* vec_vmrghh */
 
-inline __vector __bool short
-vec_vmrghh (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_vmrghh (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
@@ -2903,18 +2969,18 @@ vec_vmrghh (__vector unsigned short a1, __vector unsigned short a2)
   return (__vector unsigned short) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __pixel
-vec_vmrghh (__vector __pixel a1, __vector __pixel a2)
+inline __vector pixel
+vec_vmrghh (__vector pixel a1, __vector pixel a2)
 {
-  return (__vector __pixel) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector pixel) __builtin_altivec_vmrghh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 /* vec_vmrghb */
 
-inline __vector __bool char
-vec_vmrghb (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_vmrghb (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vmrghb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vmrghb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
@@ -2931,10 +2997,10 @@ vec_vmrghb (__vector unsigned char a1, __vector unsigned char a2)
 
 /* vec_mergel */
 
-inline __vector __bool char
-vec_mergel (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_mergel (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vmrglb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vmrglb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
@@ -2949,16 +3015,16 @@ vec_mergel (__vector unsigned char a1, __vector unsigned char a2)
   return (__vector unsigned char) __builtin_altivec_vmrglb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
-inline __vector __bool short
-vec_mergel (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_mergel (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __pixel
-vec_mergel (__vector __pixel a1, __vector __pixel a2)
+inline __vector pixel
+vec_mergel (__vector pixel a1, __vector pixel a2)
 {
-  return (__vector __pixel) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector pixel) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
@@ -2979,10 +3045,10 @@ vec_mergel (__vector float a1, __vector float a2)
   return (__vector float) __builtin_altivec_vmrglw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_mergel (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_mergel (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vmrglw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vmrglw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
@@ -3017,18 +3083,18 @@ vec_vmrglw (__vector unsigned int a1, __vector unsigned int a2)
   return (__vector unsigned int) __builtin_altivec_vmrglw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_vmrglw (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_vmrglw (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vmrglw ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vmrglw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_vmrglh */
 
-inline __vector __bool short
-vec_vmrglh (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_vmrglh (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool short) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
@@ -3043,18 +3109,18 @@ vec_vmrglh (__vector unsigned short a1, __vector unsigned short a2)
   return (__vector unsigned short) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __pixel
-vec_vmrglh (__vector __pixel a1, __vector __pixel a2)
+inline __vector pixel
+vec_vmrglh (__vector pixel a1, __vector pixel a2)
 {
-  return (__vector __pixel) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector pixel) __builtin_altivec_vmrglh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 /* vec_vmrglb */
 
-inline __vector __bool char
-vec_vmrglb (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_vmrglb (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vmrglb ((__vector signed char) a1, (__vector signed char) a2);
+  return (__vector bool char) __builtin_altivec_vmrglb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
@@ -3080,13 +3146,13 @@ vec_mfvscr (void)
 /* vec_min */
 
 inline __vector unsigned char
-vec_min (__vector __bool char a1, __vector unsigned char a2)
+vec_min (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vminub ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_min (__vector unsigned char a1, __vector __bool char a2)
+vec_min (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vminub ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -3098,13 +3164,13 @@ vec_min (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline __vector signed char
-vec_min (__vector __bool char a1, __vector signed char a2)
+vec_min (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vminsb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_min (__vector signed char a1, __vector __bool char a2)
+vec_min (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vminsb ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -3116,13 +3182,13 @@ vec_min (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned short
-vec_min (__vector __bool short a1, __vector unsigned short a2)
+vec_min (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vminuh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_min (__vector unsigned short a1, __vector __bool short a2)
+vec_min (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vminuh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -3134,13 +3200,13 @@ vec_min (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed short
-vec_min (__vector __bool short a1, __vector signed short a2)
+vec_min (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vminsh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_min (__vector signed short a1, __vector __bool short a2)
+vec_min (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vminsh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -3152,13 +3218,13 @@ vec_min (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned int
-vec_min (__vector __bool int a1, __vector unsigned int a2)
+vec_min (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vminuw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_min (__vector unsigned int a1, __vector __bool int a2)
+vec_min (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vminuw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3170,13 +3236,13 @@ vec_min (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline __vector signed int
-vec_min (__vector __bool int a1, __vector signed int a2)
+vec_min (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vminsw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_min (__vector signed int a1, __vector __bool int a2)
+vec_min (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vminsw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3204,13 +3270,13 @@ vec_vminfp (__vector float a1, __vector float a2)
 /* vec_vminsw */
 
 inline __vector signed int
-vec_vminsw (__vector __bool int a1, __vector signed int a2)
+vec_vminsw (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vminsw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_vminsw (__vector signed int a1, __vector __bool int a2)
+vec_vminsw (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vminsw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3224,13 +3290,13 @@ vec_vminsw (__vector signed int a1, __vector signed int a2)
 /* vec_vminuw */
 
 inline __vector unsigned int
-vec_vminuw (__vector __bool int a1, __vector unsigned int a2)
+vec_vminuw (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vminuw ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_vminuw (__vector unsigned int a1, __vector __bool int a2)
+vec_vminuw (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vminuw ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3244,13 +3310,13 @@ vec_vminuw (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_vminsh */
 
 inline __vector signed short
-vec_vminsh (__vector __bool short a1, __vector signed short a2)
+vec_vminsh (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vminsh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_vminsh (__vector signed short a1, __vector __bool short a2)
+vec_vminsh (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vminsh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -3264,13 +3330,13 @@ vec_vminsh (__vector signed short a1, __vector signed short a2)
 /* vec_vminuh */
 
 inline __vector unsigned short
-vec_vminuh (__vector __bool short a1, __vector unsigned short a2)
+vec_vminuh (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vminuh ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_vminuh (__vector unsigned short a1, __vector __bool short a2)
+vec_vminuh (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vminuh ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -3284,13 +3350,13 @@ vec_vminuh (__vector unsigned short a1, __vector unsigned short a2)
 /* vec_vminsb */
 
 inline __vector signed char
-vec_vminsb (__vector __bool char a1, __vector signed char a2)
+vec_vminsb (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vminsb ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_vminsb (__vector signed char a1, __vector __bool char a2)
+vec_vminsb (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vminsb ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -3304,13 +3370,13 @@ vec_vminsb (__vector signed char a1, __vector signed char a2)
 /* vec_vminub */
 
 inline __vector unsigned char
-vec_vminub (__vector __bool char a1, __vector unsigned char a2)
+vec_vminub (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vminub ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_vminub (__vector unsigned char a1, __vector __bool char a2)
+vec_vminub (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vminub ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -3458,7 +3524,7 @@ vec_mtvscr (__vector unsigned int a1)
 }
 
 inline void
-vec_mtvscr (__vector __bool int a1)
+vec_mtvscr (__vector bool int a1)
 {
   __builtin_altivec_mtvscr ((__vector signed int) a1);
 }
@@ -3476,13 +3542,13 @@ vec_mtvscr (__vector unsigned short a1)
 }
 
 inline void
-vec_mtvscr (__vector __bool short a1)
+vec_mtvscr (__vector bool short a1)
 {
   __builtin_altivec_mtvscr ((__vector signed int) a1);
 }
 
 inline void
-vec_mtvscr (__vector __pixel a1)
+vec_mtvscr (__vector pixel a1)
 {
   __builtin_altivec_mtvscr ((__vector signed int) a1);
 }
@@ -3500,7 +3566,7 @@ vec_mtvscr (__vector unsigned char a1)
 }
 
 inline void
-vec_mtvscr (__vector __bool char a1)
+vec_mtvscr (__vector bool char a1)
 {
   __builtin_altivec_mtvscr ((__vector signed int) a1);
 }
@@ -3649,10 +3715,10 @@ vec_nor (__vector unsigned int a1, __vector unsigned int a2)
   return (__vector unsigned int) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_nor (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_nor (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
@@ -3667,10 +3733,10 @@ vec_nor (__vector unsigned short a1, __vector unsigned short a2)
   return (__vector unsigned short) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_nor (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_nor (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
@@ -3685,10 +3751,10 @@ vec_nor (__vector unsigned char a1, __vector unsigned char a2)
   return (__vector unsigned char) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_nor (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_nor (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vnor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_or */
@@ -3700,31 +3766,31 @@ vec_or (__vector float a1, __vector float a2)
 }
 
 inline __vector float
-vec_or (__vector float a1, __vector __bool int a2)
+vec_or (__vector float a1, __vector bool int a2)
 {
   return (__vector float) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector float
-vec_or (__vector __bool int a1, __vector float a2)
+vec_or (__vector bool int a1, __vector float a2)
 {
   return (__vector float) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_or (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_or (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_or (__vector __bool int a1, __vector signed int a2)
+vec_or (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_or (__vector signed int a1, __vector __bool int a2)
+vec_or (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3736,13 +3802,13 @@ vec_or (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_or (__vector __bool int a1, __vector unsigned int a2)
+vec_or (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_or (__vector unsigned int a1, __vector __bool int a2)
+vec_or (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3753,20 +3819,20 @@ vec_or (__vector unsigned int a1, __vector unsigned int a2)
   return (__vector unsigned int) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_or (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_or (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_or (__vector __bool short a1, __vector signed short a2)
+vec_or (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_or (__vector signed short a1, __vector __bool short a2)
+vec_or (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3778,13 +3844,13 @@ vec_or (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_or (__vector __bool short a1, __vector unsigned short a2)
+vec_or (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned short
-vec_or (__vector unsigned short a1, __vector __bool short a2)
+vec_or (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3796,19 +3862,19 @@ vec_or (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed char
-vec_or (__vector __bool char a1, __vector signed char a2)
+vec_or (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_or (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_or (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
-vec_or (__vector signed char a1, __vector __bool char a2)
+vec_or (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3820,13 +3886,13 @@ vec_or (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_or (__vector __bool char a1, __vector unsigned char a2)
+vec_or (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned char
-vec_or (__vector unsigned char a1, __vector __bool char a2)
+vec_or (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -3851,10 +3917,10 @@ vec_pack (__vector unsigned short a1, __vector unsigned short a2)
   return (__vector unsigned char) __builtin_altivec_vpkuhum ((__vector signed short) a1, (__vector signed short) a2);
 }
 
-inline __vector __bool char
-vec_pack (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool char
+vec_pack (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool char) __builtin_altivec_vpkuhum ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool char) __builtin_altivec_vpkuhum ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
@@ -3869,18 +3935,18 @@ vec_pack (__vector unsigned int a1, __vector unsigned int a2)
   return (__vector unsigned short) __builtin_altivec_vpkuwum ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_pack (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool short
+vec_pack (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool short) __builtin_altivec_vpkuwum ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vpkuwum ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_vpkuwum */
 
-inline __vector __bool short
-vec_vpkuwum (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool short
+vec_vpkuwum (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool short) __builtin_altivec_vpkuwum ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vpkuwum ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
@@ -3897,10 +3963,10 @@ vec_vpkuwum (__vector unsigned int a1, __vector unsigned int a2)
 
 /* vec_vpkuhum */
 
-inline __vector __bool char
-vec_vpkuhum (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool char
+vec_vpkuhum (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool char) __builtin_altivec_vpkuhum ((__vector signed short) a1, (__vector signed short) a2);
+  return (__vector bool char) __builtin_altivec_vpkuhum ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed char
@@ -3917,10 +3983,10 @@ vec_vpkuhum (__vector unsigned short a1, __vector unsigned short a2)
 
 /* vec_packpx */
 
-inline __vector __pixel
+inline __vector pixel
 vec_packpx (__vector unsigned int a1, __vector unsigned int a2)
 {
-  return (__vector __pixel) __builtin_altivec_vpkpx ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vpkpx ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_packs */
@@ -4043,10 +4109,10 @@ vec_perm (__vector unsigned int a1, __vector unsigned int a2, __vector unsigned 
   return (__vector unsigned int) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
 }
 
-inline __vector __bool int
-vec_perm (__vector __bool int a1, __vector __bool int a2, __vector unsigned char a3)
+inline __vector bool int
+vec_perm (__vector bool int a1, __vector bool int a2, __vector unsigned char a3)
 {
-  return (__vector __bool int) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
+  return (__vector bool int) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
 }
 
 inline __vector signed short
@@ -4061,16 +4127,16 @@ vec_perm (__vector unsigned short a1, __vector unsigned short a2, __vector unsig
   return (__vector unsigned short) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
 }
 
-inline __vector __bool short
-vec_perm (__vector __bool short a1, __vector __bool short a2, __vector unsigned char a3)
+inline __vector bool short
+vec_perm (__vector bool short a1, __vector bool short a2, __vector unsigned char a3)
 {
-  return (__vector __bool short) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
+  return (__vector bool short) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
 }
 
-inline __vector __pixel
-vec_perm (__vector __pixel a1, __vector __pixel a2, __vector unsigned char a3)
+inline __vector pixel
+vec_perm (__vector pixel a1, __vector pixel a2, __vector unsigned char a3)
 {
-  return (__vector __pixel) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
+  return (__vector pixel) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
 }
 
 inline __vector signed char
@@ -4085,10 +4151,10 @@ vec_perm (__vector unsigned char a1, __vector unsigned char a2, __vector unsigne
   return (__vector unsigned char) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
 }
 
-inline __vector __bool char
-vec_perm (__vector __bool char a1, __vector __bool char a2, __vector unsigned char a3)
+inline __vector bool char
+vec_perm (__vector bool char a1, __vector bool char a2, __vector unsigned char a3)
 {
-  return (__vector __bool char) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
+  return (__vector bool char) __builtin_altivec_vperm_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed char) a3);
 }
 
 /* vec_re */
@@ -4198,7 +4264,7 @@ vec_rsqrte (__vector float a1)
 /* vec_sel */
 
 inline __vector float
-vec_sel (__vector float a1, __vector float a2, __vector __bool int a3)
+vec_sel (__vector float a1, __vector float a2, __vector bool int a3)
 {
   return (__vector float) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
@@ -4210,7 +4276,7 @@ vec_sel (__vector float a1, __vector float a2, __vector unsigned int a3)
 }
 
 inline __vector signed int
-vec_sel (__vector signed int a1, __vector signed int a2, __vector __bool int a3)
+vec_sel (__vector signed int a1, __vector signed int a2, __vector bool int a3)
 {
   return (__vector signed int) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
@@ -4222,7 +4288,7 @@ vec_sel (__vector signed int a1, __vector signed int a2, __vector unsigned int a
 }
 
 inline __vector unsigned int
-vec_sel (__vector unsigned int a1, __vector unsigned int a2, __vector __bool int a3)
+vec_sel (__vector unsigned int a1, __vector unsigned int a2, __vector bool int a3)
 {
   return (__vector unsigned int) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
@@ -4233,20 +4299,20 @@ vec_sel (__vector unsigned int a1, __vector unsigned int a2, __vector unsigned i
   return (__vector unsigned int) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
-inline __vector __bool int
-vec_sel (__vector __bool int a1, __vector __bool int a2, __vector __bool int a3)
+inline __vector bool int
+vec_sel (__vector bool int a1, __vector bool int a2, __vector bool int a3)
 {
-  return (__vector __bool int) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
+  return (__vector bool int) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
-inline __vector __bool int
-vec_sel (__vector __bool int a1, __vector __bool int a2, __vector unsigned int a3)
+inline __vector bool int
+vec_sel (__vector bool int a1, __vector bool int a2, __vector unsigned int a3)
 {
-  return (__vector __bool int) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
+  return (__vector bool int) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
 inline __vector signed short
-vec_sel (__vector signed short a1, __vector signed short a2, __vector __bool short a3)
+vec_sel (__vector signed short a1, __vector signed short a2, __vector bool short a3)
 {
   return (__vector signed short) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
@@ -4258,7 +4324,7 @@ vec_sel (__vector signed short a1, __vector signed short a2, __vector unsigned s
 }
 
 inline __vector unsigned short
-vec_sel (__vector unsigned short a1, __vector unsigned short a2, __vector __bool short a3)
+vec_sel (__vector unsigned short a1, __vector unsigned short a2, __vector bool short a3)
 {
   return (__vector unsigned short) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
@@ -4269,20 +4335,20 @@ vec_sel (__vector unsigned short a1, __vector unsigned short a2, __vector unsign
   return (__vector unsigned short) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
-inline __vector __bool short
-vec_sel (__vector __bool short a1, __vector __bool short a2, __vector __bool short a3)
+inline __vector bool short
+vec_sel (__vector bool short a1, __vector bool short a2, __vector bool short a3)
 {
-  return (__vector __bool short) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
+  return (__vector bool short) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
-inline __vector __bool short
-vec_sel (__vector __bool short a1, __vector __bool short a2, __vector unsigned short a3)
+inline __vector bool short
+vec_sel (__vector bool short a1, __vector bool short a2, __vector unsigned short a3)
 {
-  return (__vector __bool short) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
+  return (__vector bool short) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
 inline __vector signed char
-vec_sel (__vector signed char a1, __vector signed char a2, __vector __bool char a3)
+vec_sel (__vector signed char a1, __vector signed char a2, __vector bool char a3)
 {
   return (__vector signed char) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
@@ -4294,7 +4360,7 @@ vec_sel (__vector signed char a1, __vector signed char a2, __vector unsigned cha
 }
 
 inline __vector unsigned char
-vec_sel (__vector unsigned char a1, __vector unsigned char a2, __vector __bool char a3)
+vec_sel (__vector unsigned char a1, __vector unsigned char a2, __vector bool char a3)
 {
   return (__vector unsigned char) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
@@ -4305,16 +4371,16 @@ vec_sel (__vector unsigned char a1, __vector unsigned char a2, __vector unsigned
   return (__vector unsigned char) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
-inline __vector __bool char
-vec_sel (__vector __bool char a1, __vector __bool char a2, __vector __bool char a3)
+inline __vector bool char
+vec_sel (__vector bool char a1, __vector bool char a2, __vector bool char a3)
 {
-  return (__vector __bool char) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
+  return (__vector bool char) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
-inline __vector __bool char
-vec_sel (__vector __bool char a1, __vector __bool char a2, __vector unsigned char a3)
+inline __vector bool char
+vec_sel (__vector bool char a1, __vector bool char a2, __vector unsigned char a3)
 {
-  return (__vector __bool char) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
+  return (__vector bool char) __builtin_altivec_vsel_4si ((__vector signed int) a1, (__vector signed int) a2, (__vector signed int) a3);
 }
 
 /* vec_sl */
@@ -4417,10 +4483,10 @@ vec_sld (__vector unsigned int a1, __vector unsigned int a2, const int a3)
   return (__vector unsigned int) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
 }
 
-inline __vector __bool int
-vec_sld (__vector __bool int a1, __vector __bool int a2, const int a3)
+inline __vector bool int
+vec_sld (__vector bool int a1, __vector bool int a2, const int a3)
 {
-  return (__vector __bool int) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
+  return (__vector bool int) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
 }
 
 inline __vector signed short
@@ -4435,16 +4501,16 @@ vec_sld (__vector unsigned short a1, __vector unsigned short a2, const int a3)
   return (__vector unsigned short) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
 }
 
-inline __vector __bool short
-vec_sld (__vector __bool short a1, __vector __bool short a2, const int a3)
+inline __vector bool short
+vec_sld (__vector bool short a1, __vector bool short a2, const int a3)
 {
-  return (__vector __bool short) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
+  return (__vector bool short) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
 }
 
-inline __vector __pixel
-vec_sld (__vector __pixel a1, __vector __pixel a2, const int a3)
+inline __vector pixel
+vec_sld (__vector pixel a1, __vector pixel a2, const int a3)
 {
-  return (__vector __pixel) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
+  return (__vector pixel) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
 }
 
 inline __vector signed char
@@ -4459,10 +4525,10 @@ vec_sld (__vector unsigned char a1, __vector unsigned char a2, const int a3)
   return (__vector unsigned char) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
 }
 
-inline __vector __bool char
-vec_sld (__vector __bool char a1, __vector __bool char a2, const int a3)
+inline __vector bool char
+vec_sld (__vector bool char a1, __vector bool char a2, const int a3)
 {
-  return (__vector __bool char) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
+  return (__vector bool char) __builtin_altivec_vsldoi_4si ((__vector signed int) a1, (__vector signed int) a2, a3);
 }
 
 /* vec_sll */
@@ -4503,22 +4569,22 @@ vec_sll (__vector unsigned int a1, __vector unsigned char a2)
   return (__vector unsigned int) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_sll (__vector __bool int a1, __vector unsigned int a2)
+inline __vector bool int
+vec_sll (__vector bool int a1, __vector unsigned int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_sll (__vector __bool int a1, __vector unsigned short a2)
+inline __vector bool int
+vec_sll (__vector bool int a1, __vector unsigned short a2)
 {
-  return (__vector __bool int) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_sll (__vector __bool int a1, __vector unsigned char a2)
+inline __vector bool int
+vec_sll (__vector bool int a1, __vector unsigned char a2)
 {
-  return (__vector __bool int) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
@@ -4557,40 +4623,40 @@ vec_sll (__vector unsigned short a1, __vector unsigned char a2)
   return (__vector unsigned short) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_sll (__vector __bool short a1, __vector unsigned int a2)
+inline __vector bool short
+vec_sll (__vector bool short a1, __vector unsigned int a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_sll (__vector __bool short a1, __vector unsigned short a2)
+inline __vector bool short
+vec_sll (__vector bool short a1, __vector unsigned short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_sll (__vector __bool short a1, __vector unsigned char a2)
+inline __vector bool short
+vec_sll (__vector bool short a1, __vector unsigned char a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_sll (__vector __pixel a1, __vector unsigned int a2)
+inline __vector pixel
+vec_sll (__vector pixel a1, __vector unsigned int a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_sll (__vector __pixel a1, __vector unsigned short a2)
+inline __vector pixel
+vec_sll (__vector pixel a1, __vector unsigned short a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_sll (__vector __pixel a1, __vector unsigned char a2)
+inline __vector pixel
+vec_sll (__vector pixel a1, __vector unsigned char a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
@@ -4629,22 +4695,22 @@ vec_sll (__vector unsigned char a1, __vector unsigned char a2)
   return (__vector unsigned char) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_sll (__vector __bool char a1, __vector unsigned int a2)
+inline __vector bool char
+vec_sll (__vector bool char a1, __vector unsigned int a2)
 {
-  return (__vector __bool char) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_sll (__vector __bool char a1, __vector unsigned short a2)
+inline __vector bool char
+vec_sll (__vector bool char a1, __vector unsigned short a2)
 {
-  return (__vector __bool char) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_sll (__vector __bool char a1, __vector unsigned char a2)
+inline __vector bool char
+vec_sll (__vector bool char a1, __vector unsigned char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vsl ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_slo */
@@ -4709,16 +4775,16 @@ vec_slo (__vector unsigned short a1, __vector unsigned char a2)
   return (__vector unsigned short) __builtin_altivec_vslo ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_slo (__vector __pixel a1, __vector signed char a2)
+inline __vector pixel
+vec_slo (__vector pixel a1, __vector signed char a2)
 {
-  return (__vector __pixel) __builtin_altivec_vslo ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vslo ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_slo (__vector __pixel a1, __vector unsigned char a2)
+inline __vector pixel
+vec_slo (__vector pixel a1, __vector unsigned char a2)
 {
-  return (__vector __pixel) __builtin_altivec_vslo ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vslo ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
@@ -4759,10 +4825,10 @@ vec_splat (__vector unsigned char a1, const int a2)
   return (__vector unsigned char) __builtin_altivec_vspltb ((__vector signed char) a1,  a2);
 }
 
-inline __vector __bool char
-vec_splat (__vector __bool char a1, const int a2)
+inline __vector bool char
+vec_splat (__vector bool char a1, const int a2)
 {
-  return (__vector __bool char) __builtin_altivec_vspltb ((__vector signed char) a1,  a2);
+  return (__vector bool char) __builtin_altivec_vspltb ((__vector signed char) a1,  a2);
 }
 
 inline __vector signed short
@@ -4777,16 +4843,16 @@ vec_splat (__vector unsigned short a1, const int a2)
   return (__vector unsigned short) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
 }
 
-inline __vector __bool short
-vec_splat (__vector __bool short a1, const int a2)
+inline __vector bool short
+vec_splat (__vector bool short a1, const int a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
+  return (__vector bool short) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
 }
 
-inline __vector __pixel
-vec_splat (__vector __pixel a1, const int a2)
+inline __vector pixel
+vec_splat (__vector pixel a1, const int a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
+  return (__vector pixel) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
 }
 
 inline __vector float
@@ -4807,10 +4873,10 @@ vec_splat (__vector unsigned int a1, const int a2)
   return (__vector unsigned int) __builtin_altivec_vspltw ((__vector signed int) a1,  a2);
 }
 
-inline __vector __bool int
-vec_splat (__vector __bool int a1, const int a2)
+inline __vector bool int
+vec_splat (__vector bool int a1, const int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vspltw ((__vector signed int) a1,  a2);
+  return (__vector bool int) __builtin_altivec_vspltw ((__vector signed int) a1,  a2);
 }
 
 /* vec_vspltw */
@@ -4833,18 +4899,18 @@ vec_vspltw (__vector unsigned int a1, const int a2)
   return (__vector unsigned int) __builtin_altivec_vspltw ((__vector signed int) a1,  a2);
 }
 
-inline __vector __bool int
-vec_vspltw (__vector __bool int a1, const int a2)
+inline __vector bool int
+vec_vspltw (__vector bool int a1, const int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vspltw ((__vector signed int) a1,  a2);
+  return (__vector bool int) __builtin_altivec_vspltw ((__vector signed int) a1,  a2);
 }
 
 /* vec_vsplth */
 
-inline __vector __bool short
-vec_vsplth (__vector __bool short a1, const int a2)
+inline __vector bool short
+vec_vsplth (__vector bool short a1, const int a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
+  return (__vector bool short) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
 }
 
 inline __vector signed short
@@ -4859,10 +4925,10 @@ vec_vsplth (__vector unsigned short a1, const int a2)
   return (__vector unsigned short) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
 }
 
-inline __vector __pixel
-vec_vsplth (__vector __pixel a1, const int a2)
+inline __vector pixel
+vec_vsplth (__vector pixel a1, const int a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
+  return (__vector pixel) __builtin_altivec_vsplth ((__vector signed short) a1,  a2);
 }
 
 /* vec_vspltb */
@@ -4879,10 +4945,10 @@ vec_vspltb (__vector unsigned char a1, const int a2)
   return (__vector unsigned char) __builtin_altivec_vspltb ((__vector signed char) a1,  a2);
 }
 
-inline __vector __bool char
-vec_vspltb (__vector __bool char a1, const int a2)
+inline __vector bool char
+vec_vspltb (__vector bool char a1, const int a2)
 {
-  return (__vector __bool char) __builtin_altivec_vspltb ((__vector signed char) a1,  a2);
+  return (__vector bool char) __builtin_altivec_vspltb ((__vector signed char) a1,  a2);
 }
 
 /* vec_splat_s8 */
@@ -5131,22 +5197,22 @@ vec_srl (__vector unsigned int a1, __vector unsigned char a2)
   return (__vector unsigned int) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_srl (__vector __bool int a1, __vector unsigned int a2)
+inline __vector bool int
+vec_srl (__vector bool int a1, __vector unsigned int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_srl (__vector __bool int a1, __vector unsigned short a2)
+inline __vector bool int
+vec_srl (__vector bool int a1, __vector unsigned short a2)
 {
-  return (__vector __bool int) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_srl (__vector __bool int a1, __vector unsigned char a2)
+inline __vector bool int
+vec_srl (__vector bool int a1, __vector unsigned char a2)
 {
-  return (__vector __bool int) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
@@ -5185,40 +5251,40 @@ vec_srl (__vector unsigned short a1, __vector unsigned char a2)
   return (__vector unsigned short) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_srl (__vector __bool short a1, __vector unsigned int a2)
+inline __vector bool short
+vec_srl (__vector bool short a1, __vector unsigned int a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_srl (__vector __bool short a1, __vector unsigned short a2)
+inline __vector bool short
+vec_srl (__vector bool short a1, __vector unsigned short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_srl (__vector __bool short a1, __vector unsigned char a2)
+inline __vector bool short
+vec_srl (__vector bool short a1, __vector unsigned char a2)
 {
-  return (__vector __bool short) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_srl (__vector __pixel a1, __vector unsigned int a2)
+inline __vector pixel
+vec_srl (__vector pixel a1, __vector unsigned int a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_srl (__vector __pixel a1, __vector unsigned short a2)
+inline __vector pixel
+vec_srl (__vector pixel a1, __vector unsigned short a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_srl (__vector __pixel a1, __vector unsigned char a2)
+inline __vector pixel
+vec_srl (__vector pixel a1, __vector unsigned char a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
@@ -5257,22 +5323,22 @@ vec_srl (__vector unsigned char a1, __vector unsigned char a2)
   return (__vector unsigned char) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_srl (__vector __bool char a1, __vector unsigned int a2)
+inline __vector bool char
+vec_srl (__vector bool char a1, __vector unsigned int a2)
 {
-  return (__vector __bool char) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_srl (__vector __bool char a1, __vector unsigned short a2)
+inline __vector bool char
+vec_srl (__vector bool char a1, __vector unsigned short a2)
 {
-  return (__vector __bool char) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_srl (__vector __bool char a1, __vector unsigned char a2)
+inline __vector bool char
+vec_srl (__vector bool char a1, __vector unsigned char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vsr ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 /* vec_sro */
@@ -5337,16 +5403,16 @@ vec_sro (__vector unsigned short a1, __vector unsigned char a2)
   return (__vector unsigned short) __builtin_altivec_vsro ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_sro (__vector __pixel a1, __vector signed char a2)
+inline __vector pixel
+vec_sro (__vector pixel a1, __vector signed char a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsro ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsro ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __pixel
-vec_sro (__vector __pixel a1, __vector unsigned char a2)
+inline __vector pixel
+vec_sro (__vector pixel a1, __vector unsigned char a2)
 {
-  return (__vector __pixel) __builtin_altivec_vsro ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector pixel) __builtin_altivec_vsro ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
@@ -5412,19 +5478,19 @@ vec_st (__vector unsigned int a1, int a2, unsigned int *a3)
 }
 
 inline void
-vec_st (__vector __bool int a1, int a2, __vector __bool int *a3)
+vec_st (__vector bool int a1, int a2, __vector bool int *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __bool int a1, int a2, unsigned int *a3)
+vec_st (__vector bool int a1, int a2, unsigned int *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __bool int a1, int a2, int *a3)
+vec_st (__vector bool int a1, int a2, int *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5454,37 +5520,37 @@ vec_st (__vector unsigned short a1, int a2, unsigned short *a3)
 }
 
 inline void
-vec_st (__vector __bool short a1, int a2, __vector __bool short *a3)
+vec_st (__vector bool short a1, int a2, __vector bool short *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __bool short a1, int a2, unsigned short *a3)
+vec_st (__vector bool short a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __pixel a1, int a2, __vector __pixel *a3)
+vec_st (__vector pixel a1, int a2, __vector pixel *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __pixel a1, int a2, unsigned short *a3)
+vec_st (__vector pixel a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __pixel a1, int a2, short *a3)
+vec_st (__vector pixel a1, int a2, short *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __bool short a1, int a2, short *a3)
+vec_st (__vector bool short a1, int a2, short *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5514,19 +5580,19 @@ vec_st (__vector unsigned char a1, int a2, unsigned char *a3)
 }
 
 inline void
-vec_st (__vector __bool char a1, int a2, __vector __bool char *a3)
+vec_st (__vector bool char a1, int a2, __vector bool char *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __bool char a1, int a2, unsigned char *a3)
+vec_st (__vector bool char a1, int a2, unsigned char *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_st (__vector __bool char a1, int a2, signed char *a3)
+vec_st (__vector bool char a1, int a2, signed char *a3)
 {
   __builtin_altivec_stvx ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5546,13 +5612,13 @@ vec_ste (__vector unsigned char a1, int a2, unsigned char *a3)
 }
 
 inline void
-vec_ste (__vector __bool char a1, int a2, signed char *a3)
+vec_ste (__vector bool char a1, int a2, signed char *a3)
 {
   __builtin_altivec_stvebx ((__vector signed char) a1, a2, (void *) a3);
 }
 
 inline void
-vec_ste (__vector __bool char a1, int a2, unsigned char *a3)
+vec_ste (__vector bool char a1, int a2, unsigned char *a3)
 {
   __builtin_altivec_stvebx ((__vector signed char) a1, a2, (void *) a3);
 }
@@ -5570,25 +5636,25 @@ vec_ste (__vector unsigned short a1, int a2, unsigned short *a3)
 }
 
 inline void
-vec_ste (__vector __bool short a1, int a2, short *a3)
+vec_ste (__vector bool short a1, int a2, short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
 
 inline void
-vec_ste (__vector __bool short a1, int a2, unsigned short *a3)
+vec_ste (__vector bool short a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
 
 inline void
-vec_ste (__vector __pixel a1, int a2, short *a3)
+vec_ste (__vector pixel a1, int a2, short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
 
 inline void
-vec_ste (__vector __pixel a1, int a2, unsigned short *a3)
+vec_ste (__vector pixel a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
@@ -5612,13 +5678,13 @@ vec_ste (__vector unsigned int a1, int a2, unsigned int *a3)
 }
 
 inline void
-vec_ste (__vector __bool int a1, int a2, int *a3)
+vec_ste (__vector bool int a1, int a2, int *a3)
 {
   __builtin_altivec_stvewx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_ste (__vector __bool int a1, int a2, unsigned int *a3)
+vec_ste (__vector bool int a1, int a2, unsigned int *a3)
 {
   __builtin_altivec_stvewx ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5644,13 +5710,13 @@ vec_stvewx (__vector unsigned int a1, int a2, unsigned int *a3)
 }
 
 inline void
-vec_stvewx (__vector __bool int a1, int a2, int *a3)
+vec_stvewx (__vector bool int a1, int a2, int *a3)
 {
   __builtin_altivec_stvewx ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stvewx (__vector __bool int a1, int a2, unsigned int *a3)
+vec_stvewx (__vector bool int a1, int a2, unsigned int *a3)
 {
   __builtin_altivec_stvewx ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5670,25 +5736,25 @@ vec_stvehx (__vector unsigned short a1, int a2, unsigned short *a3)
 }
 
 inline void
-vec_stvehx (__vector __bool short a1, int a2, short *a3)
+vec_stvehx (__vector bool short a1, int a2, short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stvehx (__vector __bool short a1, int a2, unsigned short *a3)
+vec_stvehx (__vector bool short a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stvehx (__vector __pixel a1, int a2, short *a3)
+vec_stvehx (__vector pixel a1, int a2, short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stvehx (__vector __pixel a1, int a2, unsigned short *a3)
+vec_stvehx (__vector pixel a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvehx ((__vector signed short) a1, a2, (void *) a3);
 }
@@ -5708,13 +5774,13 @@ vec_stvebx (__vector unsigned char a1, int a2, unsigned char *a3)
 }
 
 inline void
-vec_stvebx (__vector __bool char a1, int a2, signed char *a3)
+vec_stvebx (__vector bool char a1, int a2, signed char *a3)
 {
   __builtin_altivec_stvebx ((__vector signed char) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stvebx (__vector __bool char a1, int a2, unsigned char *a3)
+vec_stvebx (__vector bool char a1, int a2, unsigned char *a3)
 {
   __builtin_altivec_stvebx ((__vector signed char) a1, a2, (void *) a3);
 }
@@ -5758,19 +5824,19 @@ vec_stl (__vector unsigned int a1, int a2, unsigned int *a3)
 }
 
 inline void
-vec_stl (__vector __bool int a1, int a2, __vector __bool int *a3)
+vec_stl (__vector bool int a1, int a2, __vector bool int *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __bool int a1, int a2, unsigned int *a3)
+vec_stl (__vector bool int a1, int a2, unsigned int *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __bool int a1, int a2, int *a3)
+vec_stl (__vector bool int a1, int a2, int *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5800,37 +5866,37 @@ vec_stl (__vector unsigned short a1, int a2, unsigned short *a3)
 }
 
 inline void
-vec_stl (__vector __bool short a1, int a2, __vector __bool short *a3)
+vec_stl (__vector bool short a1, int a2, __vector bool short *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __bool short a1, int a2, unsigned short *a3)
+vec_stl (__vector bool short a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __bool short a1, int a2, short *a3)
+vec_stl (__vector bool short a1, int a2, short *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __pixel a1, int a2, __vector __pixel *a3)
+vec_stl (__vector pixel a1, int a2, __vector pixel *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __pixel a1, int a2, unsigned short *a3)
+vec_stl (__vector pixel a1, int a2, unsigned short *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __pixel a1, int a2, short *a3)
+vec_stl (__vector pixel a1, int a2, short *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5860,19 +5926,19 @@ vec_stl (__vector unsigned char a1, int a2, unsigned char *a3)
 }
 
 inline void
-vec_stl (__vector __bool char a1, int a2, __vector __bool char *a3)
+vec_stl (__vector bool char a1, int a2, __vector bool char *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __bool char a1, int a2, unsigned char *a3)
+vec_stl (__vector bool char a1, int a2, unsigned char *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
 
 inline void
-vec_stl (__vector __bool char a1, int a2, signed char *a3)
+vec_stl (__vector bool char a1, int a2, signed char *a3)
 {
   __builtin_altivec_stvxl ((__vector signed int) a1, a2, (void *) a3);
 }
@@ -5880,13 +5946,13 @@ vec_stl (__vector __bool char a1, int a2, signed char *a3)
 /* vec_sub */
 
 inline __vector signed char
-vec_sub (__vector __bool char a1, __vector signed char a2)
+vec_sub (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_sub (__vector signed char a1, __vector __bool char a2)
+vec_sub (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -5898,13 +5964,13 @@ vec_sub (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_sub (__vector __bool char a1, __vector unsigned char a2)
+vec_sub (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_sub (__vector unsigned char a1, __vector __bool char a2)
+vec_sub (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -5916,13 +5982,13 @@ vec_sub (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline __vector signed short
-vec_sub (__vector __bool short a1, __vector signed short a2)
+vec_sub (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_sub (__vector signed short a1, __vector __bool short a2)
+vec_sub (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -5934,13 +6000,13 @@ vec_sub (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_sub (__vector __bool short a1, __vector unsigned short a2)
+vec_sub (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_sub (__vector unsigned short a1, __vector __bool short a2)
+vec_sub (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -5952,13 +6018,13 @@ vec_sub (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed int
-vec_sub (__vector __bool int a1, __vector signed int a2)
+vec_sub (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_sub (__vector signed int a1, __vector __bool int a2)
+vec_sub (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -5970,13 +6036,13 @@ vec_sub (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_sub (__vector __bool int a1, __vector unsigned int a2)
+vec_sub (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_sub (__vector unsigned int a1, __vector __bool int a2)
+vec_sub (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6004,13 +6070,13 @@ vec_vsubfp (__vector float a1, __vector float a2)
 /* vec_vsubuwm */
 
 inline __vector signed int
-vec_vsubuwm (__vector __bool int a1, __vector signed int a2)
+vec_vsubuwm (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_vsubuwm (__vector signed int a1, __vector __bool int a2)
+vec_vsubuwm (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6022,13 +6088,13 @@ vec_vsubuwm (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_vsubuwm (__vector __bool int a1, __vector unsigned int a2)
+vec_vsubuwm (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_vsubuwm (__vector unsigned int a1, __vector __bool int a2)
+vec_vsubuwm (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuwm ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6042,13 +6108,13 @@ vec_vsubuwm (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_vsubuhm */
 
 inline __vector signed short
-vec_vsubuhm (__vector __bool short a1, __vector signed short a2)
+vec_vsubuhm (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_vsubuhm (__vector signed short a1, __vector __bool short a2)
+vec_vsubuhm (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6060,13 +6126,13 @@ vec_vsubuhm (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_vsubuhm (__vector __bool short a1, __vector unsigned short a2)
+vec_vsubuhm (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_vsubuhm (__vector unsigned short a1, __vector __bool short a2)
+vec_vsubuhm (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhm ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6080,13 +6146,13 @@ vec_vsubuhm (__vector unsigned short a1, __vector unsigned short a2)
 /* vec_vsububm */
 
 inline __vector signed char
-vec_vsububm (__vector __bool char a1, __vector signed char a2)
+vec_vsububm (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_vsububm (__vector signed char a1, __vector __bool char a2)
+vec_vsububm (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6098,13 +6164,13 @@ vec_vsububm (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_vsububm (__vector __bool char a1, __vector unsigned char a2)
+vec_vsububm (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_vsububm (__vector unsigned char a1, __vector __bool char a2)
+vec_vsububm (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububm ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6126,13 +6192,13 @@ vec_subc (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_subs */
 
 inline __vector unsigned char
-vec_subs (__vector __bool char a1, __vector unsigned char a2)
+vec_subs (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_subs (__vector unsigned char a1, __vector __bool char a2)
+vec_subs (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6144,13 +6210,13 @@ vec_subs (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline __vector signed char
-vec_subs (__vector __bool char a1, __vector signed char a2)
+vec_subs (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vsubsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_subs (__vector signed char a1, __vector __bool char a2)
+vec_subs (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vsubsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6162,13 +6228,13 @@ vec_subs (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned short
-vec_subs (__vector __bool short a1, __vector unsigned short a2)
+vec_subs (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_subs (__vector unsigned short a1, __vector __bool short a2)
+vec_subs (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6180,13 +6246,13 @@ vec_subs (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed short
-vec_subs (__vector __bool short a1, __vector signed short a2)
+vec_subs (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubshs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_subs (__vector signed short a1, __vector __bool short a2)
+vec_subs (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubshs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6198,13 +6264,13 @@ vec_subs (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned int
-vec_subs (__vector __bool int a1, __vector unsigned int a2)
+vec_subs (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_subs (__vector unsigned int a1, __vector __bool int a2)
+vec_subs (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6216,13 +6282,13 @@ vec_subs (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline __vector signed int
-vec_subs (__vector __bool int a1, __vector signed int a2)
+vec_subs (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubsws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_subs (__vector signed int a1, __vector __bool int a2)
+vec_subs (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubsws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6236,13 +6302,13 @@ vec_subs (__vector signed int a1, __vector signed int a2)
 /* vec_vsubsws */
 
 inline __vector signed int
-vec_vsubsws (__vector __bool int a1, __vector signed int a2)
+vec_vsubsws (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubsws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_vsubsws (__vector signed int a1, __vector __bool int a2)
+vec_vsubsws (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vsubsws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6256,13 +6322,13 @@ vec_vsubsws (__vector signed int a1, __vector signed int a2)
 /* vec_vsubuws */
 
 inline __vector unsigned int
-vec_vsubuws (__vector __bool int a1, __vector unsigned int a2)
+vec_vsubuws (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuws ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_vsubuws (__vector unsigned int a1, __vector __bool int a2)
+vec_vsubuws (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vsubuws ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6276,13 +6342,13 @@ vec_vsubuws (__vector unsigned int a1, __vector unsigned int a2)
 /* vec_vsubshs */
 
 inline __vector signed short
-vec_vsubshs (__vector __bool short a1, __vector signed short a2)
+vec_vsubshs (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubshs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector signed short
-vec_vsubshs (__vector signed short a1, __vector __bool short a2)
+vec_vsubshs (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vsubshs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6296,13 +6362,13 @@ vec_vsubshs (__vector signed short a1, __vector signed short a2)
 /* vec_vsubuhs */
 
 inline __vector unsigned short
-vec_vsubuhs (__vector __bool short a1, __vector unsigned short a2)
+vec_vsubuhs (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhs ((__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline __vector unsigned short
-vec_vsubuhs (__vector unsigned short a1, __vector __bool short a2)
+vec_vsubuhs (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vsubuhs ((__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6316,13 +6382,13 @@ vec_vsubuhs (__vector unsigned short a1, __vector unsigned short a2)
 /* vec_vsubsbs */
 
 inline __vector signed char
-vec_vsubsbs (__vector __bool char a1, __vector signed char a2)
+vec_vsubsbs (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vsubsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector signed char
-vec_vsubsbs (__vector signed char a1, __vector __bool char a2)
+vec_vsubsbs (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vsubsbs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6336,13 +6402,13 @@ vec_vsubsbs (__vector signed char a1, __vector signed char a2)
 /* vec_vsububs */
 
 inline __vector unsigned char
-vec_vsububs (__vector __bool char a1, __vector unsigned char a2)
+vec_vsububs (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububs ((__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline __vector unsigned char
-vec_vsububs (__vector unsigned char a1, __vector __bool char a2)
+vec_vsububs (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vsububs ((__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6429,10 +6495,10 @@ vec_unpackh (__vector signed char a1)
   return (__vector signed short) __builtin_altivec_vupkhsb ((__vector signed char) a1);
 }
 
-inline __vector __bool short
-vec_unpackh (__vector __bool char a1)
+inline __vector bool short
+vec_unpackh (__vector bool char a1)
 {
-  return (__vector __bool short) __builtin_altivec_vupkhsb ((__vector signed char) a1);
+  return (__vector bool short) __builtin_altivec_vupkhsb ((__vector signed char) a1);
 }
 
 inline __vector signed int
@@ -6441,24 +6507,24 @@ vec_unpackh (__vector signed short a1)
   return (__vector signed int) __builtin_altivec_vupkhsh ((__vector signed short) a1);
 }
 
-inline __vector __bool int
-vec_unpackh (__vector __bool short a1)
+inline __vector bool int
+vec_unpackh (__vector bool short a1)
 {
-  return (__vector __bool int) __builtin_altivec_vupkhsh ((__vector signed short) a1);
+  return (__vector bool int) __builtin_altivec_vupkhsh ((__vector signed short) a1);
 }
 
 inline __vector unsigned int
-vec_unpackh (__vector __pixel a1)
+vec_unpackh (__vector pixel a1)
 {
   return (__vector unsigned int) __builtin_altivec_vupkhpx ((__vector signed short) a1);
 }
 
 /* vec_vupkhsh */
 
-inline __vector __bool int
-vec_vupkhsh (__vector __bool short a1)
+inline __vector bool int
+vec_vupkhsh (__vector bool short a1)
 {
-  return (__vector __bool int) __builtin_altivec_vupkhsh ((__vector signed short) a1);
+  return (__vector bool int) __builtin_altivec_vupkhsh ((__vector signed short) a1);
 }
 
 inline __vector signed int
@@ -6470,17 +6536,17 @@ vec_vupkhsh (__vector signed short a1)
 /* vec_vupkhpx */
 
 inline __vector unsigned int
-vec_vupkhpx (__vector __pixel a1)
+vec_vupkhpx (__vector pixel a1)
 {
   return (__vector unsigned int) __builtin_altivec_vupkhpx ((__vector signed short) a1);
 }
 
 /* vec_vupkhsb */
 
-inline __vector __bool short
-vec_vupkhsb (__vector __bool char a1)
+inline __vector bool short
+vec_vupkhsb (__vector bool char a1)
 {
-  return (__vector __bool short) __builtin_altivec_vupkhsb ((__vector signed char) a1);
+  return (__vector bool short) __builtin_altivec_vupkhsb ((__vector signed char) a1);
 }
 
 inline __vector signed short
@@ -6497,14 +6563,14 @@ vec_unpackl (__vector signed char a1)
   return (__vector signed short) __builtin_altivec_vupklsb ((__vector signed char) a1);
 }
 
-inline __vector __bool short
-vec_unpackl (__vector __bool char a1)
+inline __vector bool short
+vec_unpackl (__vector bool char a1)
 {
-  return (__vector __bool short) __builtin_altivec_vupklsb ((__vector signed char) a1);
+  return (__vector bool short) __builtin_altivec_vupklsb ((__vector signed char) a1);
 }
 
 inline __vector unsigned int
-vec_unpackl (__vector __pixel a1)
+vec_unpackl (__vector pixel a1)
 {
   return (__vector unsigned int) __builtin_altivec_vupklpx ((__vector signed short) a1);
 }
@@ -6515,26 +6581,26 @@ vec_unpackl (__vector signed short a1)
   return (__vector signed int) __builtin_altivec_vupklsh ((__vector signed short) a1);
 }
 
-inline __vector __bool int
-vec_unpackl (__vector __bool short a1)
+inline __vector bool int
+vec_unpackl (__vector bool short a1)
 {
-  return (__vector __bool int) __builtin_altivec_vupklsh ((__vector signed short) a1);
+  return (__vector bool int) __builtin_altivec_vupklsh ((__vector signed short) a1);
 }
 
 /* vec_vupklpx */
 
 inline __vector unsigned int
-vec_vupklpx (__vector __pixel a1)
+vec_vupklpx (__vector pixel a1)
 {
   return (__vector unsigned int) __builtin_altivec_vupklpx ((__vector signed short) a1);
 }
 
 /* vec_upklsh */
 
-inline __vector __bool int
-vec_vupklsh (__vector __bool short a1)
+inline __vector bool int
+vec_vupklsh (__vector bool short a1)
 {
-  return (__vector __bool int) __builtin_altivec_vupklsh ((__vector signed short) a1);
+  return (__vector bool int) __builtin_altivec_vupklsh ((__vector signed short) a1);
 }
 
 inline __vector signed int
@@ -6545,10 +6611,10 @@ vec_vupklsh (__vector signed short a1)
 
 /* vec_vupklsb */
 
-inline __vector __bool short
-vec_vupklsb (__vector __bool char a1)
+inline __vector bool short
+vec_vupklsb (__vector bool char a1)
 {
-  return (__vector __bool short) __builtin_altivec_vupklsb ((__vector signed char) a1);
+  return (__vector bool short) __builtin_altivec_vupklsb ((__vector signed char) a1);
 }
 
 inline __vector signed short
@@ -6566,31 +6632,31 @@ vec_xor (__vector float a1, __vector float a2)
 }
 
 inline __vector float
-vec_xor (__vector float a1, __vector __bool int a2)
+vec_xor (__vector float a1, __vector bool int a2)
 {
   return (__vector float) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector float
-vec_xor (__vector __bool int a1, __vector float a2)
+vec_xor (__vector bool int a1, __vector float a2)
 {
   return (__vector float) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool int
-vec_xor (__vector __bool int a1, __vector __bool int a2)
+inline __vector bool int
+vec_xor (__vector bool int a1, __vector bool int a2)
 {
-  return (__vector __bool int) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool int) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_xor (__vector __bool int a1, __vector signed int a2)
+vec_xor (__vector bool int a1, __vector signed int a2)
 {
   return (__vector signed int) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed int
-vec_xor (__vector signed int a1, __vector __bool int a2)
+vec_xor (__vector signed int a1, __vector bool int a2)
 {
   return (__vector signed int) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6602,13 +6668,13 @@ vec_xor (__vector signed int a1, __vector signed int a2)
 }
 
 inline __vector unsigned int
-vec_xor (__vector __bool int a1, __vector unsigned int a2)
+vec_xor (__vector bool int a1, __vector unsigned int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned int
-vec_xor (__vector unsigned int a1, __vector __bool int a2)
+vec_xor (__vector unsigned int a1, __vector bool int a2)
 {
   return (__vector unsigned int) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6619,20 +6685,20 @@ vec_xor (__vector unsigned int a1, __vector unsigned int a2)
   return (__vector unsigned int) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool short
-vec_xor (__vector __bool short a1, __vector __bool short a2)
+inline __vector bool short
+vec_xor (__vector bool short a1, __vector bool short a2)
 {
-  return (__vector __bool short) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool short) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_xor (__vector __bool short a1, __vector signed short a2)
+vec_xor (__vector bool short a1, __vector signed short a2)
 {
   return (__vector signed short) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed short
-vec_xor (__vector signed short a1, __vector __bool short a2)
+vec_xor (__vector signed short a1, __vector bool short a2)
 {
   return (__vector signed short) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6644,13 +6710,13 @@ vec_xor (__vector signed short a1, __vector signed short a2)
 }
 
 inline __vector unsigned short
-vec_xor (__vector __bool short a1, __vector unsigned short a2)
+vec_xor (__vector bool short a1, __vector unsigned short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned short
-vec_xor (__vector unsigned short a1, __vector __bool short a2)
+vec_xor (__vector unsigned short a1, __vector bool short a2)
 {
   return (__vector unsigned short) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6662,19 +6728,19 @@ vec_xor (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline __vector signed char
-vec_xor (__vector __bool char a1, __vector signed char a2)
+vec_xor (__vector bool char a1, __vector signed char a2)
 {
   return (__vector signed char) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
-inline __vector __bool char
-vec_xor (__vector __bool char a1, __vector __bool char a2)
+inline __vector bool char
+vec_xor (__vector bool char a1, __vector bool char a2)
 {
-  return (__vector __bool char) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
+  return (__vector bool char) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector signed char
-vec_xor (__vector signed char a1, __vector __bool char a2)
+vec_xor (__vector signed char a1, __vector bool char a2)
 {
   return (__vector signed char) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6686,13 +6752,13 @@ vec_xor (__vector signed char a1, __vector signed char a2)
 }
 
 inline __vector unsigned char
-vec_xor (__vector __bool char a1, __vector unsigned char a2)
+vec_xor (__vector bool char a1, __vector unsigned char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline __vector unsigned char
-vec_xor (__vector unsigned char a1, __vector __bool char a2)
+vec_xor (__vector unsigned char a1, __vector bool char a2)
 {
   return (__vector unsigned char) __builtin_altivec_vxor ((__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6706,7 +6772,7 @@ vec_xor (__vector unsigned char a1, __vector unsigned char a2)
 /* vec_all_eq */
 
 inline int
-vec_all_eq (__vector signed char a1, __vector __bool char a2)
+vec_all_eq (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT, a1, (__vector signed char) a2);
 }
@@ -6718,7 +6784,7 @@ vec_all_eq (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_all_eq (__vector unsigned char a1, __vector __bool char a2)
+vec_all_eq (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6730,25 +6796,25 @@ vec_all_eq (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_all_eq (__vector __bool char a1, __vector __bool char a2)
+vec_all_eq (__vector bool char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_eq (__vector __bool char a1, __vector unsigned char a2)
+vec_all_eq (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_eq (__vector __bool char a1, __vector signed char a2)
+vec_all_eq (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_eq (__vector signed short a1, __vector __bool short a2)
+vec_all_eq (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6760,7 +6826,7 @@ vec_all_eq (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_all_eq (__vector unsigned short a1, __vector __bool short a2)
+vec_all_eq (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -6772,31 +6838,31 @@ vec_all_eq (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_all_eq (__vector __bool short a1, __vector __bool short a2)
+vec_all_eq (__vector bool short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_eq (__vector __bool short a1, __vector unsigned short a2)
+vec_all_eq (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_eq (__vector __bool short a1, __vector signed short a2)
+vec_all_eq (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_eq (__vector __pixel a1, __vector __pixel a2)
+vec_all_eq (__vector pixel a1, __vector pixel a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_eq (__vector signed int a1, __vector __bool int a2)
+vec_all_eq (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6808,7 +6874,7 @@ vec_all_eq (__vector signed int a1, __vector signed int a2)
 }
 
 inline int
-vec_all_eq (__vector unsigned int a1, __vector __bool int a2)
+vec_all_eq (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6820,19 +6886,19 @@ vec_all_eq (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_all_eq (__vector __bool int a1, __vector __bool int a2)
+vec_all_eq (__vector bool int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_eq (__vector __bool int a1, __vector unsigned int a2)
+vec_all_eq (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_eq (__vector __bool int a1, __vector signed int a2)
+vec_all_eq (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -6846,13 +6912,13 @@ vec_all_eq (__vector float a1, __vector float a2)
 /* vec_all_ge */
 
 inline int
-vec_all_ge (__vector __bool char a1, __vector unsigned char a2)
+vec_all_ge (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_all_ge (__vector unsigned char a1, __vector __bool char a2)
+vec_all_ge (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ, (__vector signed char) a2, (__vector signed char) a1);
 }
@@ -6864,13 +6930,13 @@ vec_all_ge (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_all_ge (__vector __bool char a1, __vector signed char a2)
+vec_all_ge (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_all_ge (__vector signed char a1, __vector __bool char a2)
+vec_all_ge (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ, (__vector signed char) a2, (__vector signed char) a1);
 }
@@ -6882,13 +6948,13 @@ vec_all_ge (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_all_ge (__vector __bool short a1, __vector unsigned short a2)
+vec_all_ge (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_all_ge (__vector unsigned short a1, __vector __bool short a2)
+vec_all_ge (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ, (__vector signed short) a2, (__vector signed short) a1);
 }
@@ -6906,25 +6972,25 @@ vec_all_ge (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_all_ge (__vector __bool short a1, __vector signed short a2)
+vec_all_ge (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_all_ge (__vector signed short a1, __vector __bool short a2)
+vec_all_ge (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_all_ge (__vector __bool int a1, __vector unsigned int a2)
+vec_all_ge (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_all_ge (__vector unsigned int a1, __vector __bool int a2)
+vec_all_ge (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -6936,13 +7002,13 @@ vec_all_ge (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_all_ge (__vector __bool int a1, __vector signed int a2)
+vec_all_ge (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_all_ge (__vector signed int a1, __vector __bool int a2)
+vec_all_ge (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -6962,13 +7028,13 @@ vec_all_ge (__vector float a1, __vector float a2)
 /* vec_all_gt */
 
 inline int
-vec_all_gt (__vector __bool char a1, __vector unsigned char a2)
+vec_all_gt (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_gt (__vector unsigned char a1, __vector __bool char a2)
+vec_all_gt (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6980,13 +7046,13 @@ vec_all_gt (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_all_gt (__vector __bool char a1, __vector signed char a2)
+vec_all_gt (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_gt (__vector signed char a1, __vector __bool char a2)
+vec_all_gt (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_LT, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -6998,13 +7064,13 @@ vec_all_gt (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_all_gt (__vector __bool short a1, __vector unsigned short a2)
+vec_all_gt (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_gt (__vector unsigned short a1, __vector __bool short a2)
+vec_all_gt (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7016,13 +7082,13 @@ vec_all_gt (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_all_gt (__vector __bool short a1, __vector signed short a2)
+vec_all_gt (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_gt (__vector signed short a1, __vector __bool short a2)
+vec_all_gt (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_LT, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7034,13 +7100,13 @@ vec_all_gt (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_all_gt (__vector __bool int a1, __vector unsigned int a2)
+vec_all_gt (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_gt (__vector unsigned int a1, __vector __bool int a2)
+vec_all_gt (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7052,13 +7118,13 @@ vec_all_gt (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_all_gt (__vector __bool int a1, __vector signed int a2)
+vec_all_gt (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_gt (__vector signed int a1, __vector __bool int a2)
+vec_all_gt (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_LT, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7086,13 +7152,13 @@ vec_all_in (__vector float a1, __vector float a2)
 /* vec_all_le */
 
 inline int
-vec_all_le (__vector __bool char a1, __vector unsigned char a2)
+vec_all_le (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_le (__vector unsigned char a1, __vector __bool char a2)
+vec_all_le (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7104,13 +7170,13 @@ vec_all_le (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_all_le (__vector __bool char a1, __vector signed char a2)
+vec_all_le (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_le (__vector signed char a1, __vector __bool char a2)
+vec_all_le (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7122,13 +7188,13 @@ vec_all_le (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_all_le (__vector __bool short a1, __vector unsigned short a2)
+vec_all_le (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_le (__vector unsigned short a1, __vector __bool short a2)
+vec_all_le (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7140,13 +7206,13 @@ vec_all_le (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_all_le (__vector __bool short a1, __vector signed short a2)
+vec_all_le (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_le (__vector signed short a1, __vector __bool short a2)
+vec_all_le (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7158,13 +7224,13 @@ vec_all_le (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_all_le (__vector __bool int a1, __vector unsigned int a2)
+vec_all_le (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_le (__vector unsigned int a1, __vector __bool int a2)
+vec_all_le (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7176,13 +7242,13 @@ vec_all_le (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_all_le (__vector __bool int a1, __vector signed int a2)
+vec_all_le (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_le (__vector signed int a1, __vector __bool int a2)
+vec_all_le (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7202,13 +7268,13 @@ vec_all_le (__vector float a1, __vector float a2)
 /* vec_all_lt */
 
 inline int
-vec_all_lt (__vector __bool char a1, __vector unsigned char a2)
+vec_all_lt (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_all_lt (__vector unsigned char a1, __vector __bool char a2)
+vec_all_lt (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT, (__vector signed char) a2, (__vector signed char) a1);
 }
@@ -7220,13 +7286,13 @@ vec_all_lt (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_all_lt (__vector __bool char a1, __vector signed char a2)
+vec_all_lt (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_LT, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_all_lt (__vector signed char a1, __vector __bool char a2)
+vec_all_lt (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_LT, (__vector signed char) a2, (__vector signed char) a1);
 }
@@ -7238,13 +7304,13 @@ vec_all_lt (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_all_lt (__vector __bool short a1, __vector unsigned short a2)
+vec_all_lt (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_all_lt (__vector unsigned short a1, __vector __bool short a2)
+vec_all_lt (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT, (__vector signed short) a2, (__vector signed short) a1);
 }
@@ -7256,13 +7322,13 @@ vec_all_lt (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_all_lt (__vector __bool short a1, __vector signed short a2)
+vec_all_lt (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_LT, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_all_lt (__vector signed short a1, __vector __bool short a2)
+vec_all_lt (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_LT, (__vector signed short) a2, (__vector signed short) a1);
 }
@@ -7274,13 +7340,13 @@ vec_all_lt (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_all_lt (__vector __bool int a1, __vector unsigned int a2)
+vec_all_lt (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_all_lt (__vector unsigned int a1, __vector __bool int a2)
+vec_all_lt (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -7292,13 +7358,13 @@ vec_all_lt (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_all_lt (__vector __bool int a1, __vector signed int a2)
+vec_all_lt (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_LT, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_all_lt (__vector signed int a1, __vector __bool int a2)
+vec_all_lt (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_LT, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -7326,7 +7392,7 @@ vec_all_nan (__vector float a1)
 /* vec_all_ne */
 
 inline int
-vec_all_ne (__vector signed char a1, __vector __bool char a2)
+vec_all_ne (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7338,7 +7404,7 @@ vec_all_ne (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_all_ne (__vector unsigned char a1, __vector __bool char a2)
+vec_all_ne (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7350,25 +7416,25 @@ vec_all_ne (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_all_ne (__vector __bool char a1, __vector __bool char a2)
+vec_all_ne (__vector bool char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_ne (__vector __bool char a1, __vector unsigned char a2)
+vec_all_ne (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_ne (__vector __bool char a1, __vector signed char a2)
+vec_all_ne (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_all_ne (__vector signed short a1, __vector __bool short a2)
+vec_all_ne (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7380,7 +7446,7 @@ vec_all_ne (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_all_ne (__vector unsigned short a1, __vector __bool short a2)
+vec_all_ne (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7392,31 +7458,31 @@ vec_all_ne (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_all_ne (__vector __bool short a1, __vector __bool short a2)
+vec_all_ne (__vector bool short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_ne (__vector __bool short a1, __vector unsigned short a2)
+vec_all_ne (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_ne (__vector __bool short a1, __vector signed short a2)
+vec_all_ne (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_ne (__vector __pixel a1, __vector __pixel a2)
+vec_all_ne (__vector pixel a1, __vector pixel a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_all_ne (__vector signed int a1, __vector __bool int a2)
+vec_all_ne (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7428,7 +7494,7 @@ vec_all_ne (__vector signed int a1, __vector signed int a2)
 }
 
 inline int
-vec_all_ne (__vector unsigned int a1, __vector __bool int a2)
+vec_all_ne (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7440,19 +7506,19 @@ vec_all_ne (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_all_ne (__vector __bool int a1, __vector __bool int a2)
+vec_all_ne (__vector bool int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_ne (__vector __bool int a1, __vector unsigned int a2)
+vec_all_ne (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_all_ne (__vector __bool int a1, __vector signed int a2)
+vec_all_ne (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7506,7 +7572,7 @@ vec_all_numeric (__vector float a1)
 /* vec_any_eq */
 
 inline int
-vec_any_eq (__vector signed char a1, __vector __bool char a2)
+vec_any_eq (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7518,7 +7584,7 @@ vec_any_eq (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_any_eq (__vector unsigned char a1, __vector __bool char a2)
+vec_any_eq (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7530,25 +7596,25 @@ vec_any_eq (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_any_eq (__vector __bool char a1, __vector __bool char a2)
+vec_any_eq (__vector bool char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_eq (__vector __bool char a1, __vector unsigned char a2)
+vec_any_eq (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_eq (__vector __bool char a1, __vector signed char a2)
+vec_any_eq (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_eq (__vector signed short a1, __vector __bool short a2)
+vec_any_eq (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7560,7 +7626,7 @@ vec_any_eq (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_any_eq (__vector unsigned short a1, __vector __bool short a2)
+vec_any_eq (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7572,31 +7638,31 @@ vec_any_eq (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_any_eq (__vector __bool short a1, __vector __bool short a2)
+vec_any_eq (__vector bool short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_eq (__vector __bool short a1, __vector unsigned short a2)
+vec_any_eq (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_eq (__vector __bool short a1, __vector signed short a2)
+vec_any_eq (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_eq (__vector __pixel a1, __vector __pixel a2)
+vec_any_eq (__vector pixel a1, __vector pixel a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_eq (__vector signed int a1, __vector __bool int a2)
+vec_any_eq (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7608,7 +7674,7 @@ vec_any_eq (__vector signed int a1, __vector signed int a2)
 }
 
 inline int
-vec_any_eq (__vector unsigned int a1, __vector __bool int a2)
+vec_any_eq (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7620,19 +7686,19 @@ vec_any_eq (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_any_eq (__vector __bool int a1, __vector __bool int a2)
+vec_any_eq (__vector bool int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_eq (__vector __bool int a1, __vector unsigned int a2)
+vec_any_eq (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_eq (__vector __bool int a1, __vector signed int a2)
+vec_any_eq (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7646,13 +7712,13 @@ vec_any_eq (__vector float a1, __vector float a2)
 /* vec_any_ge */
 
 inline int
-vec_any_ge (__vector signed char a1, __vector __bool char a2)
+vec_any_ge (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_any_ge (__vector unsigned char a1, __vector __bool char a2)
+vec_any_ge (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
@@ -7670,19 +7736,19 @@ vec_any_ge (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_any_ge (__vector __bool char a1, __vector unsigned char a2)
+vec_any_ge (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_any_ge (__vector __bool char a1, __vector signed char a2)
+vec_any_ge (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_any_ge (__vector unsigned short a1, __vector __bool short a2)
+vec_any_ge (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
@@ -7700,31 +7766,31 @@ vec_any_ge (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_any_ge (__vector signed short a1, __vector __bool short a2)
+vec_any_ge (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_LT_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_any_ge (__vector __bool short a1, __vector unsigned short a2)
+vec_any_ge (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_any_ge (__vector __bool short a1, __vector signed short a2)
+vec_any_ge (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_any_ge (__vector signed int a1, __vector __bool int a2)
+vec_any_ge (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_any_ge (__vector unsigned int a1, __vector __bool int a2)
+vec_any_ge (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -7742,13 +7808,13 @@ vec_any_ge (__vector signed int a1, __vector signed int a2)
 }
 
 inline int
-vec_any_ge (__vector __bool int a1, __vector unsigned int a2)
+vec_any_ge (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_any_ge (__vector __bool int a1, __vector signed int a2)
+vec_any_ge (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -7762,13 +7828,13 @@ vec_any_ge (__vector float a1, __vector float a2)
 /* vec_any_gt */
 
 inline int
-vec_any_gt (__vector __bool char a1, __vector unsigned char a2)
+vec_any_gt (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_gt (__vector unsigned char a1, __vector __bool char a2)
+vec_any_gt (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7780,13 +7846,13 @@ vec_any_gt (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_any_gt (__vector __bool char a1, __vector signed char a2)
+vec_any_gt (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_gt (__vector signed char a1, __vector __bool char a2)
+vec_any_gt (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7798,13 +7864,13 @@ vec_any_gt (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_any_gt (__vector __bool short a1, __vector unsigned short a2)
+vec_any_gt (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_gt (__vector unsigned short a1, __vector __bool short a2)
+vec_any_gt (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7816,13 +7882,13 @@ vec_any_gt (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_any_gt (__vector __bool short a1, __vector signed short a2)
+vec_any_gt (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_gt (__vector signed short a1, __vector __bool short a2)
+vec_any_gt (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7834,13 +7900,13 @@ vec_any_gt (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_any_gt (__vector __bool int a1, __vector unsigned int a2)
+vec_any_gt (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_gt (__vector unsigned int a1, __vector __bool int a2)
+vec_any_gt (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7852,13 +7918,13 @@ vec_any_gt (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_any_gt (__vector __bool int a1, __vector signed int a2)
+vec_any_gt (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_gt (__vector signed int a1, __vector __bool int a2)
+vec_any_gt (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7878,13 +7944,13 @@ vec_any_gt (__vector float a1, __vector float a2)
 /* vec_any_le */
 
 inline int
-vec_any_le (__vector __bool char a1, __vector unsigned char a2)
+vec_any_le (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_le (__vector unsigned char a1, __vector __bool char a2)
+vec_any_le (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7896,13 +7962,13 @@ vec_any_le (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_any_le (__vector __bool char a1, __vector signed char a2)
+vec_any_le (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_le (__vector signed char a1, __vector __bool char a2)
+vec_any_le (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -7914,13 +7980,13 @@ vec_any_le (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_any_le (__vector __bool short a1, __vector unsigned short a2)
+vec_any_le (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_le (__vector unsigned short a1, __vector __bool short a2)
+vec_any_le (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7932,13 +7998,13 @@ vec_any_le (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_any_le (__vector __bool short a1, __vector signed short a2)
+vec_any_le (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_le (__vector signed short a1, __vector __bool short a2)
+vec_any_le (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -7950,13 +8016,13 @@ vec_any_le (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_any_le (__vector __bool int a1, __vector unsigned int a2)
+vec_any_le (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_le (__vector unsigned int a1, __vector __bool int a2)
+vec_any_le (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7968,13 +8034,13 @@ vec_any_le (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_any_le (__vector __bool int a1, __vector signed int a2)
+vec_any_le (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_le (__vector signed int a1, __vector __bool int a2)
+vec_any_le (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -7994,13 +8060,13 @@ vec_any_le (__vector float a1, __vector float a2)
 /* vec_any_lt */
 
 inline int
-vec_any_lt (__vector __bool char a1, __vector unsigned char a2)
+vec_any_lt (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_any_lt (__vector unsigned char a1, __vector __bool char a2)
+vec_any_lt (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtub_p (__CR6_EQ_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
@@ -8012,13 +8078,13 @@ vec_any_lt (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_any_lt (__vector __bool char a1, __vector signed char a2)
+vec_any_lt (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
 
 inline int
-vec_any_lt (__vector signed char a1, __vector __bool char a2)
+vec_any_lt (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpgtsb_p (__CR6_EQ_REV, (__vector signed char) a2, (__vector signed char) a1);
 }
@@ -8030,13 +8096,13 @@ vec_any_lt (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_any_lt (__vector __bool short a1, __vector unsigned short a2)
+vec_any_lt (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_any_lt (__vector unsigned short a1, __vector __bool short a2)
+vec_any_lt (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtuh_p (__CR6_EQ_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
@@ -8048,13 +8114,13 @@ vec_any_lt (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_any_lt (__vector __bool short a1, __vector signed short a2)
+vec_any_lt (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
 
 inline int
-vec_any_lt (__vector signed short a1, __vector __bool short a2)
+vec_any_lt (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpgtsh_p (__CR6_EQ_REV, (__vector signed short) a2, (__vector signed short) a1);
 }
@@ -8066,13 +8132,13 @@ vec_any_lt (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_any_lt (__vector __bool int a1, __vector unsigned int a2)
+vec_any_lt (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_any_lt (__vector unsigned int a1, __vector __bool int a2)
+vec_any_lt (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtuw_p (__CR6_EQ_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -8084,13 +8150,13 @@ vec_any_lt (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_any_lt (__vector __bool int a1, __vector signed int a2)
+vec_any_lt (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
 
 inline int
-vec_any_lt (__vector signed int a1, __vector __bool int a2)
+vec_any_lt (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpgtsw_p (__CR6_EQ_REV, (__vector signed int) a2, (__vector signed int) a1);
 }
@@ -8118,7 +8184,7 @@ vec_any_nan (__vector float a1)
 /* vec_any_ne */
 
 inline int
-vec_any_ne (__vector signed char a1, __vector __bool char a2)
+vec_any_ne (__vector signed char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -8130,7 +8196,7 @@ vec_any_ne (__vector signed char a1, __vector signed char a2)
 }
 
 inline int
-vec_any_ne (__vector unsigned char a1, __vector __bool char a2)
+vec_any_ne (__vector unsigned char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
@@ -8142,25 +8208,25 @@ vec_any_ne (__vector unsigned char a1, __vector unsigned char a2)
 }
 
 inline int
-vec_any_ne (__vector __bool char a1, __vector __bool char a2)
+vec_any_ne (__vector bool char a1, __vector bool char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_ne (__vector __bool char a1, __vector unsigned char a2)
+vec_any_ne (__vector bool char a1, __vector unsigned char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_ne (__vector __bool char a1, __vector signed char a2)
+vec_any_ne (__vector bool char a1, __vector signed char a2)
 {
   return __builtin_altivec_vcmpequb_p (__CR6_LT_REV, (__vector signed char) a1, (__vector signed char) a2);
 }
 
 inline int
-vec_any_ne (__vector signed short a1, __vector __bool short a2)
+vec_any_ne (__vector signed short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -8172,7 +8238,7 @@ vec_any_ne (__vector signed short a1, __vector signed short a2)
 }
 
 inline int
-vec_any_ne (__vector unsigned short a1, __vector __bool short a2)
+vec_any_ne (__vector unsigned short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
@@ -8184,31 +8250,31 @@ vec_any_ne (__vector unsigned short a1, __vector unsigned short a2)
 }
 
 inline int
-vec_any_ne (__vector __bool short a1, __vector __bool short a2)
+vec_any_ne (__vector bool short a1, __vector bool short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_ne (__vector __bool short a1, __vector unsigned short a2)
+vec_any_ne (__vector bool short a1, __vector unsigned short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_ne (__vector __bool short a1, __vector signed short a2)
+vec_any_ne (__vector bool short a1, __vector signed short a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_ne (__vector __pixel a1, __vector __pixel a2)
+vec_any_ne (__vector pixel a1, __vector pixel a2)
 {
   return __builtin_altivec_vcmpequh_p (__CR6_LT_REV, (__vector signed short) a1, (__vector signed short) a2);
 }
 
 inline int
-vec_any_ne (__vector signed int a1, __vector __bool int a2)
+vec_any_ne (__vector signed int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -8220,7 +8286,7 @@ vec_any_ne (__vector signed int a1, __vector signed int a2)
 }
 
 inline int
-vec_any_ne (__vector unsigned int a1, __vector __bool int a2)
+vec_any_ne (__vector unsigned int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -8232,19 +8298,19 @@ vec_any_ne (__vector unsigned int a1, __vector unsigned int a2)
 }
 
 inline int
-vec_any_ne (__vector __bool int a1, __vector __bool int a2)
+vec_any_ne (__vector bool int a1, __vector bool int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_ne (__vector __bool int a1, __vector unsigned int a2)
+vec_any_ne (__vector bool int a1, __vector unsigned int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
 
 inline int
-vec_any_ne (__vector __bool int a1, __vector signed int a2)
+vec_any_ne (__vector bool int a1, __vector signed int a2)
 {
   return __builtin_altivec_vcmpequw_p (__CR6_LT_REV, (__vector signed int) a1, (__vector signed int) a2);
 }
@@ -8313,31 +8379,31 @@ vec_any_out (__vector float a1, __vector float a2)
 /* Helper macros.  */
 
 #define __un_args_eq(xtype, x)						\
-	__builtin_types_compatible_p (xtype, typeof (x))
+	__builtin_types_compatible_p (xtype, __typeof__ (x))
 
 #define __bin_args_eq(xtype, x, ytype, y)				\
-	(__builtin_types_compatible_p (xtype, typeof (x))		\
-	 && __builtin_types_compatible_p (ytype, typeof (y)))
+	(__builtin_types_compatible_p (xtype, __typeof__ (x))		\
+	 && __builtin_types_compatible_p (ytype, __typeof__ (y)))
 
 #define __tern_args_eq(xtype, x, ytype, y, ztype, z)                    \
-        (__builtin_types_compatible_p (xtype, typeof (x))               \
-         && __builtin_types_compatible_p (ytype, typeof (y))		\
-	 && __builtin_types_compatible_p (ztype, typeof (z)))
+        (__builtin_types_compatible_p (xtype, __typeof__ (x))               \
+         && __builtin_types_compatible_p (ytype, __typeof__ (y))		\
+	 && __builtin_types_compatible_p (ztype, __typeof__ (z)))
 
 #define __ch(x, y, z)	__builtin_choose_expr (x, y, z)
 
 #define vec_step(t) \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector signed int), 4,      \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector unsigned int), 4,    \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector __bool int), 4,        \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector signed short), 8,    \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector unsigned short), 8,  \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector __bool short), 8,      \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector __pixel), 8,           \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector signed char), 16,    \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector unsigned char), 16,  \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector __bool char), 16,      \
-  __ch (__builtin_types_compatible_p (typeof (t), __vector float), 4,           \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector signed int), 4,      \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector unsigned int), 4,    \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector __bool int), 4,        \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector signed short), 8,    \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector unsigned short), 8,  \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector __bool short), 8,      \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector __pixel), 8,           \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector signed char), 16,    \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector unsigned char), 16,  \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector __bool char), 16,      \
+  __ch (__builtin_types_compatible_p (__typeof__ (t), __vector float), 4,           \
   __builtin_altivec_compiletime_error ("vec_step"))))))))))))
 
 #define vec_abs(a) \

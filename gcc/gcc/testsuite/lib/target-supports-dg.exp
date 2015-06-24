@@ -17,16 +17,14 @@
 # If this target does not support weak symbols, skip this test.
 
 proc dg-require-weak { args } {
-    upvar dg-do-what dg-do-what
-    upvar name name
-
     set weak_available [ check_weak_available ]
     if { $weak_available == -1 } {
+	upvar name name
 	unresolved "$name"
     }
     if { $weak_available != 1 } {
+	upvar dg-do-what dg-do-what
 	set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
-	return
     }
 }
 
@@ -34,16 +32,14 @@ proc dg-require-weak { args } {
 # test.
 
 proc dg-require-visibility { args } {
-    upvar dg-do-what dg-do-what
-    upvar name name
-
-    set visibility_available [ check_visibility_available ]
+    set visibility_available [ check_visibility_available [lindex $args 1 ] ]
     if { $visibility_available == -1 } {
+	upvar name name
 	unresolved "$name"
     }
     if { $visibility_available != 1 } {
+	upvar dg-do-what dg-do-what
 	set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
-	return
     }
 }
 
@@ -51,16 +47,14 @@ proc dg-require-visibility { args } {
 # test.
 
 proc dg-require-alias { args } {
-    upvar dg-do-what dg-do-what
-    upvar name name
-
     set alias_available [ check_alias_available ]
     if { $alias_available == -1 } {
+	upvar name name
 	unresolved "$name"
     }
     if { $alias_available < 2 } {
+	upvar dg-do-what dg-do-what
 	set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
-	return
     }
 }
 
@@ -71,7 +65,6 @@ proc dg-require-gc-sections { args } {
     if { ![ check_gc_sections_available ] } {
 	upvar dg-do-what dg-do-what
 	set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
-	return
     }
 }
 
@@ -81,16 +74,17 @@ proc dg-require-profiling { args } {
     if { ![ check_profiling_available ${args} ] } {
 	upvar dg-do-what dg-do-what
 	set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
-	return
     }
 }
 
 # If this target does not support DLL attributes skip this test.
 
-proc dg-require-dll { args } { 
+proc dg-require-dll { args } {
     global target_triplet
-    # As a special case, the mcore-*-elf supports dllimport/dllexport.
-    if { [string match "mcore-*-elf" $target_triplet] } {
+    # As a special case, the mcore-*-elf supports these attributes.
+    # All Symbian OS targets also support these attributes.
+    if { [string match "mcore-*-elf" $target_triplet]
+         || [string match "*-*-symbianelf" $target_triplet]} {
 	return
     }
     # PE/COFF targets support dllimport/dllexport.
@@ -102,15 +96,20 @@ proc dg-require-dll { args } {
     set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
 }
 
+proc dg-require-iconv { args } {
+    if { ![ check_iconv_available ${args} ] } {
+	upvar dg-do-what dg-do-what
+        set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
+    }
+}
+
 # If this target does not support named sections skip this test.
 
 proc dg-require-named-sections { args } {
-   upvar name name
-
-   if { ![ check_named_sections_available ] } {
-       upvar dg-do-what dg-do-what
-       set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
-   }
+    if { ![ check_named_sections_available ] } {
+	upvar dg-do-what dg-do-what
+        set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
+    }
 }
 
 # If the target does not match the required effective target, skip this test.
@@ -118,6 +117,24 @@ proc dg-require-named-sections { args } {
 proc dg-require-effective-target { args } {
     set args [lreplace $args 0 0]
     if { ![is-effective-target [lindex $args 0]] } {
+	upvar dg-do-what dg-do-what
+        set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
+    }
+}
+
+# If this target does not have fork, skip this test.
+
+proc dg-require-fork { args } {
+    if { ![check_fork_available] } {
+	upvar dg-do-what dg-do-what
+        set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
+    }
+}
+
+# If this target does not have mkfifo, skip this test.
+
+proc dg-require-mkfifo { args } {
+    if { ![check_mkfifo_available] } {
 	upvar dg-do-what dg-do-what
         set dg-do-what [list [lindex ${dg-do-what} 0] "N" "P"]
     }
@@ -210,6 +227,37 @@ proc dg-xfail-if { args } {
     if { [dg-process-target $selector] == "S" } {
 	global compiler_conditional_xfail_data
 	set compiler_conditional_xfail_data [lreplace $args 1 1 "*-*-*"]
+    }
+}
+
+# Record whether the program is expected to return a nonzero status.
+
+set shouldfail 0
+
+proc dg-shouldfail { args } {
+    # Don't bother if we're already skipping the test.
+    upvar dg-do-what dg-do-what
+    if { [lindex ${dg-do-what} 1] == "N" } {
+      return
+    }
+
+    global shouldfail
+
+    set args [lreplace $args 0 0]
+    if { [llength $args] > 1 } {
+	set selector [list target [lindex $args 1]]
+	if { [dg-process-target $selector] == "S" } {
+	    # The target matches, now check the flags.  These variables
+	    # are defined in DejaGnu's dg-test, needed by check-flags.
+	    upvar dg-extra-tool-flags dg-extra-tool-flags
+	    upvar tool_flags tool_flags
+
+	    if [check-flags $args] {
+		set shouldfail 1
+	    }
+	}
+    } else {
+	set shouldfail 1
     }
 }
 

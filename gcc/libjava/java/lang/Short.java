@@ -1,5 +1,5 @@
 /* Short.java -- object wrapper for short
-   Copyright (C) 1998, 2001, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1998, 2001, 2002, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -47,7 +47,7 @@ package java.lang;
  *
  * @author Paul Fisher
  * @author John Keiser
- * @author Eric Blake <ebb9@email.byu.edu>
+ * @author Eric Blake (ebb9@email.byu.edu)
  * @since 1.1
  * @status updated to 1.4
  */
@@ -60,13 +60,13 @@ public final class Short extends Number implements Comparable
 
   /**
    * The minimum value a <code>short</code> can represent is -32768 (or
-   * -2<sup>15</sup).
+   * -2<sup>15</sup>).
    */
   public static final short MIN_VALUE = -32768;
 
   /**
    * The minimum value a <code>short</code> can represent is 32767 (or
-   * 2<sup>15</sup).
+   * 2<sup>15</sup>).
    */
   public static final short MAX_VALUE = 32767;
 
@@ -144,7 +144,7 @@ public final class Short extends Number implements Comparable
    *
    * @param s the <code>String</code> to convert
    * @param radix the radix (base) to use in the conversion
-   * @return the <code>String</code> argument converted to </code>short</code>
+   * @return the <code>String</code> argument converted to <code>short</code>
    * @throws NumberFormatException if <code>s</code> cannot be parsed as a
    *         <code>short</code>
    */

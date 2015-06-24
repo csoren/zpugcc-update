@@ -1,6 +1,6 @@
 /* BackingStoreException.java - chained exception thrown when backing store
    fails
-   Copyright (C) 2001, 2002 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,9 +38,9 @@ exception statement from your version. */
 
 package java.util.prefs;
 
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
 import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 /**
  * Chained exception thrown when backing store fails. This exception is
@@ -52,7 +52,7 @@ import java.io.NotSerializableException;
  * <p>Note that although this class inherits the Serializable interface, an
  * attempt to serialize will fail with a <code>NotSerializableException</code>.
  *
- * @author Mark Wielaard <mark@klomp.org>
+ * @author Mark Wielaard (mark@klomp.org)
  * @since 1.4
  * @status updated to 1.4
  */

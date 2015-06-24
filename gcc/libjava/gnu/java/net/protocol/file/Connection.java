@@ -37,8 +37,11 @@ exception statement from your version.  */
 
 package gnu.java.net.protocol.file;
 
+import gnu.java.security.action.GetPropertyAction;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -50,6 +53,11 @@ import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.Permission;
+import java.security.AccessController;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.net.MalformedURLException;
 
 /**
  * This subclass of java.net.URLConnection models a URLConnection via
@@ -66,6 +74,15 @@ public class Connection extends URLConnection
    */
   private static final String DEFAULT_PERMISSION = "read";
 
+  /**
+   * HTTP-style DateFormat, used to format the last-modified header.
+   */
+  private static SimpleDateFormat dateFormat
+    = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss 'GMT'",
+                           new Locale ("En", "Us", "Unix"));
+
+  private static String lineSeparator;
+  
   /**
    * This is a File object for this connection
    */
@@ -97,6 +114,54 @@ public class Connection extends URLConnection
   }
   
   /**
+   * Unquote "%" + hex quotes characters
+   *
+   * @param str The string to unquote or null.
+   *
+   * @return The unquoted string or null if str was null.
+   *
+   * @exception MalformedURLException If the given string contains invalid
+   * escape sequences.
+   *
+   * Sadly the same as URI.unquote, but there's nothing we can do to
+   * make it accessible.
+   *
+   */
+  public static String unquote(String str) throws MalformedURLException
+  {
+    if (str == null)
+      return null;
+    byte[] buf = new byte[str.length()];
+    int pos = 0;
+    for (int i = 0; i < str.length(); i++)
+      {
+	char c = str.charAt(i);
+	if (c > 127)
+	  throw new MalformedURLException(str + " : Invalid character");
+	if (c == '%')
+	  {
+	    if (i + 2 >= str.length())
+	      throw new MalformedURLException(str + " : Invalid quoted character");
+	    int hi = Character.digit(str.charAt(++i), 16);
+	    int lo = Character.digit(str.charAt(++i), 16);
+	    if (lo < 0 || hi < 0)
+	      throw new MalformedURLException(str + " : Invalid quoted character");
+	    buf[pos++] = (byte) (hi * 16 + lo);
+	  }
+	else
+	  buf[pos++] = (byte) c;
+      }
+    try
+      {
+	return new String(buf, 0, pos, "utf-8");
+      }
+    catch (java.io.UnsupportedEncodingException x2)
+      {
+	throw (Error) new InternalError().initCause(x2);
+      }
+  }
+
+  /**
    * "Connects" to the file by opening it.
    */
   public void connect() throws IOException
@@ -106,12 +171,39 @@ public class Connection extends URLConnection
       return;
     
     // If not connected, then file needs to be openned.
-    file = new File (getURL().getFile());
-    if (doInput)
-      inputStream = new BufferedInputStream(new FileInputStream(file));
+    file = new File (unquote(getURL().getFile()));
+
+    if (! file.isDirectory())
+      {
+	if (doInput)
+	  inputStream = new BufferedInputStream(new FileInputStream(file));
     
-    if (doOutput)
-      outputStream = new BufferedOutputStream(new FileOutputStream(file));
+	if (doOutput)
+	  outputStream = new BufferedOutputStream(new FileOutputStream(file));
+      }
+    else
+      {
+	if (doInput)
+	  {
+	    if (lineSeparator == null)
+	      {
+		GetPropertyAction getProperty = new GetPropertyAction("line.separator");
+		lineSeparator = (String) AccessController.doPrivileged(getProperty);
+	      }
+	    
+	    StringBuffer sb = new StringBuffer();
+	    String[] files = file.list();
+
+	    for (int index = 0; index < files.length; ++index)
+	       sb.append(files[index]).append(lineSeparator);
+
+	    inputStream = new ByteArrayInputStream(sb.toString().getBytes());
+	  }
+
+	if (doOutput)
+	  throw new ProtocolException
+	    ("file: protocol does not support output on directories");
+      }
     
     connected = true;
   }
@@ -173,6 +265,35 @@ public class Connection extends URLConnection
       {
 	return -1;
       }
+  }
+  
+  /**
+   *  Get an http-style header field. Just handle a few common ones. 
+   */
+  public String getHeaderField(String field)
+  {
+    try
+      {
+	if (!connected)
+	  connect();
+
+	if (field.equals("content-type"))
+          return guessContentTypeFromName(file.getName());
+	else if (field.equals("content-length"))
+          return Long.toString(file.length());
+	else if (field.equals("last-modified"))
+	  {
+	    synchronized (dateFormat)
+	      {
+        	return dateFormat.format(new Date(file.lastModified()));
+	      }
+	  }
+      }
+    catch (IOException e)
+      {
+        // Fall through.
+      }
+    return null;
   }
 
   /**

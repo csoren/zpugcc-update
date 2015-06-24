@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler,
    for IBM RS/6000 POWER running AIX V5.2.
-   Copyright (C) 2002, 2003 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
    Contributed by David Edelsohn (edelsohn@gnu.org).
 
    This file is part of GCC.
@@ -70,6 +70,7 @@ do {									\
   %{!mpower64: %(asm_default)}}} \
 %{mcpu=power3: -m620} \
 %{mcpu=power4: -m620} \
+%{mcpu=power5: -m620} \
 %{mcpu=powerpc: -mppc} \
 %{mcpu=rs64a: -mppc} \
 %{mcpu=603: -m603} \
@@ -77,27 +78,22 @@ do {									\
 %{mcpu=604: -m604} \
 %{mcpu=604e: -m604} \
 %{mcpu=620: -m620} \
-%{mcpu=630: -m620}"
+%{mcpu=630: -m620} \
+%{mcpu=970: -m620} \
+%{mcpu=G5: -m620}"
 
 #undef	ASM_DEFAULT_SPEC
 #define ASM_DEFAULT_SPEC "-mppc"
 
 #undef TARGET_OS_CPP_BUILTINS
-#define TARGET_OS_CPP_BUILTINS()      \
-  do                                  \
-    {                                 \
-      builtin_define ("_IBMR2");      \
-      builtin_define ("_POWER");      \
-      builtin_define ("_LONG_LONG");  \
-      builtin_define ("_AIX");        \
-      builtin_define ("_AIX32");      \
-      builtin_define ("_AIX41");      \
-      builtin_define ("_AIX43");      \
-      builtin_define ("_AIX51");      \
-      builtin_define ("_AIX52");      \
-      builtin_assert ("system=unix"); \
-      builtin_assert ("system=aix");  \
-    }                                 \
+#define TARGET_OS_CPP_BUILTINS()     \
+  do                                 \
+    {                                \
+      builtin_define ("_AIX43");     \
+      builtin_define ("_AIX51");     \
+      builtin_define ("_AIX52");     \
+      TARGET_OS_AIX_CPP_BUILTINS (); \
+    }                                \
   while (0)
 
 #undef CPP_SPEC
@@ -108,13 +104,10 @@ do {									\
   %{pthread: -D_THREAD_SAFE}"
 
 /* The GNU C++ standard library requires that these macros be 
-   defined.  */
+   defined.  Synchronize with libstdc++ os_defines.h.  */
 #undef CPLUSPLUS_CPP_SPEC                       
 #define CPLUSPLUS_CPP_SPEC			\
-  "-D_XOPEN_SOURCE=500				\
-   -D_XOPEN_SOURCE_EXTENDED=1			\
-   -D_LARGE_FILE_API				\
-   -D_ALL_SOURCE				\
+  "-D_ALL_SOURCE				\
    %{maix64: -D__64BIT__}			\
    %{mpe: -I/usr/lpp/ppe.poe/include}		\
    %{pthread: -D_THREAD_SAFE}"
@@ -173,7 +166,6 @@ do {									\
 /* Width of wchar_t in bits.  */
 #undef  WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE (!TARGET_64BIT ? 16 : 32)
-#define MAX_WCHAR_TYPE_SIZE 32
 
 /* AIX V5 uses PowerPC nop (ori 0,0,0) instruction as call glue for PowerPC
    and "cror 31,31,31" for POWER architecture.  */
@@ -196,4 +188,3 @@ do {									\
 #ifndef _AIX52
 extern long long int    atoll(const char *);  
 #endif
-

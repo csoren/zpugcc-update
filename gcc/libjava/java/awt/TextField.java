@@ -1,5 +1,5 @@
 /* TextField.java -- A one line text entry field
-   Copyright (C) 1999, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2002, 2004  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,9 +40,12 @@ package java.awt;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.peer.TextFieldPeer;
 import java.awt.peer.ComponentPeer;
+import java.awt.peer.TextFieldPeer;
 import java.util.EventListener;
+
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleStateSet;
 
 /**
   * This class implements a single line text entry field widget
@@ -212,11 +215,7 @@ getEchoChar()
 public void
 setEchoChar(char echoChar)
 {
-  this.echoChar = echoChar;
-
-  TextFieldPeer tfp = (TextFieldPeer)getPeer();
-  if (tfp != null)
-    tfp.setEchoChar(echoChar);
+  setEchoCharacter (echoChar);
 }
 
 /*************************************************************************/
@@ -233,7 +232,11 @@ setEchoChar(char echoChar)
 public void
 setEchoCharacter(char echoChar)
 {
-  setEchoChar(echoChar);
+  this.echoChar = echoChar;
+
+  TextFieldPeer peer = (TextFieldPeer) getPeer ();
+  if (peer != null)
+    peer.setEchoChar (echoChar);
 }
 
 /*************************************************************************/
@@ -264,7 +267,7 @@ echoCharIsSet()
 public Dimension
 getMinimumSize()
 {
-  return(getMinimumSize(getColumns()));
+  return getMinimumSize (getColumns ());
 }
 
 /*************************************************************************/
@@ -278,11 +281,7 @@ getMinimumSize()
 public Dimension
 getMinimumSize(int columns)
 {
-  TextFieldPeer tfp = (TextFieldPeer)getPeer();
-  if (tfp == null)
-    return(null); // FIXME: What do we do if there is no peer?
-
-  return(tfp.getMinimumSize(columns));
+  return minimumSize (columns);
 }
 
 /*************************************************************************/
@@ -292,13 +291,13 @@ getMinimumSize(int columns)
   *
   * @return The minimum size for this text field.
   *
-  * @deprecated This method is depcreated in favor of
+  * @deprecated This method is deprecated in favor of
   * <code>getMinimumSize()</code>.
   */
 public Dimension
 minimumSize()
 {
-  return(getMinimumSize(getColumns()));
+  return minimumSize (getColumns ());
 }
 
 /*************************************************************************/
@@ -315,7 +314,11 @@ minimumSize()
 public Dimension
 minimumSize(int columns)
 {
-  return(getMinimumSize(columns));
+  TextFieldPeer peer = (TextFieldPeer) getPeer ();
+  if (peer == null)
+    return null; // FIXME: What do we do if there is no peer?
+
+  return peer.getMinimumSize (columns);
 }
 
 /*************************************************************************/
@@ -328,7 +331,7 @@ minimumSize(int columns)
 public Dimension
 getPreferredSize()
 {
-  return(getPreferredSize(getColumns()));
+  return getPreferredSize (getColumns ());
 }
 
 /*************************************************************************/
@@ -342,12 +345,7 @@ getPreferredSize()
 public Dimension
 getPreferredSize(int columns)
 {
-  TextFieldPeer tfp = (TextFieldPeer)getPeer();
-  if (tfp == null)
-    {
-      return new Dimension(0, 0);
-    }
-  return(tfp.getPreferredSize(columns));
+  return preferredSize (columns);
 }
 
 /*************************************************************************/
@@ -363,7 +361,7 @@ getPreferredSize(int columns)
 public Dimension
 preferredSize()
 {
-  return(getPreferredSize(getColumns()));
+  return preferredSize (getColumns ());
 }
 
 /*************************************************************************/
@@ -380,7 +378,11 @@ preferredSize()
 public Dimension
 preferredSize(int columns)
 {
-  return(getPreferredSize(columns));
+  TextFieldPeer peer = (TextFieldPeer) getPeer ();
+  if (peer == null)
+    return new Dimension (0, 0);
+
+  return peer.getPreferredSize (columns);
 }
 
 /*************************************************************************/
@@ -518,4 +520,22 @@ paramString()
   {
     return (ActionListener[]) getListeners (ActionListener.class);
   }
+
+  protected class AccessibleAWTTextField extends AccessibleAWTTextComponent
+  {
+    protected AccessibleAWTTextField()
+    {
+    }
+    
+    public AccessibleStateSet getAccessibleStateSet()
+    {
+      return super.getAccessibleStateSet();
+    }
+  }
+  
+  public AccessibleContext getAccessibleContext()
+  {
+    return new AccessibleAWTTextField();
+  }
+
 } // class TextField

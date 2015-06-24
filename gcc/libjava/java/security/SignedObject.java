@@ -98,7 +98,7 @@ import java.io.Serializable;
  * <p>The signature algorithm can be, among others, the NIST standard <i>DSS</i>,
  * using <i>DSA</i> and <i>SHA-1</i>. The algorithm is specified using the same
  * convention as that for signatures. The <i>DSA</i> algorithm using the
- * </i>SHA-1</i> message digest algorithm can be specified, for example, as
+ * <i>SHA-1</i> message digest algorithm can be specified, for example, as
  * <code>"SHA/DSA"</code> or <code>"SHA-1/DSA"</code> (they are equivalent). In
  * the case of <i>RSA</i>, there are multiple choices for the message digest
  * algorithm, so the signing algorithm could be specified as, for example,
@@ -123,7 +123,7 @@ import java.io.Serializable;
  *  of signatures, resembling a chain of authorization and delegation.</li>
  * </ul>
  *
- * @author Mark Benvenuto <ivymccough@worldnet.att.net>
+ * @author Mark Benvenuto (ivymccough@worldnet.att.net)
  * @since 1.2
  * @see Signature
  */

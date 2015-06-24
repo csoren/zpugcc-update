@@ -1,4 +1,4 @@
-# Copyright (C) 1992, 1993, 1994, 1996, 1997, 1999, 2000, 2001, 2003 Free Software Foundation, Inc.
+# Copyright (C) 1992, 1993, 1994, 1996, 1997, 1999, 2000, 2001, 2003, 2004 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,23 +40,23 @@ load_lib gcc-defs.exp
 proc default_gcc_version { } {
     global GCC_UNDER_TEST
 
-    gcc_init;
+    gcc_init
 
     # ignore any arguments after the command
     set compiler [lindex $GCC_UNDER_TEST 0]
 
     if ![is_remote host] {
-	set compiler_name [which $compiler];
+	set compiler_name [which $compiler]
     } else {
-	set compiler_name $compiler;
+	set compiler_name $compiler
     }
 
     # verify that the compiler exists
     if { $compiler_name != 0 } then {
 	set tmp [remote_exec host "$compiler -v"]
-	set status [lindex $tmp 0];
-	set output [lindex $tmp 1];
-	regexp "version\[^\n\r\]*" $output version
+	set status [lindex $tmp 0]
+	set output [lindex $tmp 1]
+	regexp " version \[^\n\r\]*" $output version
 	if { $status == 0 && [info exists version] } then {
 	    clone_output "$compiler_name $version\n"
 	} else {
@@ -73,7 +73,7 @@ proc default_gcc_version { } {
 #
 
 proc gcc_version { } {
-    default_gcc_version;
+    default_gcc_version
 }
 
 #
@@ -97,7 +97,7 @@ proc gcc_init { args } {
 
     if ![info exists GCC_UNDER_TEST] {
 	if [info exists TOOL_EXECUTABLE] {
-	    set GCC_UNDER_TEST $TOOL_EXECUTABLE;
+	    set GCC_UNDER_TEST $TOOL_EXECUTABLE
 	} else {
 	    set GCC_UNDER_TEST "[find_gcc]"
 	}
@@ -106,18 +106,8 @@ proc gcc_init { args } {
     if ![info exists tmpdir] then {
 	set tmpdir /tmp
     }
-    if {[target_info needs_status_wrapper] != "" && \
-	    [target_info needs_status_wrapper] != "0" && \
-	    ![info exists gluefile]} {
-	set gluefile ${tmpdir}/gcc-testglue.o;
-	set result [build_wrapper $gluefile];
-	if { $result != "" } {
-	    set gluefile [lindex $result 0];
-	    set wrap_flags [lindex $result 1];
-	} else {
-	    unset gluefile
-	}
-    }
+
+    gcc_maybe_build_wrapper "${tmpdir}/gcc-testglue.o"
 }
 
 #
@@ -125,8 +115,8 @@ proc gcc_init { args } {
 #
 
 proc gcc_target_compile { source dest type options } {
-    global tmpdir;
-    global gluefile wrap_flags;
+    global tmpdir
+    global gluefile wrap_flags
     global GCC_UNDER_TEST
     global TOOL_OPTIONS
 	
@@ -149,7 +139,7 @@ proc gcc_target_compile { source dest type options } {
     # TOOL_OPTIONS must come first, so that it doesn't override testcase
     # specific options.
     if [info exists TOOL_OPTIONS] {
-	set options [concat "additional_flags=$TOOL_OPTIONS" $options];
+	set options [concat "{additional_flags=$TOOL_OPTIONS}" $options]
     }
     if [target_info exists gcc,timeout] {
 	lappend options "timeout=[target_info gcc,timeout]"

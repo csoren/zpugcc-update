@@ -1,5 +1,5 @@
 /* JFileChooser.java --
-   Copyright (C) 2002 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Vector;
+
 import javax.accessibility.Accessible;
 import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleRole;
@@ -59,53 +60,32 @@ import javax.swing.plaf.FileChooserUI;
  */
 public class JFileChooser extends JComponent implements Accessible {
 
-	//-------------------------------------------------------------
-	// Classes ----------------------------------------------------
-	//-------------------------------------------------------------
+  private static final long serialVersionUID = 3162921138695327837L;
 
-	/**
-	 * AccessibleJFileChooser
-	 */
-	protected class AccessibleJFileChooser extends AccessibleJComponent {
+  /**
+   * AccessibleJFileChooser
+   */
+  protected class AccessibleJFileChooser extends AccessibleJComponent
+  {
+    private static final long serialVersionUID = 8205148454060169244L;
 
-		//-------------------------------------------------------------
-		// Variables --------------------------------------------------
-		//-------------------------------------------------------------
+    /**
+     * Constructor AccessibleJFileChooser
+     * @param component TODO
+     */
+    protected AccessibleJFileChooser()
+    {
+    }
 
-
-		//-------------------------------------------------------------
-		// Initialization ---------------------------------------------
-		//-------------------------------------------------------------
-
-		/**
-		 * Constructor AccessibleJFileChooser
-		 * @param component TODO
-		 */
-		protected AccessibleJFileChooser(JFileChooser component) {
-			super(component);
-			// TODO
-		} // AccessibleJFileChooser()
-
-
-		//-------------------------------------------------------------
-		// Methods ----------------------------------------------------
-		//-------------------------------------------------------------
-
-		/**
-		 * getAccessibleRole
-		 * @returns AccessibleRole
-		 */
-		public AccessibleRole getAccessibleRole() {
-			return AccessibleRole.FILE_CHOOSER;
-		} // getAccessibleRole()
-
-
-	} // AccessibleJFileChooser
-
-
-	//-------------------------------------------------------------
-	// Variables --------------------------------------------------
-	//-------------------------------------------------------------
+    /**
+     * getAccessibleRole
+     * @return AccessibleRole
+     */
+    public AccessibleRole getAccessibleRole()
+    {
+      return AccessibleRole.FILE_CHOOSER;
+    }
+  }
 
 	/**
 	 * uiClassID
@@ -542,7 +522,7 @@ public class JFileChooser extends JComponent implements Accessible {
 	 * @returns int
 	 */
 	public int showOpenDialog(Component parent) {
-		return 0; // TODO
+		return CANCEL_OPTION; // TODO
 	} // showOpenDialog()
 
 	/**
@@ -551,7 +531,7 @@ public class JFileChooser extends JComponent implements Accessible {
 	 * @returns int
 	 */
 	public int showSaveDialog(Component parent) {
-		return 0; // TODO
+		return CANCEL_OPTION; // TODO
 	} // showSaveDialog()
 
 	/**
@@ -561,7 +541,7 @@ public class JFileChooser extends JComponent implements Accessible {
 	 * @returns int
 	 */
 	public int showDialog(Component parent, String approveButtonText) {
-		return 0; // TODO
+		return CANCEL_OPTION; // TODO
 	} // showDialog()
 
 	/**
@@ -906,17 +886,24 @@ public class JFileChooser extends JComponent implements Accessible {
 	 * addActionListener
 	 * @param listener TODO
 	 */
-	public void addActionListener(ActionListener listener) {
-		// TODO
-	} // addActionListener()
+	public void addActionListener(ActionListener listener)
+	{
+		listenerList.add (ActionListener.class, listener);
+	}
 
 	/**
 	 * removeActionListener
 	 * @param listener TODO
 	 */
-	public void removeActionListener(ActionListener listener) {
-		// TODO
-	} // removeActionListener()
+	public void removeActionListener(ActionListener listener)
+	{
+		listenerList.remove (ActionListener.class, listener);
+	}
+
+	public ActionListener[] getActionListeners()
+	{
+		return (ActionListener[]) listenerList.getListeners (ActionListener.class);
+	}
 
 	/**
 	 * fireActionPerformed
@@ -958,16 +945,15 @@ public class JFileChooser extends JComponent implements Accessible {
 		return null; // TODO
 	} // paramString()
 
-	/**
-	 * getAccessibleContext
-	 * @returns AccessibleContext
-	 */
-	public AccessibleContext getAccessibleContext() {
-		if (accessibleContext == null) {
-			accessibleContext = new AccessibleJFileChooser(this);
-		} // if
-		return accessibleContext;
-	} // getAccessibleContext()
+  /**
+   * getAccessibleContext
+   * @returns AccessibleContext
+   */
+  public AccessibleContext getAccessibleContext()
+  {
+    if (accessibleContext == null)
+      accessibleContext = new AccessibleJFileChooser();
 
-
-} // JFileChooser
+    return accessibleContext;
+  }
+}

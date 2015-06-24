@@ -1,5 +1,6 @@
 /* Prototypes for m32r.c functions used in the md file & elsewhere.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -34,11 +35,6 @@ extern void   m32r_load_pic_register (void);
 
 #ifdef TREE_CODE
 extern enum m32r_function_type m32r_compute_function_type (tree);
-
-#ifdef HAVE_MACHINE_MODES
-extern void   m32r_setup_incoming_varargs (CUMULATIVE_ARGS *, Mmode, tree, int *, int);
-extern int    function_arg_partial_nregs (CUMULATIVE_ARGS *, Mmode, tree, int);
-#endif
 #endif /* TREE_CODE */
 
 #ifdef RTX_CODE
@@ -51,7 +47,7 @@ extern void   m32r_initialize_trampoline (rtx, rtx, rtx);
 extern int    zero_and_one (rtx, rtx);
 extern char * emit_cond_move (rtx *, rtx);
 extern void   m32r_output_block_move (rtx, rtx *);
-extern int   m32r_expand_block_move (rtx *);
+extern int    m32r_expand_block_move (rtx *);
 extern void   m32r_print_operand (FILE *, rtx, int);
 extern void   m32r_print_operand_address (FILE *, rtx);
 extern int    m32r_not_same_reg (rtx, rtx);
@@ -94,10 +90,6 @@ extern int    reg_or_zero_operand (rtx, Mmode);
 
 #endif /* HAVE_MACHINE_MODES */
 
-#ifdef TREE_CODE
-extern struct rtx_def * m32r_va_arg (tree, tree);
-extern int m32r_pass_by_reference (tree);
-#endif /* TREE_CODE */
 #endif /* RTX_CODE */
 
 #undef  Mmode

@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler. Matsushita MN10300 series
-   Copyright (C) 2000, 2003 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2003, 2004 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
 This file is part of GCC.
@@ -28,6 +28,7 @@ extern void mn10300_va_start (tree, rtx);
 extern struct rtx_def *legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx legitimize_pic_address (rtx, rtx);
 extern int legitimate_pic_operand_p (rtx);
+extern bool legitimate_address_p (enum machine_mode, rtx, int);
 extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
 extern void mn10300_print_reg_list (FILE *, int);
@@ -49,12 +50,8 @@ extern bool mn10300_wide_const_load_uses_clr (rtx operands[2]);
 #ifdef TREE_CODE
 extern struct rtx_def *function_arg (CUMULATIVE_ARGS *,
 				     enum machine_mode, tree, int);
-extern int function_arg_partial_nregs (CUMULATIVE_ARGS *,
-				       enum machine_mode, tree, int);
-extern struct rtx_def *mn10300_va_arg (tree, tree);
 #endif /* TREE_CODE */
 
-extern struct rtx_def *mn10300_builtin_saveregs (void);
 extern void expand_prologue (void);
 extern void expand_epilogue (void);
 extern int initial_offset (int, int);

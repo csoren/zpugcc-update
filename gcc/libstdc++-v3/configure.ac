@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script, like so:
 # aclocal && autoconf && autoheader && automake
 
-AC_PREREQ(2.57)
+AC_PREREQ(2.59)
 AC_INIT(package-unused, version-unused,, libstdc++)
 AC_CONFIG_SRCDIR(src/ios.cc)
 AC_CONFIG_HEADER(config.h)
@@ -13,11 +13,11 @@ AC_CONFIG_HEADER(config.h)
 ### am handles this now?  ORIGINAL_LD_FOR_MULTILIBS=$LD
 
 # For libtool versioning info, format is CURRENT:REVISION:AGE
-libtool_VERSION=6:3:0
+libtool_VERSION=6:7:0
 AC_SUBST(libtool_VERSION)
 
 # Find the rest of the source tree framework.
-GLIBCXX_TOPREL_CONFIGURE
+AM_ENABLE_MULTILIB(, ..)
 
 # Gets build, host, target, *_vendor, *_cpu, *_os, etc.
 #
@@ -58,7 +58,7 @@ fi
 #  no-dependencies:  turns off auto dependency generation (just for now)
 #  -Wall:  turns on all automake warnings...
 #  -Wno-portability:  ...except this one, since GNU make is now required.
-AM_INIT_AUTOMAKE([1.7.6 no-define foreign no-dependencies -Wall -Wno-portability])
+AM_INIT_AUTOMAKE([1.9.1 no-define foreign no-dependencies -Wall -Wno-portability -Wno-override])
 
 # Runs configure.host, finds CC, CXX, and assorted other critical bits.  Sets
 # up critical shell variables.
@@ -117,7 +117,7 @@ if $GLIBCXX_IS_NATIVE; then
   # Check for available headers.
   AC_CHECK_HEADERS([nan.h ieeefp.h endian.h sys/isa_defs.h machine/endian.h \
   machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h gconv.h \
-  sys/types.h])
+  sys/types.h sys/ipc.h sys/sem.h])
 
   GLIBCXX_CHECK_COMPILER_FEATURES
   GLIBCXX_CHECK_LINKER_FEATURES
@@ -267,13 +267,13 @@ GLIBCXX_ENABLE_SYMVERS([yes])
 GLIBCXX_CONFIGURE_TESTSUITE
 
 # Propagate the target-specific source directories through the build chain.
-# (Nothing currently uses cpu_include_dir directly; only atomicity_include_dir 
-# uses it, and it only gets used in this file.)
 ATOMICITY_SRCDIR=config/${atomicity_dir}
 ATOMIC_WORD_SRCDIR=config/${atomic_word_dir}
 OS_INC_SRCDIR=config/${os_include_dir}
+ABI_TWEAKS_SRCDIR=config/${abi_tweaks_dir}
 AC_SUBST(ATOMICITY_SRCDIR)
 AC_SUBST(ATOMIC_WORD_SRCDIR)
+AC_SUBST(ABI_TWEAKS_SRCDIR)
 AC_SUBST(OS_INC_SRCDIR)
 
 # Determine cross-compile flags and AM_CONDITIONALs.
@@ -314,7 +314,6 @@ AC_CONFIG_FILES( \
   Makefile \
   AC_FOREACH([DIR], glibcxx_SUBDIRS, [DIR/Makefile ])
   )
-AC_CONFIG_FILES([scripts/check_survey],[chmod +x scripts/check_survey])
 AC_CONFIG_FILES([scripts/testsuite_flags],[chmod +x scripts/testsuite_flags])
 
 dnl These commands are run at the end of config.status:

@@ -1,5 +1,5 @@
 /* GtkFontPeer.java -- Implements FontPeer with GTK+
-   Copyright (C) 1999 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2004, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -37,19 +37,24 @@ exception statement from your version. */
 
 
 package gnu.java.awt.peer.gtk;
-import java.awt.peer.FontPeer;
-import java.awt.*;
-import java.awt.geom.*;
-import java.awt.font.*;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.text.*;
+
 import gnu.java.awt.peer.ClasspathFontPeer;
+
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.font.FontRenderContext;
+import java.awt.font.GlyphVector;
+import java.awt.font.LineMetrics;
+import java.awt.geom.Rectangle2D;
+import java.text.CharacterIterator;
+import java.util.Locale;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 public class GtkFontPeer extends ClasspathFontPeer
 {
   private static ResourceBundle bundle;
-  
+
   static
   {
     try
@@ -62,15 +67,32 @@ public class GtkFontPeer extends ClasspathFontPeer
       }
   }
 
-  final private String Xname; // uses %d for font size.
+  private final String Xname;
 
   public GtkFontPeer (String name, int style)
   {
-    super(name, style, 12 /* kludge */);
+    // All fonts get a default size of 12 if size is not specified.
+    this(name, style, 12);
+  }
 
+  public GtkFontPeer (String name, int style, int size)
+  {
+    super(name, style, size);
+
+    String Xname = null;
     if (bundle != null)
-      Xname = bundle.getString (name.toLowerCase () + "." + style);
-    else
+      {
+	try
+	  {
+	    Xname = bundle.getString (name.toLowerCase () + "." + style);
+	  }
+	catch (MissingResourceException mre)
+	  {
+	    // ignored
+	  }
+      }
+
+    if (Xname == null)
       {
 	String weight;
 	String slant;
@@ -90,8 +112,10 @@ public class GtkFontPeer extends ClasspathFontPeer
 	else
 	  spacing = "c";
 
-        Xname = "-*-*-" + weight + "-" + slant + "-normal-*-%d-*-*-*-" + spacing + "-*-*-*";
+        Xname = "-*-*-" + weight + "-" + slant + "-normal-*-*-" + size + "-*-*-" + spacing + "-*-*-*";
       }
+
+    this.Xname = Xname;
   }
 
   public String getXLFD ()

@@ -1,19 +1,14 @@
-// Origin: asharji@uwaterloo.ca
-
+// PR c++/28267
 // { dg-do compile }
 
-typedef __SIZE_TYPE__ size_t;
-
-class bar {
-    int i;
-  public :
-    void * operator new ( size_t , void * storage );
+struct A
+{
+  A();
+  void* operator new(__SIZE_TYPE__, int = X);  // { dg-error "not declared" }
+  void operator delete(void*, int);
 };
 
-class foo {
-    int storage[ 5 ];
-  public:
-    void mem ( ) {
-        bar *s = new ( ( void * ) & storage ) bar;
-    }
-};
+void foo()
+{
+  new A;
+}

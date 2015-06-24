@@ -1,5 +1,6 @@
 ;; GCC machine description for MMIX
-;; Copyright (C) 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004
+;; Free Software Foundation, Inc.
 ;; Contributed by Hans-Peter Nilsson (hp@bitrange.com)
 
 ;; This file is part of GCC.
@@ -732,7 +733,7 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
 				     mmix_compare_op1);
   if (cc_reg == NULL_RTX)
     FAIL;
-  operands[1] = gen_rtx (code, VOIDmode, cc_reg, const0_rtx);
+  operands[1] = gen_rtx_fmt_ee (code, VOIDmode, cc_reg, const0_rtx);
 }")
 
 (define_expand "movdicc"
@@ -749,7 +750,7 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
 				     mmix_compare_op1);
   if (cc_reg == NULL_RTX)
     FAIL;
-  operands[1] = gen_rtx (code, VOIDmode, cc_reg, const0_rtx);
+  operands[1] = gen_rtx_fmt_ee (code, VOIDmode, cc_reg, const0_rtx);
 }")
 
 ;; FIXME: Is this the right way to do "folding" of CCmode -> DImode?
@@ -768,7 +769,7 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
    ZS%d2 %0,%3,%1
    ZS%D2 %0,%3,%4")
 
-(define_insn "*movdicc_real"
+(define_insn "*movdicc_real_reversible"
   [(set
     (match_operand:DI 0 "register_operand"	   "=r ,r ,r ,r")
     (if_then_else:DI
@@ -778,12 +779,27 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
       (const_int 0)])
      (match_operand:DI 1 "mmix_reg_or_8bit_operand" "rI,0 ,rI,GM")
      (match_operand:DI 4 "mmix_reg_or_8bit_operand" "0 ,rI,GM,rI")))]
-  ""
+  "REVERSIBLE_CC_MODE (GET_MODE (operands[3]))"
   "@
    CS%d2 %0,%3,%1
    CS%D2 %0,%3,%4
    ZS%d2 %0,%3,%1
    ZS%D2 %0,%3,%4")
+
+(define_insn "*movdicc_real_nonreversible"
+  [(set
+    (match_operand:DI 0 "register_operand"	   "=r ,r")
+    (if_then_else:DI
+     (match_operator
+      2 "mmix_comparison_operator"
+      [(match_operand 3 "mmix_reg_cc_operand"	    "r ,r")
+      (const_int 0)])
+     (match_operand:DI 1 "mmix_reg_or_8bit_operand" "rI,rI")
+     (match_operand:DI 4 "mmix_reg_or_0_operand" "0 ,GM")))]
+  "!REVERSIBLE_CC_MODE (GET_MODE (operands[3]))"
+  "@
+   CS%d2 %0,%3,%1
+   ZS%d2 %0,%3,%1")
 
 (define_insn "*movdfcc_real_foldable"
   [(set
@@ -802,7 +818,7 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
    ZS%d2 %0,%3,%1
    ZS%D2 %0,%3,%4")
 
-(define_insn "*movdfcc_real"
+(define_insn "*movdfcc_real_reversible"
   [(set
     (match_operand:DF 0 "register_operand"	"=r  ,r  ,r  ,r")
     (if_then_else:DF
@@ -812,12 +828,27 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
       (const_int 0)])
      (match_operand:DF 1 "mmix_reg_or_0_operand" "rGM,0  ,rGM,GM")
      (match_operand:DF 4 "mmix_reg_or_0_operand" "0  ,rGM,GM ,rGM")))]
-  ""
+  "REVERSIBLE_CC_MODE (GET_MODE (operands[3]))"
   "@
    CS%d2 %0,%3,%1
    CS%D2 %0,%3,%4
    ZS%d2 %0,%3,%1
    ZS%D2 %0,%3,%4")
+
+(define_insn "*movdfcc_real_nonreversible"
+  [(set
+    (match_operand:DF 0 "register_operand"	"=r  ,r")
+    (if_then_else:DF
+     (match_operator
+      2 "mmix_comparison_operator"
+      [(match_operand 3 "mmix_reg_cc_operand"	 "r  ,r")
+      (const_int 0)])
+     (match_operand:DF 1 "mmix_reg_or_0_operand" "rGM,rGM")
+     (match_operand:DF 4 "mmix_reg_or_0_operand" "0  ,GM")))]
+  "!REVERSIBLE_CC_MODE (GET_MODE (operands[3]))"
+  "@
+   CS%d2 %0,%3,%1
+   ZS%d2 %0,%3,%1")
 
 ;; FIXME: scc patterns will probably help, I just skip them
 ;; right now.  Revisit.
@@ -870,7 +901,7 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
     = mmix_gen_compare_reg (LE, mmix_compare_op0, mmix_compare_op1);
 
   /* The head comment of optabs.c:can_compare_p says we're required to
-     implement this, so we have to clean up the mess here. */
+     implement this, so we have to clean up the mess here.  */
   if (operands[1] == NULL_RTX)
     {
       /* FIXME: Watch out for sharing/unsharing of rtx:es.  */
@@ -892,7 +923,7 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
     = mmix_gen_compare_reg (GE, mmix_compare_op0, mmix_compare_op1);
 
   /* The head comment of optabs.c:can_compare_p says we're required to
-     implement this, so we have to clean up the mess here. */
+     implement this, so we have to clean up the mess here.  */
   if (operands[1] == NULL_RTX)
     {
       /* FIXME: Watch out for sharing/unsharing of rtx:es.  */

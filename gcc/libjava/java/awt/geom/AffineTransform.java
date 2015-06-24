@@ -1,5 +1,5 @@
 /* AffineTransform.java -- transform coordinates between two 2-D spaces
-   Copyright (C) 2000, 2001, 2002 Free Software Foundation
+   Copyright (C) 2000, 2001, 2002, 2004 Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -57,10 +57,11 @@ import java.io.Serializable;
  * [ 1 ]   [  0   0   1  ] [ 1 ]   [          1          ]
  * </pre>
  * The bottom row of the matrix is constant, so a transform can be uniquely
- * represented (as in toString) by "[[m00, m01, m02], [m10, m11, m12]]".
+ * represented (as in {@link #toString()}) by 
+ * "[[m00, m01, m02], [m10, m11, m12]]".
  *
- * @author Tom Tromey <tromey@cygnus.com>
- * @author Eric Blake <ebb9@email.byu.edu>
+ * @author Tom Tromey (tromey@cygnus.com)
+ * @author Eric Blake (ebb9@email.byu.edu)
  * @since 1.2
  * @status partially updated to 1.4, still has some problems
  */
@@ -226,7 +227,7 @@ public class AffineTransform implements Cloneable, Serializable
   private double m00;
 
   /**
-   * The Y coordinate scaling element of the transform matrix.
+   * The Y coordinate shearing element of the transform matrix.
    *
    * @serial matrix[1,0]
    */
@@ -240,7 +241,7 @@ public class AffineTransform implements Cloneable, Serializable
   private double m01;
 
   /**
-   * The Y coordinate shearing element of the transform matrix.
+   * The Y coordinate scaling element of the transform matrix.
    *
    * @serial matrix[1,1]
    */
@@ -517,6 +518,8 @@ public class AffineTransform implements Cloneable, Serializable
    * or a bit-wise combination of TYPE_TRANSLATION, the mutually exclusive
    * TYPE_*_ROTATIONs, and the mutually exclusive TYPE_*_SCALEs.
    *
+   * @return The type.
+   * 
    * @see #TYPE_IDENTITY
    * @see #TYPE_TRANSLATION
    * @see #TYPE_UNIFORM_SCALE
@@ -738,10 +741,10 @@ public class AffineTransform implements Cloneable, Serializable
    */
   public void shear(double shx, double shy)
   {
-    double n00 = m00 + shx * m01;
-    double n01 = shx * m00 + m01;
-    double n10 = m10 * shy + m11;
-    double n11 = shx * m10 + m11;
+    double n00 = m00 + (shy * m01);
+    double n01 = m01 + (shx * m00);
+    double n10 = m10 + (shy * m11);
+    double n11 = m11 + (shx * m10);
     m00 = n00;
     m01 = n01;
     m10 = n10;
@@ -996,6 +999,38 @@ public class AffineTransform implements Cloneable, Serializable
    * map multiple points to the same line or point). A transform exists only
    * if getDeterminant() has a non-zero value.
    *
+   * The inverse is calculated as:
+   * 
+   * <pre>
+   *
+   * Let A be the matrix for which we want to find the inverse:
+   *
+   * A = [ m00 m01 m02 ]
+   *     [ m10 m11 m12 ]
+   *     [ 0   0   1   ] 
+   *
+   *
+   *                 1    
+   * inverse (A) =  ---   x  adjoint(A) 
+   *                det 
+   *
+   *
+   *
+   *             =   1       [  m11  -m01   m01*m12-m02*m11  ]
+   *                ---   x  [ -m10   m00  -m00*m12+m10*m02  ]
+   *                det      [  0     0     m00*m11-m10*m01  ]
+   *
+   *
+   *
+   *             = [  m11/det  -m01/det   m01*m12-m02*m11/det ]
+   *               [ -m10/det   m00/det  -m00*m12+m10*m02/det ]
+   *               [   0           0          1               ]
+   *
+   *
+   * </pre>
+   *
+   *
+   *
    * @return a new inverse transform
    * @throws NoninvertibleTransformException if inversion is not possible
    * @see #getDeterminant()
@@ -1006,8 +1041,15 @@ public class AffineTransform implements Cloneable, Serializable
     double det = getDeterminant();
     if (det == 0)
       throw new NoninvertibleTransformException("can't invert transform");
-    return new AffineTransform(m11 / det, -m10 / det, m01 / det, -m00 / det,
-                               -m02, -m12);
+    
+    double im00 = m11 / det;
+    double im10 = -m10 / det;
+    double im01 = -m01 / det;
+    double im11 = m00 / det;
+    double im02 = (m01 * m12 - m02 * m11) / det;
+    double im12 = (-m00 * m12 + m10 * m02) / det;
+    
+    return new AffineTransform (im00, im10, im01, im11, im02, im12);
   }
 
   /**
@@ -1066,9 +1108,9 @@ public class AffineTransform implements Cloneable, Serializable
    * transformation, so that no result will overwrite a point that has not yet
    * been evaluated.
    *
-   * @param src the array of source points
+   * @param srcPts the array of source points
    * @param srcOff the starting offset into src
-   * @param dst the array of destination points
+   * @param dstPts the array of destination points
    * @param dstOff the starting offset into dst
    * @param num the number of points to transform
    * @throws NullPointerException if src or dst is null
@@ -1100,9 +1142,9 @@ public class AffineTransform implements Cloneable, Serializable
    * transformation, so that no result will overwrite a point that has not yet
    * been evaluated.
    *
-   * @param src the array of source points
+   * @param srcPts the array of source points
    * @param srcOff the starting offset into src
-   * @param dst the array of destination points
+   * @param dstPts the array of destination points
    * @param dstOff the starting offset into dst
    * @param num the number of points to transform
    * @throws NullPointerException if src or dst is null
@@ -1132,9 +1174,9 @@ public class AffineTransform implements Cloneable, Serializable
    * storing the results in another array. This will not create a destination
    * array.
    *
-   * @param src the array of source points
+   * @param srcPts the array of source points
    * @param srcOff the starting offset into src
-   * @param dst the array of destination points
+   * @param dstPts the array of destination points
    * @param dstOff the starting offset into dst
    * @param num the number of points to transform
    * @throws NullPointerException if src or dst is null
@@ -1157,9 +1199,9 @@ public class AffineTransform implements Cloneable, Serializable
    * storing the results in another array. This will not create a destination
    * array.
    *
-   * @param src the array of source points
+   * @param srcPts the array of source points
    * @param srcOff the starting offset into src
-   * @param dst the array of destination points
+   * @param dstPts the array of destination points
    * @param dstOff the starting offset into dst
    * @param num the number of points to transform
    * @throws NullPointerException if src or dst is null
@@ -1192,17 +1234,7 @@ public class AffineTransform implements Cloneable, Serializable
   public Point2D inverseTransform(Point2D src, Point2D dst)
     throws NoninvertibleTransformException
   {
-    double det = getDeterminant();
-    if (det == 0)
-      throw new NoninvertibleTransformException("couldn't invert transform");
-    if (dst == null)
-      dst = new Point2D.Double();
-    double x = src.getX();
-    double y = src.getY();
-    double nx = (m11 * x + -m10 * y) / det - m02;
-    double ny = (m01 * x + -m00 * y) / det - m12;
-    dst.setLocation(nx, ny);
-    return dst;
+    return createInverse().transform(src, dst);
   }
 
   /**
@@ -1212,9 +1244,9 @@ public class AffineTransform implements Cloneable, Serializable
    * transformation, so that no result will overwrite a point that has not yet
    * been evaluated.
    *
-   * @param src the array of source points
+   * @param srcPts the array of source points
    * @param srcOff the starting offset into src
-   * @param dst the array of destination points
+   * @param dstPts the array of destination points
    * @param dstOff the starting offset into dst
    * @param num the number of points to transform
    * @throws NullPointerException if src or dst is null
@@ -1226,23 +1258,7 @@ public class AffineTransform implements Cloneable, Serializable
                                double[] dstPts, int dstOff, int num)
     throws NoninvertibleTransformException
   {
-    double det = getDeterminant();
-    if (det == 0)
-      throw new NoninvertibleTransformException("couldn't invert transform");
-    if (srcPts == dstPts && dstOff > srcOff
-        && num > 1 && srcOff + 2 * num > dstOff)
-      {
-        double[] d = new double[2 * num];
-        System.arraycopy(srcPts, srcOff, d, 0, 2 * num);
-        srcPts = d;
-      }
-    while (--num >= 0)
-      {
-        double x = srcPts[srcOff++];
-        double y = srcPts[srcOff++];
-        dstPts[dstOff++] = (m11 * x + -m10 * y) / det - m02;
-        dstPts[dstOff++] = (m01 * x + -m00 * y) / det - m12;
-      }
+    createInverse().transform(srcPts, srcOff, dstPts, dstOff, num);
   }
 
   /**
@@ -1283,9 +1299,9 @@ public class AffineTransform implements Cloneable, Serializable
    * [ y' ]   [ m10 m11 ] [ y ] = [ m10 * x + m11 * y ]
    * </pre>
    *
-   * @param src the array of source points
+   * @param srcPts the array of source points
    * @param srcOff the starting offset into src
-   * @param dst the array of destination points
+   * @param dstPts the array of destination points
    * @param dstOff the starting offset into dst
    * @param num the number of points to transform
    * @throws NullPointerException if src or dst is null
@@ -1317,12 +1333,14 @@ public class AffineTransform implements Cloneable, Serializable
    * which only stores points in float precision.
    *
    * @param src the shape source to transform
-   * @return the shape, transformed by this
-   * @throws NullPointerException if src is null
+   * @return the shape, transformed by this, <code>null</code> if src is 
+   * <code>null</code>.
    * @see GeneralPath#transform(AffineTransform)
    */
   public Shape createTransformedShape(Shape src)
   {
+    if(src == null) 
+      return null;
     GeneralPath p = new GeneralPath(src);
     p.transform(this);
     return p;
@@ -1406,7 +1424,7 @@ public class AffineTransform implements Cloneable, Serializable
    * Compares two transforms for equality. This returns true if they have the
    * same matrix values.
    *
-   * @param o the transform to compare
+   * @param obj the transform to compare
    * @return true if it is equal
    */
   public boolean equals(Object obj)

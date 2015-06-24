@@ -2,8 +2,8 @@
 
 struct A;
 
-A foo()
-{      // { dg-error "incomplete" }
-  A a; // { dg-error "incomplete" }
+A foo()  // { dg-error "" }
+{
+  A a; // { dg-error "" }
   return a;
 }

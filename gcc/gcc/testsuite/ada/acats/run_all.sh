@@ -9,7 +9,7 @@
 # gccflags="-O3 -fomit-frame-pointer -funroll-all-loops -finline-functions"
 # gnatflags="-gnatN"
 
-gccflags=""
+gccflags="-O2"
 gnatflags="-gnatws"
 
 target_run () {
@@ -256,6 +256,9 @@ for chapter in $chapters; do
 
       echo "RUN $binmain" >> $dir/acats.log
       cd $dir/run
+      if [ ! -x $dir/tests/$chapter/$i/$binmain ]; then
+         sync
+      fi
       target_run $dir/tests/$chapter/$i/$binmain > $dir/tests/$chapter/$i/${i}.log 2>&1
       cd $dir/tests/$chapter/$i
       cat ${i}.log >> $dir/acats.log

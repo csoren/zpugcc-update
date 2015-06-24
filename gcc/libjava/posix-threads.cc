@@ -1,6 +1,6 @@
 // posix-threads.cc - interface between libjava and POSIX threads.
 
-/* Copyright (C) 1998, 1999, 2000, 2001  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2004  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -34,6 +34,7 @@ details.  */
 #include <java/lang/System.h>
 #include <java/lang/Long.h>
 #include <java/lang/OutOfMemoryError.h>
+#include <java/lang/InternalError.h>
 
 // This is used to implement thread startup.
 struct starter
@@ -91,14 +92,33 @@ _Jv_CondWait (_Jv_ConditionVariable_t *cv, _Jv_Mutex_t *mu,
     return _JV_NOT_OWNER;
 
   struct timespec ts;
-  jlong m, startTime;
 
   if (millis > 0 || nanos > 0)
     {
-      startTime = java::lang::System::currentTimeMillis();
-      m = millis + startTime;
-      ts.tv_sec = m / 1000; 
-      ts.tv_nsec = ((m % 1000) * 1000000) + nanos; 
+      // Calculate the abstime corresponding to the timeout.
+      // Everything is in milliseconds.
+      //
+      // We use `unsigned long long' rather than jlong because our
+      // caller may pass up to Long.MAX_VALUE millis.  This would
+      // overflow the range of a jlong when added to the current time.
+      
+      unsigned long long startTime 
+	= (unsigned long long)java::lang::System::currentTimeMillis();
+      unsigned long long m = (unsigned long long)millis + startTime;
+      unsigned long long seconds = m / 1000; 
+
+      ts.tv_sec = seconds;
+      if (ts.tv_sec < 0 || (unsigned long long)ts.tv_sec != seconds)
+        {
+          // We treat a timeout that won't fit into a struct timespec
+          // as a wait forever.
+          millis = nanos = 0;
+        }
+      else
+        {
+          m %= 1000;
+          ts.tv_nsec = m * 1000000 + (unsigned long long)nanos;
+        }
     }
 
   _Jv_Thread_t *current = _Jv_ThreadCurrentData ();
@@ -280,6 +300,17 @@ handle_intr (int)
   // Do nothing.
 }
 
+static void
+block_sigchld()
+{
+  sigset_t mask;
+  sigemptyset (&mask);
+  sigaddset (&mask, SIGCHLD);
+  int c = pthread_sigmask (SIG_BLOCK, &mask, NULL);
+  if (c != 0)
+    JvFail (strerror (c));
+}
+
 void
 _Jv_InitThreads (void)
 {
@@ -295,6 +326,25 @@ _Jv_InitThreads (void)
   sigemptyset (&act.sa_mask);
   act.sa_flags = 0;
   sigaction (INTR, &act, NULL);
+
+  // Block SIGCHLD here to ensure that any non-Java threads inherit the new 
+  // signal mask.
+  block_sigchld();
+
+  // Check/set the thread stack size.
+  size_t min_ss = 32 * 1024;
+  
+  if (sizeof (void *) == 8)
+    // Bigger default on 64-bit systems.
+    min_ss *= 2;
+
+#ifdef PTHREAD_STACK_MIN
+  if (min_ss < PTHREAD_STACK_MIN)
+    min_ss = PTHREAD_STACK_MIN;
+#endif
+  
+  if (gcj::stack_size > 0 && gcj::stack_size < min_ss)
+    gcj::stack_size = min_ss;
 }
 
 _Jv_Thread_t *
@@ -327,7 +377,7 @@ _Jv_ThreadSetPriority (_Jv_Thread_t *data, jint prio)
       struct sched_param param;
 
       param.sched_priority = prio;
-      pthread_setschedparam (data->thread, SCHED_RR, &param);
+      pthread_setschedparam (data->thread, SCHED_OTHER, &param);
     }
 #endif
 }
@@ -358,6 +408,8 @@ _Jv_ThreadRegister (_Jv_Thread_t *data)
 	_Jv_self_cache[current_index].high_sp_bits = BAD_HIGH_SP_VALUE;
       }
 # endif
+  // Block SIGCHLD which is used in natPosixProcess.cc.
+  block_sigchld();
 }
 
 void
@@ -403,11 +455,23 @@ _Jv_ThreadStart (java::lang::Thread *thread, _Jv_Thread_t *data,
     return;
   data->flags |= FLAG_START;
 
+  // Block SIGCHLD which is used in natPosixProcess.cc.
+  // The current mask is inherited by the child thread.
+  block_sigchld();
+
   param.sched_priority = thread->getPriority();
 
   pthread_attr_init (&attr);
   pthread_attr_setschedparam (&attr, &param);
   pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
+  
+  // Set stack size if -Xss option was given.
+  if (gcj::stack_size > 0)
+    {
+      int e = pthread_attr_setstacksize (&attr, gcj::stack_size);
+      if (e != 0)
+	JvFail (strerror (e));
+    }
 
   info = (struct starter *) _Jv_AllocBytes (sizeof (struct starter));
   info->method = meth;

@@ -1633,20 +1633,17 @@ d_call_offset (di, c)
      struct d_info *di;
      int c;
 {
-  long offset;
-  long virtual_offset;
-
   if (c == '\0')
     c = d_next_char (di);
 
   if (c == 'h')
-    offset = d_number (di);
+    d_number (di);
   else if (c == 'v')
     {
-      offset = d_number (di);
+      d_number (di);
       if (d_next_char (di) != '_')
 	return 0;
-      virtual_offset = d_number (di);
+      d_number (di);
     }
   else
     return 0;
@@ -2398,6 +2395,8 @@ d_expr_primary (di)
       const char *s;
 
       type = cplus_demangle_type (di);
+      if (type == NULL)
+	return NULL;
 
       /* If we have a type we know how to print, we aren't going to
 	 print the type name itself.  */

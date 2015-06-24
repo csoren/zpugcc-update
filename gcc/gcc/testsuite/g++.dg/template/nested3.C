@@ -5,13 +5,13 @@ class A {
     int _k;
   };
   T1 _t1;
-  T2 _t2; // { dg-error "instantiated" "" { xfail *-*-* } }
+  T2 _t2; // { dg-error "instantiated" }
 };
 
 template <class U>
-class B { // { dg-error "" "" { xfail *-*-* } }
+class B { // { dg-error "" }
   class SubB1 {
-    B _i; // { dg-error "" "" { xfail *-*-* } }
+    B _i; // { dg-error "" }
   };
 
   class SubB2 {
@@ -22,7 +22,7 @@ class B { // { dg-error "" "" { xfail *-*-* } }
 
 
 int main() {
-  B<char> objB; // { dg-error "instantiated" "" { xfail *-*-* } }
+  B<char> objB; // { dg-error "instantiated" }
 
   return 0;
 }

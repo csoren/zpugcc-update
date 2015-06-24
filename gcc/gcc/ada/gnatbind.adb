@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2004 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,7 +32,9 @@ with Binderr;  use Binderr;
 with Bindgen;  use Bindgen;
 with Bindusg;
 with Butil;    use Butil;
+with Casing;   use Casing;
 with Csets;
+with Debug;    use Debug;
 with Fmap;
 with Gnatvsn;  use Gnatvsn;
 with Namet;    use Namet;
@@ -41,11 +43,11 @@ with Osint;    use Osint;
 with Osint.B;  use Osint.B;
 with Output;   use Output;
 with Rident;   use Rident;
+with Snames;
 with Switch;   use Switch;
 with Switch.B; use Switch.B;
 with Targparm; use Targparm;
 with Types;    use Types;
-with Uintp;    use Uintp;
 
 with System.Case_Util; use System.Case_Util;
 
@@ -69,14 +71,105 @@ procedure Gnatbind is
    Output_File_Name_Seen : Boolean := False;
    Output_File_Name      : String_Ptr := new String'("");
 
-   L_Switch_Seen         : Boolean := False;
+   L_Switch_Seen : Boolean := False;
 
-   Mapping_File          : String_Ptr := null;
+   Mapping_File : String_Ptr := null;
+
+   procedure List_Applicable_Restrictions;
+   --  List restrictions that apply to this partition if option taken
 
    procedure Scan_Bind_Arg (Argv : String);
    --  Scan and process binder specific arguments. Argv is a single argument.
    --  All the one character arguments are still handled by Switch. This
    --  routine handles -aO -aI and -I-.
+
+   ----------------------------------
+   -- List_Applicable_Restrictions --
+   ----------------------------------
+
+   procedure List_Applicable_Restrictions is
+
+      --  Define those restrictions that should be output if the gnatbind
+      --  -r switch is used. Not all restrictions are output for the reasons
+      --  given above in the list, and this array is used to test whether
+      --  the corresponding pragma should be listed. True means that it
+      --  should not be listed.
+
+      No_Restriction_List : constant array (All_Restrictions) of Boolean :=
+        (No_Exceptions            => True,
+         --  Has unexpected Suppress (All_Checks) effect
+
+         No_Implicit_Conditionals => True,
+         --  This could modify and pessimize generated code
+
+         No_Implicit_Dynamic_Code => True,
+         --  This could modify and pessimize generated code
+
+         No_Implicit_Loops        => True,
+         --  This could modify and pessimize generated code
+
+         No_Recursion             => True,
+         --  Not checkable at compile time
+
+         No_Reentrancy            => True,
+         --  Not checkable at compile time
+
+         Max_Entry_Queue_Length    => True,
+         --  Not checkable at compile time
+
+         Max_Storage_At_Blocking  => True,
+         --  Not checkable at compile time
+
+         others => False);
+
+      Additional_Restrictions_Listed : Boolean := False;
+      --  Set True if we have listed header for restrictions
+
+   begin
+      --  Loop through restrictions
+
+      for R in All_Restrictions loop
+         if not No_Restriction_List (R) then
+
+            --  We list a restriction if it is not violated, or if
+            --  it is violated but the violation count is exactly known.
+
+            if Cumulative_Restrictions.Violated (R) = False
+              or else (R in All_Parameter_Restrictions
+                       and then
+                         Cumulative_Restrictions.Unknown (R) = False)
+            then
+               if not Additional_Restrictions_Listed then
+                  Write_Eol;
+                  Write_Line
+                    ("The following additional restrictions may be" &
+                     " applied to this partition:");
+                  Additional_Restrictions_Listed := True;
+               end if;
+
+               Write_Str ("pragma Restrictions (");
+
+               declare
+                  S : constant String := Restriction_Id'Image (R);
+               begin
+                  Name_Len := S'Length;
+                  Name_Buffer (1 .. Name_Len) := S;
+               end;
+
+               Set_Casing (Mixed_Case);
+               Write_Str (Name_Buffer (1 .. Name_Len));
+
+               if R in All_Parameter_Restrictions then
+                  Write_Str (" => ");
+                  Write_Int (Int (Cumulative_Restrictions.Count (R)));
+               end if;
+
+               Write_Str (");");
+               Write_Eol;
+            end if;
+         end if;
+      end loop;
+   end List_Applicable_Restrictions;
 
    -------------------
    -- Scan_Bind_Arg --
@@ -244,8 +337,8 @@ procedure Gnatbind is
             Opt.Bind_Alternate_Main_Name := True;
             Opt.Alternate_Main_Name := new String'(Argv (3 .. Argv'Last));
 
-         --  All other options are single character and are handled
-         --  by Scan_Binder_Switches.
+         --  All other options are single character and are handled by
+         --  Scan_Binder_Switches.
 
          else
             Scan_Binder_Switches (Argv);
@@ -272,7 +365,8 @@ begin
 
    declare
       Shared_Libgnat_Default : Character;
-      pragma Import (C, Shared_Libgnat_Default, "shared_libgnat_default");
+      pragma Import
+        (C, Shared_Libgnat_Default, "__gnat_shared_libgnat_default");
 
       SHARED : constant Character := 'H';
       STATIC : constant Character := 'T';
@@ -344,17 +438,24 @@ begin
    Osint.Add_Default_Search_Dirs;
 
    --  Carry out package initializations. These are initializations which
-   --  might logically be performed at elaboration time, but Namet at
-   --  least can't be done that way (because it is used in the Compiler),
-   --  and we decide to be consistent. Like elaboration, the order in
-   --  which these calls are made is in some cases important.
+   --  might logically be performed at elaboration time, but Namet at least
+   --  can't be done that way (because it is used in the Compiler), and we
+   --  decide to be consistent. Like elaboration, the order in which these
+   --  calls are made is in some cases important.
 
    Csets.Initialize;
    Namet.Initialize;
+   Snames.Initialize;
 
    --  Acquire target parameters
 
    Targparm.Get_Target_Parameters;
+
+   --  Initialize Cumulative_Restrictions with the restrictions on the target
+   --  scanned from the system.ads file. Then as we read ALI files, we will
+   --  accumulate additional restrictions specified in other files.
+
+   Cumulative_Restrictions := Targparm.Restrictions_On_Target;
 
    --  On OpenVMS, when -L is used, all external names used in pragmas Export
    --  are in upper case. The reason is that on OpenVMS, the macro-assembler
@@ -379,7 +480,8 @@ begin
       Write_Eol;
       Write_Str ("GNATBIND ");
       Write_Str (Gnat_Version_String);
-      Write_Str (" Copyright 1995-2004 Free Software Foundation, Inc.");
+      Write_Eol;
+      Write_Str ("Copyright 1995-2005 Free Software Foundation, Inc.");
       Write_Eol;
    end if;
 
@@ -435,10 +537,11 @@ begin
 
          begin
             Id := Scan_ALI
-                    (F         => Main_Lib_File,
-                     T         => Text,
-                     Ignore_ED => Force_RM_Elaboration_Order,
-                     Err       => False);
+                    (F             => Main_Lib_File,
+                     T             => Text,
+                     Ignore_ED     => Force_RM_Elaboration_Order,
+                     Err           => False,
+                     Ignore_Errors => Debug_Flag_I);
          end;
 
          Free (Text);
@@ -447,13 +550,6 @@ begin
       --  No_Run_Time mode
 
       if No_Run_Time_Mode then
-
-         --  Set standard restrictions
-
-         Restrictions_On_Target (No_Finalization)       := True;
-         Restrictions_On_Target (No_Exception_Handlers) := True;
-         Restrictions_On_Target (No_Tasking)            := True;
-         Restriction_Parameters_On_Target (Max_Tasks)   := Uint_0;
 
          --  Set standard configuration parameters
 
@@ -466,7 +562,7 @@ begin
       --  ALI files.
 
       for Index in ALIs.First .. ALIs.Last loop
-         ALIs.Table (Index).Interface := False;
+         ALIs.Table (Index).SAL_Interface := False;
       end loop;
 
       --  Add System.Standard_Library to list to ensure that these files are
@@ -486,10 +582,11 @@ begin
          begin
             Id :=
               Scan_ALI
-                (F         => Std_Lib_File,
-                 T         => Text,
-                 Ignore_ED => Force_RM_Elaboration_Order,
-                 Err       => False);
+                (F             => Std_Lib_File,
+                 T             => Text,
+                 Ignore_ED     => Force_RM_Elaboration_Order,
+                 Err           => False,
+                 Ignore_Errors => Debug_Flag_I);
          end;
 
          Free (Text);
@@ -509,7 +606,7 @@ begin
          Error_Msg
            ("?may result in missing run-time elaboration checks");
          Error_Msg
-           ("?use -gnatE, pragma Suppress (Elaboration_Checks) instead");
+           ("?use -gnatE, pragma Suppress (Elaboration_Check) instead");
       end if;
 
       --  Quit if some file needs compiling
@@ -539,15 +636,11 @@ begin
       Check_Consistency;
       Check_Configuration_Consistency;
 
-      --  Acquire restrictions and add them to target restrictions. After
-      --  this loop, Restrictions_On_Target entries will be set True for
-      --  all partition-wide restrictions specified in the partition.
+      --  List restrictions that could be applied to this partition
 
-      for J in Partition_Restrictions loop
-         if Restrictions (J) = 'r' then
-            Restrictions_On_Target (J) := True;
-         end if;
-      end loop;
+      if List_Restrictions then
+         List_Applicable_Restrictions;
+      end if;
 
       --  Complete bind if no errors
 
@@ -561,7 +654,7 @@ begin
                Write_Eol;
 
                for J in Elab_Order.First .. Elab_Order.Last loop
-                  if not Units.Table (Elab_Order.Table (J)).Interface then
+                  if not Units.Table (Elab_Order.Table (J)).SAL_Interface then
                      Write_Str ("   ");
                      Write_Unit_Name
                        (Units.Table (Elab_Order.Table (J)).Uname);
@@ -587,7 +680,7 @@ begin
          Total_Warnings := Total_Warnings + Warnings_Detected;
    end;
 
-   --  All done. Set proper exit status.
+   --  All done. Set proper exit status
 
    Finalize_Binderr;
    Namet.Finalize;

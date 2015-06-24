@@ -14,14 +14,14 @@
 // Include I/O support for 'long long' and 'unsigned long long'.
 #undef _GLIBCXX_USE_LONG_LONG
 
-// Include support for 'long double'.
-#undef _GLIBCXX_USE_LONG_DOUBLE
+// Define if C99 features such as lldiv_t, llabs, lldiv should be exposed.
+#undef _GLIBCXX_USE_C99
 
 // Define if C99 math functions (like fpclassify) should be exposed.
 #undef _GLIBCXX_USE_C99_MATH
 
-// Define if C99 features such as lldiv_t, llabs, lldiv should be exposed.
-#undef _GLIBCXX_USE_C99
+// Define if C99 complex math functions should be used in std::complex.
+#undef _GLIBCXX_USE_C99_COMPLEX
 
 // Define if code specialized for wchar_t should be used.
 #undef _GLIBCXX_USE_WCHAR_T
@@ -34,17 +34,6 @@
 
 // Define to use symbol versioning in the shared library.
 #undef _GLIBCXX_SYMVER
-
-// Define symbol versioning in assember directives. If symbol
-// versioning is beigng used, and the assembler supports this kind of
-// thing, then use it.
-// NB: _GLIBCXX_AT_AT is a hack to work around quoting issues in m4.
-#if _GLIBCXX_SYMVER
-  #define _GLIBCXX_ASM_SYMVER(cur, old, version) \
-   asm (".symver " #cur "," #old _GLIBCXX_AT_AT #version);
-#else
-  #define _GLIBCXX_ASM_SYMVER(cur, old, version)
-#endif
 
 // Define if LFS support is available.
 #undef _GLIBCXX_USE_LFS
@@ -202,6 +191,9 @@
 
 /* Define to 1 if you have the `ceill' function. */
 #undef HAVE_CEILL
+
+/* Define to 1 if you have the <complex.h> header file. */
+#undef HAVE_COMPLEX_H
 
 /* Define to 1 if you have the `copysign' function. */
 #undef HAVE_COPYSIGN
@@ -509,6 +501,9 @@
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
 
+/* Define to 1 if you have the <sys/ipc.h> header file. */
+#undef HAVE_SYS_IPC_H
+
 /* Define to 1 if you have the <sys/isa_defs.h> header file. */
 #undef HAVE_SYS_ISA_DEFS_H
 
@@ -520,6 +515,9 @@
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #undef HAVE_SYS_RESOURCE_H
+
+/* Define to 1 if you have the <sys/sem.h> header file. */
+#undef HAVE_SYS_SEM_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
@@ -886,6 +884,12 @@
 
 /* Define to 1 if a full hosted library is built, or 0 if freestanding. */
 #undef _GLIBCXX_HOSTED
+
+/* Define if ptrdiff_t is int. */
+#undef _GLIBCXX_PTRDIFF_T_IS_INT
+
+/* Define if size_t is unsigned int. */
+#undef _GLIBCXX_SIZE_T_IS_UINT
 
 /* Define if the compiler is configured for setjmp/longjmp exceptions. */
 #undef _GLIBCXX_SJLJ_EXCEPTIONS

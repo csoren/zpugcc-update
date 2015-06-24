@@ -1,5 +1,5 @@
 /* Subroutines for the C front end on the POWER and PowerPC architectures.
-   Copyright (C) 2002, 2003
+   Copyright (C) 2002, 2003, 2004
    Free Software Foundation, Inc.
 
    Contributed by Zack Weinberg <zack@codesourcery.com>
@@ -41,8 +41,8 @@
    whether or not new function declarations receive a longcall
    attribute by default.  */
 
-#define SYNTAX_ERROR(msgid) do {			\
-  warning (msgid);					\
+#define SYNTAX_ERROR(gmsgid) do {			\
+  warning (gmsgid);					\
   warning ("ignoring malformed #pragma longcall");	\
   return;						\
 } while (0)
@@ -62,13 +62,13 @@ rs6000_pragma_longcall (cpp_reader *pfile ATTRIBUTE_UNUSED)
   if (c_lex (&x) != CPP_CLOSE_PAREN)
     SYNTAX_ERROR ("missing close paren");
 
-  if (!integer_zerop (n) && !integer_onep (n))
+  if (n != integer_zero_node && n != integer_one_node)
     SYNTAX_ERROR ("number must be 0 or 1");
 
   if (c_lex (&x) != CPP_EOF)
     warning ("junk at end of #pragma longcall");
 
-  rs6000_default_long_calls = integer_onep (n);
+  rs6000_default_long_calls = (n == integer_one_node);
 }
 
 /* Handle defining many CPP flags based on TARGET_xxx.  As a general

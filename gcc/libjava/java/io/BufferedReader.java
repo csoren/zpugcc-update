@@ -1,5 +1,5 @@
 /* BufferedReader.java
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
      Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
@@ -55,8 +55,8 @@ package java.io;
  * of remembering any number of input chars, to the limits of
  * system memory or the size of <code>Integer.MAX_VALUE</code>
  *
- * @author Per Bothner <bothner@cygnus.com>
- * @author Aaron M. Renn <arenn@urbanophile.com>
+ * @author Per Bothner (bothner@cygnus.com)
+ * @author Aaron M. Renn (arenn@urbanophile.com)
  */
 public class BufferedReader extends Reader
 {
@@ -89,6 +89,11 @@ public class BufferedReader extends Reader
   static final int DEFAULT_BUFFER_SIZE = 8192;
 
   /**
+   * The line buffer for <code>readLine</code>.
+   */
+  private StringBuffer sbuf = null;
+
+  /**
     * Create a new <code>BufferedReader</code> that will read from the 
     * specified subordinate stream with a default buffer size of 8192 chars.
     *
@@ -107,7 +112,7 @@ public class BufferedReader extends Reader
    * @param in The subordinate stream to read from
    * @param size The buffer size to use
    *
-   * @exception IllegalArgumentException if size &lt;&eq; 0
+   * @exception IllegalArgumentException if size &lt;= 0
    */
   public BufferedReader(Reader in, int size)
   {
@@ -439,7 +444,7 @@ public class BufferedReader extends Reader
     int i = lineEnd(limit);
     if (i < limit)
       {
-	String str = new String(buffer, pos, i - pos);
+	String str = String.valueOf(buffer, pos, i - pos);
 	pos = i + 1;
 	// If the last char in the buffer is a '\r', we must remember
 	// to check if the next char to be read after the buffer is refilled
@@ -450,7 +455,10 @@ public class BufferedReader extends Reader
 	    pos++;
 	return str;
       }
-    StringBuffer sbuf = new StringBuffer(200);
+    if (sbuf == null)
+      sbuf = new StringBuffer(200);
+    else
+      sbuf.setLength(0);
     sbuf.append(buffer, pos, i - pos);
     pos = i;
     // We only want to return null when no characters were read before
@@ -500,7 +508,7 @@ public class BufferedReader extends Reader
    * <code>skip</code> method on the underlying stream to skip the 
    * remaining chars.
    *
-   * @param numChars The requested number of chars to skip
+   * @param count The requested number of chars to skip
    *
    * @return The actual number of chars skipped.
    *
@@ -525,12 +533,13 @@ public class BufferedReader extends Reader
 	// skip the '\n' for us).  By doing this, we'll have to back up pos.
 	// That's easier than trying to keep track of whether we've skipped
 	// one element or not.
-	int ch;
 	if (pos > limit)
-	  if ((ch = read()) < 0)
-	    return 0;
-	  else
-	    --pos; 
+	  {
+	    if (read() < 0)
+	      return 0;
+	    else
+	      --pos; 
+	  }
 
 	int avail = limit - pos;
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2003, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2004, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,6 +36,7 @@ with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
+with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Ch3;  use Sem_Ch3;
@@ -60,8 +61,8 @@ package body Sem_Ch9 is
    -- Local Subprograms --
    -----------------------
 
-   procedure Check_Max_Entries (Def : Node_Id; R : Restriction_Parameter_Id);
-   --  Given either a protected definition or a task definition in Def, check
+   procedure Check_Max_Entries (D : Node_Id; R : All_Parameter_Restrictions);
+   --  Given either a protected definition or a task definition in D, check
    --  the corresponding restriction parameter identifier R, and if it is set,
    --  count the entries (checking the static requirement), and compare with
    --  the given maximum.
@@ -133,7 +134,7 @@ package body Sem_Ch9 is
       Formals   : constant List_Id   := Parameter_Specifications (N);
       Index     : constant Node_Id   := Entry_Index (N);
       Stats     : constant Node_Id   := Handled_Statement_Sequence (N);
-      Ityp      : Entity_Id;
+      Accept_Id : Entity_Id;
       Entry_Nam : Entity_Id;
       E         : Entity_Id;
       Kind      : Entity_Kind;
@@ -232,23 +233,25 @@ package body Sem_Ch9 is
 
       --  In order to process the parameters, we create a defining
       --  identifier that can be used as the name of the scope. The
-      --  name of the accept statement itself is not a defining identifier.
+      --  name of the accept statement itself is not a defining identifier,
+      --  and we cannot use its name directly because the task may have
+      --  any number of accept statements for the same entry.
 
       if Present (Index) then
-         Ityp := New_Internal_Entity
+         Accept_Id := New_Internal_Entity
            (E_Entry_Family, Current_Scope, Sloc (N), 'E');
       else
-         Ityp := New_Internal_Entity
+         Accept_Id := New_Internal_Entity
            (E_Entry, Current_Scope, Sloc (N), 'E');
       end if;
 
-      Set_Etype          (Ityp, Standard_Void_Type);
-      Set_Accept_Address (Ityp, New_Elmt_List);
+      Set_Etype          (Accept_Id, Standard_Void_Type);
+      Set_Accept_Address (Accept_Id, New_Elmt_List);
 
       if Present (Formals) then
-         New_Scope (Ityp);
+         New_Scope (Accept_Id);
          Process_Formals (Formals, N);
-         Create_Extra_Formals (Ityp);
+         Create_Extra_Formals (Accept_Id);
          End_Scope;
       end if;
 
@@ -256,14 +259,13 @@ package body Sem_Ch9 is
       --  need default expression functions. This is really more like a
       --  body entity than a spec entity anyway.
 
-      Set_Default_Expressions_Processed (Ityp);
+      Set_Default_Expressions_Processed (Accept_Id);
 
       E := First_Entity (Etype (Task_Nam));
-
       while Present (E) loop
          if Chars (E) = Chars (Nam)
-           and then (Ekind (E) = Ekind (Ityp))
-           and then Type_Conformant (Ityp, E)
+           and then (Ekind (E) = Ekind (Accept_Id))
+           and then Type_Conformant (Accept_Id, E)
          then
             Entry_Nam := E;
             exit;
@@ -305,8 +307,8 @@ package body Sem_Ch9 is
          end;
       end if;
 
-      Set_Convention (Ityp, Convention (Entry_Nam));
-      Check_Fully_Conformant (Ityp, Entry_Nam, N);
+      Set_Convention (Accept_Id, Convention (Entry_Nam));
+      Check_Fully_Conformant (Accept_Id, Entry_Nam, N);
 
       for J in reverse 0 .. Scope_Stack.Last loop
          exit when Task_Nam = Scope_Stack.Table (J).Entity;
@@ -390,13 +392,18 @@ package body Sem_Ch9 is
 
       --  Set Never_Set_In_Source and clear Is_True_Constant/Current_Value
       --  fields on all entry formals (this loop ignores all other entities).
+      --  Reset Set_Referenced and Has_Pragma_Unreferenced as well, so that
+      --  we can post accurate warnings on each accept statement for the same
+      --  entry.
 
       E := First_Entity (Entry_Nam);
       while Present (E) loop
          if Is_Formal (E) then
-            Set_Never_Set_In_Source (E, True);
-            Set_Is_True_Constant    (E, False);
-            Set_Current_Value       (E, Empty);
+            Set_Never_Set_In_Source     (E, True);
+            Set_Is_True_Constant        (E, False);
+            Set_Current_Value           (E, Empty);
+            Set_Referenced              (E, False);
+            Set_Has_Pragma_Unreferenced (E, False);
          end if;
 
          Next_Entity (E);
@@ -481,6 +488,13 @@ package body Sem_Ch9 is
 
          else
             Pre_Analyze_And_Resolve (Expr);
+         end if;
+
+         if Nkind (Delay_Statement (N)) = N_Delay_Until_Statement and then
+            not Is_RTE (Base_Type (Etype (Expr)), RO_CA_Time)     and then
+            not Is_RTE (Base_Type (Etype (Expr)), RO_RT_Time)
+         then
+            Error_Msg_N ("expect Time types for `DELAY UNTIL`", Expr);
          end if;
 
          Check_Restriction (No_Fixed_Point, Expr);
@@ -1064,7 +1078,7 @@ package body Sem_Ch9 is
       --  with interrupt handlers. Note that we need to analyze the protected
       --  definition to set Has_Entries and such.
 
-      if (Abort_Allowed or else Restrictions (No_Entry_Queue) = False
+      if (Abort_Allowed or else Restriction_Active (No_Entry_Queue) = False
            or else Number_Entries (T) > 1)
         and then
           (Has_Entries (T)
@@ -1116,7 +1130,7 @@ package body Sem_Ch9 is
       Outer_Ent  : Entity_Id;
 
    begin
-      Check_Restriction (No_Requeue, N);
+      Check_Restriction (No_Requeue_Statements, N);
       Check_Unreachable_Code (N);
       Tasking_Used := True;
 
@@ -1320,7 +1334,6 @@ package body Sem_Ch9 is
 
    begin
       Check_Restriction (No_Select_Statements, N);
-      Check_Restriction (Max_Select_Alternatives, N);
       Tasking_Used := True;
 
       Alt := First (Alts);
@@ -1403,7 +1416,7 @@ package body Sem_Ch9 is
          Next (Alt);
       end loop;
 
-      Check_Restriction (Max_Select_Alternatives, Alt_Count, N);
+      Check_Restriction (Max_Select_Alternatives, N, Alt_Count);
       Check_Potentially_Blocking_Operation (N);
 
       if Terminate_Present and Delay_Present then
@@ -1532,7 +1545,6 @@ package body Sem_Ch9 is
       --  expanded twice, with disastrous result.
 
       Analyze_Task_Type (N);
-
    end Analyze_Single_Task;
 
    -----------------------
@@ -1689,8 +1701,8 @@ package body Sem_Ch9 is
       Def_Id : constant Entity_Id := Defining_Identifier (N);
 
    begin
-      Tasking_Used := True;
       Check_Restriction (No_Tasking, N);
+      Tasking_Used := True;
       T := Find_Type_Name (N);
       Generate_Definition (T);
 
@@ -1709,7 +1721,7 @@ package body Sem_Ch9 is
       New_Scope (T);
 
       if Present (Discriminant_Specifications (N)) then
-         if Ada_83 and then Comes_From_Source (N) then
+         if Ada_Version = Ada_83 and then Comes_From_Source (N) then
             Error_Msg_N ("(Ada 83) task discriminant not allowed!", N);
          end if;
 
@@ -1806,7 +1818,7 @@ package body Sem_Ch9 is
    -- Check_Max_Entries --
    -----------------------
 
-   procedure Check_Max_Entries (Def : Node_Id; R : Restriction_Parameter_Id) is
+   procedure Check_Max_Entries (D : Node_Id; R : All_Parameter_Restrictions) is
       Ecount : Uint;
 
       procedure Count (L : List_Id);
@@ -1854,11 +1866,21 @@ package body Sem_Ch9 is
                         end if;
                      end;
 
-                  --  If entry family with non-static bounds, give error msg
+                  --  Entry family with non-static bounds
 
-                  elsif Restriction_Parameters (R) /= No_Uint then
-                     Error_Msg_N
-                       ("static subtype required by Restriction pragma", DSD);
+                  else
+                     --  If restriction is set, then this is an error
+
+                     if Restrictions.Set (R) then
+                        Error_Msg_N
+                          ("static subtype required by Restriction pragma",
+                           DSD);
+
+                     --  Otherwise we record an unknown count restriction
+
+                     else
+                        Check_Restriction (R, D);
+                     end if;
                   end if;
                end;
             end if;
@@ -1871,11 +1893,11 @@ package body Sem_Ch9 is
 
    begin
       Ecount := Uint_0;
-      Count (Visible_Declarations (Def));
-      Count (Private_Declarations (Def));
+      Count (Visible_Declarations (D));
+      Count (Private_Declarations (D));
 
       if Ecount > 0 then
-         Check_Restriction (R, Ecount, Def);
+         Check_Restriction (R, D, Ecount);
       end if;
    end Check_Max_Entries;
 

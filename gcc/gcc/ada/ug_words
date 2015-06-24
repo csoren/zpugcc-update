@@ -30,14 +30,14 @@ gnatls          ^ GNAT LIST
 Gnatls          ^ GNAT LIST
 gnatmake        ^ GNAT MAKE
 Gnatmake        ^ GNAT MAKE
+gnatmetric      ^ GNAT METRIC
+Gnatmetric      ^ GNAT METRIC
 gnatname        ^ GNAT NAME
 Gnatname        ^ GNAT NAME
 gnatpp          ^ GNAT PRETTY
 Gnatpp          ^ GNAT PRETTY
 gnatprep        ^ GNAT PREPROCESS
 Gnatprep        ^ GNAT PREPROCESS
-gnatpsta        ^ GNAT STANDARD
-Gnatpsta        ^ GNAT STANDARD
 gnatstub        ^ GNAT STUB
 Gnatstub        ^ GNAT STUB
 gnatxref        ^ GNAT XREF
@@ -46,6 +46,7 @@ gcc             ^ GNAT COMPILE
 gcc -c          ^ GNAT COMPILE
 -fno-inline     ^ /INLINE=SUPPRESS
 -fstack-check   ^ /CHECKS=STACK
+-fno-strict-aliasing ^ /OPTIMIZE=NO_STRICT_ALIASING
 -gnata          ^ /CHECKS=ASSERTIONS
 -gnatA          ^ /NO_GNAT_ADC
 -gnatb          ^ /REPORT_ERRORS=BRIEF

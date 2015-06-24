@@ -1,5 +1,5 @@
 /* FilterInputStream.java -- Base class for classes that filter input
-   Copyright (C) 1998, 1999, 2001 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -65,7 +65,7 @@ package java.io;
   * <code>InputStream read(byte[])</code> method.
   *
   * @author Aaron M. Renn (arenn@urbanophile.com)
-  * @author Warren Levy <warrenl@cygnus.com>
+  * @author Warren Levy (warrenl@cygnus.com)
   */
 public class FilterInputStream extends InputStream
 {
@@ -104,7 +104,7 @@ public class FilterInputStream extends InputStream
     */
   public boolean markSupported()
   {
-    return(in.markSupported());
+    return in.markSupported();
   }
 
   /**
@@ -126,7 +126,7 @@ public class FilterInputStream extends InputStream
     */
   public int available() throws IOException
   {
-    return(in.available());
+    return in.available();
   }
 
   /**
@@ -138,9 +138,9 @@ public class FilterInputStream extends InputStream
     *
     * @exception IOException If an error occurs
     */
-  public long skip(long num_bytes) throws IOException
+  public long skip(long numBytes) throws IOException
   {
-    return(in.skip(num_bytes));
+    return in.skip(numBytes);
   }
 
   /**
@@ -152,7 +152,7 @@ public class FilterInputStream extends InputStream
     */
   public int read() throws IOException
   {
-    return(in.read());
+    return in.read();
   }
 
   /**
@@ -170,7 +170,7 @@ public class FilterInputStream extends InputStream
     */
   public int read(byte[] buf) throws IOException
   {
-    return(read(buf, 0, buf.length));
+    return read(buf, 0, buf.length);
   }
 
   /**
@@ -186,7 +186,7 @@ public class FilterInputStream extends InputStream
     */
   public int read(byte[] buf, int offset, int len) throws IOException
   {
-    return(in.read(buf, offset, len));
+    return in.read(buf, offset, len);
   }
 
   /**
@@ -200,6 +200,4 @@ public class FilterInputStream extends InputStream
   {
     in.close();
   }
-
-} // class FilterInputStream
-
+}

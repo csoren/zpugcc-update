@@ -1,5 +1,5 @@
 /* CharArrayWriter.java -- Write chars to a buffer
-   Copyright (C) 1998, 1999, 2001, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2002, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -50,8 +50,8 @@ package java.io;
   * following two properties:
   * <p>
   * <ul>
-  * <li><xmp>gnu.java.io.CharArrayWriter.initialBufferSize</xmp>
-  * <li><xmp>gnu.java.io.CharArrayWriter.bufferIncrementSize</xmp>
+  * <li><xmp>gnu.java.io.CharArrayWriter.initialBufferSize</xmp></li>
+  * <li><xmp>gnu.java.io.CharArrayWriter.bufferIncrementSize</xmp></li>
   * </ul>
   * <p>
   * There is a constructor that specified the initial buffer size and
@@ -60,7 +60,7 @@ package java.io;
   * <p>
   *
   * @author Aaron M. Renn (arenn@urbanophile.com)
-  * @author Tom Tromey <tromey@cygnus.com>
+  * @author Tom Tromey (tromey@cygnus.com)
   */
 public class CharArrayWriter extends Writer
 {
@@ -249,7 +249,7 @@ public class CharArrayWriter extends Writer
    * application programmers by setting their initial buffer size big
    * enough to hold everything if possible.
    */
-  private final void resize (int len)
+  private void resize (int len)
   {
     if (count + len >= buf.length)
       {

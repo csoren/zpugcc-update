@@ -1,7 +1,7 @@
 /* Specialized bits of code needed to support construction and
    destruction of file-scope objects in C++ code.
    Copyright (C) 1991, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
    Contributed by Ron Guilmette (rfg@monkeys.com).
 
 This file is part of GCC.
@@ -55,6 +55,8 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
    compiled for the target, and hence definitions concerning only the host
    do not apply.  */
 
+#define IN_LIBGCC2
+
 /* We include auto-host.h here to get HAVE_GAS_HIDDEN.  This is
    supposedly valid even though this is a "target" file.  */
 #include "auto-host.h"
@@ -92,7 +94,7 @@ call_ ## FUNC (void)					\
 #if defined(EH_FRAME_SECTION_NAME) && !defined(USE_PT_GNU_EH_FRAME)
 # define USE_EH_FRAME_REGISTRY
 #endif
-#if defined(EH_FRAME_SECTION_NAME) && defined(HAVE_LD_RO_RW_SECTION_MIXING)
+#if defined(EH_FRAME_SECTION_NAME) && EH_TABLES_CAN_BE_READ_ONLY
 # define EH_FRAME_SECTION_CONST const
 #else
 # define EH_FRAME_SECTION_CONST
@@ -109,7 +111,7 @@ call_ ## FUNC (void)					\
    but not its definition.
 
    Making TARGET_WEAK_ATTRIBUTE conditional seems like a good solution until
-   one thinks about scaling to larger problems -- ie, the condition under
+   one thinks about scaling to larger problems -- i.e., the condition under
    which TARGET_WEAK_ATTRIBUTE is active will eventually get far too
    complicated.
 
@@ -312,8 +314,13 @@ frame_dummy (void)
 #endif /* CRT_GET_RFIB_DATA */
 #endif /* USE_EH_FRAME_REGISTRY */
 #ifdef JCR_SECTION_NAME
-  if (__JCR_LIST__[0] && _Jv_RegisterClasses)
-    _Jv_RegisterClasses (__JCR_LIST__);
+  if (__JCR_LIST__[0])
+    {
+      void (*register_classes) (void *) = _Jv_RegisterClasses;
+      __asm ("" : "+r" (register_classes));
+      if (register_classes)
+	register_classes (__JCR_LIST__);
+    }
 #endif /* JCR_SECTION_NAME */
 }
 
@@ -395,8 +402,13 @@ __do_global_ctors_1(void)
     __register_frame_info (__EH_FRAME_BEGIN__, &object);
 #endif
 #ifdef JCR_SECTION_NAME
-  if (__JCR_LIST__[0] && _Jv_RegisterClasses)
-    _Jv_RegisterClasses (__JCR_LIST__);
+  if (__JCR_LIST__[0])
+    {
+      void (*register_classes) (void *) = _Jv_RegisterClasses;
+      __asm ("" : "+r" (register_classes));
+      if (register_classes)
+	register_classes (__JCR_LIST__);
+    }
 #endif
 }
 #endif /* USE_EH_FRAME_REGISTRY || JCR_SECTION_NAME */

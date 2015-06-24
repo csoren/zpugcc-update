@@ -1,5 +1,5 @@
 /* RSAPrivateKey.java -- An RSA private key
-   Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2004 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -37,8 +37,8 @@ exception statement from your version. */
 
 package java.security.interfaces;
 
-import java.security.PrivateKey;
 import java.math.BigInteger;
+import java.security.PrivateKey;
 
 /**
  * This interface provides access to information about an RSA private key.
@@ -49,6 +49,8 @@ import java.math.BigInteger;
  */
 public interface RSAPrivateKey extends PrivateKey, RSAKey
 {
+  long serialVersionUID = 5187144804936595022L;
+
   /**
    * Returns the private exponent value for this key
    *

@@ -1,5 +1,5 @@
 /* FieldPosition.java -- Keeps track of field positions while formatting
-   Copyright (C) 1998, 1999, 2001 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -45,7 +45,7 @@ package java.text;
  * typically define constant values for the field identifiers.
  *
  * @author Aaron M. Renn (arenn@urbanophile.com)
- * @author Per Bothner <bothner@cygnus.com>
+ * @author Per Bothner (bothner@cygnus.com)
  */
 public class FieldPosition
 {
@@ -72,13 +72,13 @@ public class FieldPosition
   /**
    * This method initializes a new instance of <code>FieldPosition</code>
    * to have the specified field attribute. The attribute will be used as
-   * an id.
+   * an id. It is formally equivalent to calling FieldPosition(field, -1).
    *
    * @param field The field format attribute.
    */
   public FieldPosition (Format.Field field)
   {
-    this.field_attribute = field;
+    this(field, -1);
   }
 
   /**

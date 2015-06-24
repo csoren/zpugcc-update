@@ -1,5 +1,5 @@
 /* Menu.java -- A Java AWT Menu
-   Copyright (C) 1999, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2002, 2004 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,7 +40,11 @@ package java.awt;
 
 import java.awt.peer.MenuPeer;
 import java.io.Serializable;
+import java.util.Enumeration;
 import java.util.Vector;
+
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
 
 /**
   * This class represents a pull down or tear off menu in Java's AWT.
@@ -71,17 +75,20 @@ private Vector items = new Vector();
 /**
   * @serial Flag indicating whether or not this menu is a tear off
   */
-private boolean isTearOff;
+private boolean tearOff;
 
 /**
   * @serial Indicates whether or not this is a help menu.
   */
 private boolean isHelpMenu;
 
-// From the serialization spec.  FIXME: what should it be?
-private int menuSerializedDataVersion;
+  /*
+   * @serial Unused in this implementation, but present in Sun's
+   * serialization spec.  Value obtained via reflection.
+   */
+  private int menuSerializedDataVersion = 1;
 
-static final MenuItem separator = new MenuItem("-");
+static final transient String separatorLabel = "-";
 
 /*************************************************************************/
 
@@ -133,7 +140,7 @@ Menu(String label, boolean isTearOff)
 {
   super(label);
 
-  this.isTearOff = isTearOff;
+  tearOff = isTearOff;
 
   if (label.equals("Help"))
     isHelpMenu = true;
@@ -157,7 +164,7 @@ Menu(String label, boolean isTearOff)
 public boolean
 isTearOff()
 {
-  return(isTearOff);
+  return(tearOff);
 }
 
 /*************************************************************************/
@@ -170,7 +177,7 @@ isTearOff()
 public int
 getItemCount()
 {
-  return(items.size());
+  return countItems ();
 }
 
 /**
@@ -182,7 +189,7 @@ getItemCount()
  */
 public int countItems ()
 {
-  return getItemCount ();
+  return items.size ();
 }
  
 /*************************************************************************/
@@ -250,8 +257,6 @@ add(String label)
   * @param item The menu item to add.
   * @param index The index of the menu item.
   *
-  * XXX: FIXME
-  *
   * @exception IllegalArgumentException If the index is less than zero.
   * @exception ArrayIndexOutOfBoundsException If the index is otherwise invalid.
   */
@@ -261,12 +266,26 @@ insert(MenuItem item, int index)
   if (index < 0)
     throw new IllegalArgumentException("Index is less than zero");
 
-  items.insertElementAt(item, index);
+  MenuPeer peer = (MenuPeer) getPeer();
+  if (peer == null)
+    return;
 
-  MenuPeer mp = (MenuPeer)getPeer();
-  // FIXME: Need to add a peer method here.
-//    if (mp != null)
-//      mp.insertItem(item, index);
+  int count = getItemCount ();
+
+  if (index >= count)
+    peer.addItem (item);
+  else
+    {
+      for (int i = count - 1; i >= index; i--)
+        peer.delItem (i);
+
+      peer.addItem (item);
+
+      for (int i = index; i < count; i++)
+        peer.addItem ((MenuItem) items.elementAt (i));
+    }
+
+  items.insertElementAt(item, index);
 }
 
 /*************************************************************************/
@@ -294,7 +313,7 @@ insert(String label, int index)
 public void
 addSeparator()
 {
-  add(separator);
+  add(new MenuItem(separatorLabel));
 }
 
 /*************************************************************************/
@@ -304,15 +323,13 @@ addSeparator()
   *
   * @param index The index at which to insert a separator bar.
   *
-  * XXX: FIXME
-  *
   * @exception IllegalArgumentException If the index is less than zero.
   * @exception ArrayIndexOutOfBoundsException If the index is otherwise invalid.
   */
 public void
 insertSeparator(int index)
 {
-  insert(separator, index);
+  insert(new MenuItem(separatorLabel), index);
 }
 
 /*************************************************************************/
@@ -338,7 +355,7 @@ remove(int index)
 
 /**
   * Removes the specifed item from the menu.  If the specified component
-  * does not exist, this method does nothing. // FIXME: Right?
+  * does not exist, this method does nothing.
   *
   * @param item The component to remove.
   */
@@ -376,8 +393,14 @@ removeAll()
 public void
 addNotify()
 {
-  if (peer != null)
+  if (peer == null)
     peer = getToolkit().createMenu(this);
+  Enumeration e = items.elements();
+  while (e.hasMoreElements())
+  {
+    MenuItem mi = (MenuItem)e.nextElement();
+    mi.addNotify();
+  }    
   super.addNotify ();
 }
 
@@ -389,6 +412,12 @@ addNotify()
 public void
 removeNotify()
 {
+  Enumeration e = items.elements();
+  while (e.hasMoreElements())
+  {
+    MenuItem mi = (MenuItem) e.nextElement();
+    mi.removeNotify();
+  }
   super.removeNotify();
 }
 
@@ -402,11 +431,38 @@ removeNotify()
 public String
 paramString()
 {
-  return (",isTearOff=" + isTearOff + ",isHelpMenu=" + isHelpMenu
+  return (",tearOff=" + tearOff + ",isHelpMenu=" + isHelpMenu
 	  + super.paramString());
 }
 
-// Accessibility API not yet implemented.
-// public AccessibleContext getAccessibleContext()
+  /**
+   * Basic Accessibility class for Menu.  Details get provided in derived
+   * classes.
+   */
+  protected class AccessibleAWTMenu extends AccessibleAWTMenuItem
+  {
+    protected AccessibleAWTMenu()
+    {
+    }
+    
+    public AccessibleRole getAccessibleRole()
+    {
+      return AccessibleRole.MENU;
+    }
+  }
+
+  /**
+   * Gets the AccessibleContext associated with this <code>Menu</code>.
+   * The context is created, if necessary.
+   *
+   * @return the associated context
+   */
+  public AccessibleContext getAccessibleContext()
+  {
+    /* Create the context if this is the first request */
+    if (accessibleContext == null)
+      accessibleContext = new AccessibleAWTMenu();
+    return accessibleContext;
+  }
 
 } // class Menu

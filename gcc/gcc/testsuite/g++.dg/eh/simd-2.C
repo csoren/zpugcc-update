@@ -2,11 +2,12 @@
 // Contributed by Aldy Hernandez (aldy@quesejoda.com).
 // { dg-options "-O" }
 // { dg-options "-O -w" { target { { i?86-*-* x86_64-*-* } && ilp32 } } }
-// { dg-options "-O -w -maltivec" { target powerpc64-*-linux* } }
-// { dg-do run { xfail "powerpc64-*-linux*"}  }
-// { dg-error "" "PR target/12916" { target sparc*-*-* } 0 }
+// { dg-options "-O -w -maltivec" { target powerpc*-*-linux* } }
+// { dg-do run }
 
-typedef int __attribute__((mode(V4SI))) vecint;
+#include "check-vect.h"
+
+typedef int __attribute__((vector_size (16))) vecint;
 
 vecint vecfunc (vecint beachbum)
 {
@@ -44,10 +45,8 @@ void f1 (void)
 
 int main ()
 {
-#if defined(__powerpc64__) && defined(__linux__)
-  // Don't run on ppc64-linux, since not always AltiVec regs available   
-  return -1;  
-#endif
+  /* Exit with zero if the hardware does not support AltiVec instructions.  */
+  check_vect ();
   f1 ();
   return 0;
 }

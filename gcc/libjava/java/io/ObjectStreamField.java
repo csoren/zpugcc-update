@@ -1,5 +1,5 @@
 /* ObjectStreamField.java -- Class used to store name and class of fields
-   Copyright (C) 1998, 1999, 2003 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2003, 2004  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,6 +40,10 @@ package java.io;
 
 import gnu.java.lang.reflect.TypeSignature;
 
+import java.lang.reflect.Field;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 /**
  * This class intends to describe the field of a class for the serialization
  * subsystem. Serializable fields in a serializable class can be explicitly
@@ -54,6 +58,13 @@ public class ObjectStreamField implements Comparable
   private boolean unshared;
   private boolean persistent = false;
   private boolean toset = true;
+  private Field field;
+
+  ObjectStreamField (Field field)
+  {
+    this (field.getName(), field.getType());
+    this.field = field;
+  }
 
   /**
    * This constructor creates an ObjectStreamField instance 
@@ -75,6 +86,7 @@ public class ObjectStreamField implements Comparable
    *
    * @param name Name of the field to export.
    * @param type Type of the field in the concerned class.
+   * @param unshared true if field will be unshared, false otherwise.
    */
   public ObjectStreamField (String name, Class type, boolean unshared)
   {
@@ -89,7 +101,7 @@ public class ObjectStreamField implements Comparable
  
   /**
    * There are many cases you can not get java.lang.Class from typename 
-   * if your context class loader cann not load it, then use typename to
+   * if your context class loader cannot load it, then use typename to
    * construct the field.
    *
    * @param name Name of the field to export.
@@ -105,7 +117,6 @@ public class ObjectStreamField implements Comparable
       }
     catch(ClassNotFoundException e)
       {
-        type = Object.class; //FIXME: ???
       }
   }
   
@@ -128,7 +139,6 @@ public class ObjectStreamField implements Comparable
       }
     catch(ClassNotFoundException e)
       {
-        type = Object.class; // ALSO FIXME 
       }
   }
 
@@ -176,7 +186,7 @@ public class ObjectStreamField implements Comparable
   public String getTypeString ()
   {
     // use intern()
-    if (this.type.isPrimitive())
+    if (isPrimitive())
       return null;
     return typename.intern();
   }
@@ -225,12 +235,19 @@ public class ObjectStreamField implements Comparable
    */
   public boolean isPrimitive ()
   {
-    return type.isPrimitive ();
+    return typename.length() == 1;
   }
 
-  public int compareTo (Object o)
+  /**
+   * Compares this object to the given object.
+   *
+   * @param obj the object to compare to.
+   *
+   * @return -1, 0 or 1.
+   */
+  public int compareTo (Object obj)
   {
-    ObjectStreamField f = (ObjectStreamField)o;
+    ObjectStreamField f = (ObjectStreamField) obj;
     boolean this_is_primitive = isPrimitive ();
     boolean f_is_primitive = f.isPrimitive ();
 
@@ -284,7 +301,7 @@ public class ObjectStreamField implements Comparable
   }
 
   /**
-   * This methods returns true if the field is marked as to be
+   * This method returns true if the field is marked as to be
    * set.
    *
    * @return True if it is to be set, false in the other cases.
@@ -295,9 +312,101 @@ public class ObjectStreamField implements Comparable
     return toset;
   }
 
+  /**
+   * This method searches for its field reference in the specified class
+   * object. It requests privileges. If an error occurs the internal field
+   * reference is not modified.
+   *
+   * @throws NoSuchFieldException if the field name does not exist in this class.
+   * @throws SecurityException if there was an error requesting the privileges.
+   */
+  void lookupField(Class clazz) throws NoSuchFieldException, SecurityException
+  {
+    final Field f = clazz.getDeclaredField(name);
+    
+    AccessController.doPrivileged(new PrivilegedAction()
+      {
+	public Object run()
+	{
+	  f.setAccessible(true);
+	  return null;
+	}
+      });
+    
+    this.field = f;
+  }
+
+  /**
+   * This method check whether the field described by this
+   * instance of ObjectStreamField is compatible with the
+   * actual implementation of this field.
+   *
+   * @throws NullPointerException if this field does not exist
+   * in the real class.
+   * @throws InvalidClassException if the types are incompatible.
+   */
+  void checkFieldType() throws InvalidClassException
+  {
+    Class ftype = field.getType();
+
+    if (!ftype.isAssignableFrom(type))
+      throw new InvalidClassException
+	("invalid field type for " + name +
+	 " in class " + field.getDeclaringClass());
+  }
+
+  /**
+   * Returns a string representing this object.
+   *
+   * @return the string.
+   */
   public String toString ()
   {
     return "ObjectStreamField< " + type + " " + name + " >";
   }
-}
 
+  final void setBooleanField(Object obj, boolean val)
+  {
+    VMObjectStreamClass.setBooleanNative(field, obj, val);  
+  }
+
+  final void setByteField(Object obj, byte val)
+  {
+    VMObjectStreamClass.setByteNative(field, obj, val);
+  }
+  
+  final void setCharField(Object obj, char val)
+  {
+    VMObjectStreamClass.setCharNative(field, obj, val);
+  }
+  
+  final void setShortField(Object obj, short val)
+  {
+    VMObjectStreamClass.setShortNative(field, obj, val);
+  }
+
+  final void setIntField(Object obj, int val)
+  {
+    VMObjectStreamClass.setIntNative(field, obj, val);
+  }
+  
+  final void setLongField(Object obj, long val)
+  {
+    VMObjectStreamClass.setLongNative(field, obj, val);
+  }
+  
+  final void setFloatField(Object obj, float val)
+  {
+    VMObjectStreamClass.setFloatNative(field, obj, val);
+  }
+  
+  final void setDoubleField(Object obj, double val)
+  {
+    VMObjectStreamClass.setDoubleNative(field, obj, val);
+  }
+  
+  final void setObjectField(Object obj, Object val)
+  { 
+    VMObjectStreamClass.setObjectNative(field, obj, val);
+  }
+}

@@ -1,5 +1,5 @@
 /* InputStream.java -- Base class for input
-   Copyright (C) 1998, 1999, 2001 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2005  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -46,7 +46,7 @@ package java.io;
   * or network connection.
   *
   * @author Aaron M. Renn (arenn@urbanophile.com)
-  * @author Warren Levy <warrenl@cygnus.com>
+  * @author Warren Levy (warrenl@cygnus.com)
   */
 public abstract class InputStream
 {
@@ -105,7 +105,7 @@ public abstract class InputStream
    * @param readLimit The number of bytes that can be read before the
    *                  mark becomes invalid
    */
-  public void mark(int readlimit)
+  public void mark(int readLimit)
   {
     // Do nothing
   }
@@ -117,7 +117,7 @@ public abstract class InputStream
    * point.
    * <p>
    * This method always returns <code>false</code> in this class, but
-   * subclasses can override this method to return </code>true</code>
+   * subclasses can override this method to return <code>true</code>
    * if they support mark/reset functionality.
    *
    * @return <code>true</code> if mark/reset functionality is

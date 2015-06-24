@@ -1,5 +1,5 @@
 /* List.java -- A listbox widget
-   Copyright (C) 1999, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2002, 2004  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -45,7 +45,13 @@ import java.awt.event.ItemListener;
 import java.awt.peer.ListPeer;
 import java.util.EventListener;
 import java.util.Vector;
+
 import javax.accessibility.Accessible;
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
+import javax.accessibility.AccessibleSelection;
+import javax.accessibility.AccessibleState;
+import javax.accessibility.AccessibleStateSet;
 
 /**
   * Class that implements a listbox widget
@@ -105,6 +111,7 @@ private ItemListener item_listeners;
 // The list of ActionListeners for this object.
 private ActionListener action_listeners;
 
+
 /*************************************************************************/
 
 /*
@@ -129,7 +136,7 @@ List()
   * Initializes a new instance of <code>List</code> with the specified
   * number of visible lines and multi-select disabled.
   *
-  * @param lines The number of visible lines in the list.
+  * @param rows The number of visible rows in the list.
   *
   * @exception HeadlessException If GraphicsEnvironment.isHeadless() is true.
   */
@@ -145,7 +152,7 @@ List(int rows)
   * Initializes a new instance of <code>List</code> with the specified
   * number of lines and the specified multi-select setting.
   *
-  * @param lines The number of visible lines in the list.
+  * @param rows The number of visible rows in the list.
   * @param multipleMode <code>true</code> if multiple lines can be selected
   * simultaneously, <code>false</code> otherwise.
   *
@@ -175,7 +182,7 @@ List(int rows, boolean multipleMode)
 public int
 getItemCount()
 {
-  return(items.size());
+  return countItems ();
 }
 
 /*************************************************************************/
@@ -191,7 +198,7 @@ getItemCount()
 public int
 countItems()
 {
-  return(getItemCount());
+  return items.size ();
 }
 
 /*************************************************************************/
@@ -249,7 +256,7 @@ getRows()
 public boolean
 isMultipleMode()
 {
-  return(multipleMode);
+  return allowsMultipleSelections ();
 }
 
 /*************************************************************************/
@@ -266,7 +273,7 @@ isMultipleMode()
 public boolean
 allowsMultipleSelections()
 {
-  return(multipleMode);
+  return multipleMode;
 }
 
 /*************************************************************************/
@@ -281,12 +288,7 @@ allowsMultipleSelections()
 public void
 setMultipleMode(boolean multipleMode)
 {
-  this.multipleMode = multipleMode;
-  if (peer != null)
-    {
-      ListPeer l = (ListPeer) peer;
-      l.setMultipleMode (multipleMode);
-    }
+  setMultipleSelections (multipleMode);
 }
 
 /*************************************************************************/
@@ -303,7 +305,11 @@ setMultipleMode(boolean multipleMode)
 public void
 setMultipleSelections(boolean multipleMode)
 {
-  setMultipleMode(multipleMode);
+  this.multipleMode = multipleMode;
+
+  ListPeer peer = (ListPeer) getPeer ();
+  if (peer != null)
+    peer.setMultipleMode (multipleMode);
 }
 
 /*************************************************************************/
@@ -316,7 +322,7 @@ setMultipleSelections(boolean multipleMode)
 public Dimension
 getMinimumSize()
 {
-  return(getMinimumSize(rows));
+  return getMinimumSize (getRows ());
 }
 
 /*************************************************************************/
@@ -332,7 +338,7 @@ getMinimumSize()
 public Dimension
 minimumSize()
 {
-  return(getMinimumSize(rows));
+  return minimumSize (getRows ());
 }
 
 /*************************************************************************/
@@ -348,11 +354,7 @@ minimumSize()
 public Dimension
 getMinimumSize(int rows)
 {
-  ListPeer lp = (ListPeer)getPeer();
-  if (lp != null)
-    return(lp.minimumSize(rows));
-  else
-    return(new Dimension(0,0));
+  return minimumSize (rows);
 }
 
 /*************************************************************************/
@@ -371,7 +373,11 @@ getMinimumSize(int rows)
 public Dimension
 minimumSize(int rows)
 {
-  return(getMinimumSize(rows));
+  ListPeer peer = (ListPeer) getPeer ();
+  if (peer != null)
+    return peer.minimumSize (rows);
+  else
+    return new Dimension (0, 0);
 }
 
 /*************************************************************************/
@@ -384,7 +390,7 @@ minimumSize(int rows)
 public Dimension
 getPreferredSize()
 {
-  return(getPreferredSize(rows));
+  return getPreferredSize (getRows ());
 }
 
 /*************************************************************************/
@@ -400,7 +406,7 @@ getPreferredSize()
 public Dimension
 preferredSize()
 {
-  return(getPreferredSize(rows));
+  return preferredSize (getRows ());
 }
 
 /*************************************************************************/
@@ -416,11 +422,7 @@ preferredSize()
 public Dimension
 getPreferredSize(int rows)
 {
-  ListPeer lp = (ListPeer)getPeer();
-  if (lp != null)
-    return(lp.preferredSize(rows));
-  else
-    return(new Dimension(0,0));
+  return preferredSize (rows);
 }
 
 /*************************************************************************/
@@ -439,7 +441,11 @@ getPreferredSize(int rows)
 public Dimension
 preferredSize(int rows)
 {
-  return(getPreferredSize(rows));
+  ListPeer peer = (ListPeer) getPeer ();
+  if (peer != null)
+    return peer.preferredSize (rows);
+  else
+    return new Dimension (0, 0);
 }
 
 /*************************************************************************/
@@ -452,7 +458,7 @@ preferredSize(int rows)
 public void
 add(String item)
 {
-  add(item, -1);
+  add (item, -1);
 }
 
 /*************************************************************************/
@@ -467,7 +473,7 @@ add(String item)
 public void
 addItem(String item)
 {
-  addItem(item, -1);
+  addItem (item, -1);
 }
 
 /*************************************************************************/
@@ -484,16 +490,7 @@ addItem(String item)
 public void
 add(String item, int index)
 {
-  if ((index == -1) || (index >= items.size()))
-    items.addElement(item);
-  else
-    items.insertElementAt(item, index);
-
-  if (peer != null)
-    {
-      ListPeer l = (ListPeer) peer;
-      l.add (item, index);
-    }
+  addItem (item, index);
 }
 
 /*************************************************************************/
@@ -512,7 +509,14 @@ add(String item, int index)
 public void
 addItem(String item, int index)
 {
-  add(item, index);
+  if ((index == -1) || (index >= items.size ()))
+    items.addElement (item);
+  else
+    items.insertElementAt (item, index);
+
+  ListPeer peer = (ListPeer) getPeer ();
+  if (peer != null)
+    peer.add (item, index);
 }
 
 /*************************************************************************/
@@ -529,7 +533,11 @@ addItem(String item, int index)
 public void
 delItem(int index) throws IllegalArgumentException
 {
-  remove(index);
+  items.removeElementAt (index);
+
+  ListPeer peer = (ListPeer) getPeer ();
+  if (peer != null)
+    peer.delItems (index, index);
 }
 
 /*************************************************************************/
@@ -544,12 +552,7 @@ delItem(int index) throws IllegalArgumentException
 public void
 remove(int index) throws IllegalArgumentException
 {
-  items.removeElementAt (index);
-  if (peer != null)
-    {
-      ListPeer l = (ListPeer) peer;
-      l.delItems (index, index);
-    }
+  delItem (index);
 }
 
 /*************************************************************************/
@@ -613,12 +616,7 @@ remove(String item) throws IllegalArgumentException
 public synchronized void
 removeAll()
 {
-  items.clear();
-  if (peer != null)
-    {
-      ListPeer l = (ListPeer) peer;
-      l.removeAll ();
-    }
+  clear ();
 }
 
 /*************************************************************************/
@@ -631,7 +629,11 @@ removeAll()
 public void
 clear()
 {
-  removeAll();
+  items.clear();
+
+  ListPeer peer = (ListPeer) getPeer ();
+  if (peer != null)
+    peer.removeAll ();
 }
 
 /*************************************************************************/
@@ -782,13 +784,7 @@ getSelectedObjects()
 public boolean
 isIndexSelected(int index)
 {
-  int[] indexes = getSelectedIndexes();
-
-  for (int i = 0; i < indexes.length; i++)
-    if (indexes[i] == index)
-      return(true);
-
-  return(false);
+  return isSelected (index);
 }
 
 /*************************************************************************/
@@ -807,7 +803,13 @@ isIndexSelected(int index)
 public boolean
 isSelected(int index)
 {
-  return(isIndexSelected(index));
+  int[] indexes = getSelectedIndexes ();
+
+  for (int i = 0; i < indexes.length; i++)
+    if (indexes[i] == index)
+      return true;
+
+  return false;
 }
 
 /*************************************************************************/
@@ -1079,5 +1081,183 @@ paramString()
   public ItemListener[] getItemListeners ()
   {
     return (ItemListener[]) getListeners (ItemListener.class);
+  }
+  
+  // Accessibility internal class 
+  protected class AccessibleAWTList extends AccessibleAWTComponent
+    implements AccessibleSelection, ItemListener, ActionListener
+  {
+    protected class AccessibleAWTListChild extends AccessibleAWTComponent
+      implements Accessible
+    {
+      private int index;
+      private List parent;
+      
+      public AccessibleAWTListChild(List parent, int indexInParent)
+      {
+        this.parent = parent;
+        index = indexInParent;
+        if (parent == null)
+          index = -1;
+      }
+      
+      /* (non-Javadoc)
+       * @see javax.accessibility.Accessible#getAccessibleContext()
+       */
+      public AccessibleContext getAccessibleContext()
+      {
+        return this;
+      }
+      
+      public AccessibleRole getAccessibleRole()
+      {
+        return AccessibleRole.LIST_ITEM;
+      }
+      
+      public AccessibleStateSet getAccessibleStateSet()
+      {
+        AccessibleStateSet states = super.getAccessibleStateSet();
+        if (parent.isIndexSelected(index))
+          states.add(AccessibleState.SELECTED);
+        return states;
+      }
+      
+      public int getAccessibleIndexInParent()
+      {
+        return index;
+      }
+
+    }
+    
+    public AccessibleAWTList()
+    {
+      addItemListener(this);
+      addActionListener(this);
+    }
+    
+    public AccessibleRole getAccessibleRole()
+    {
+      return AccessibleRole.LIST;
+    }
+    
+    public AccessibleStateSet getAccessibleStateSet()
+    {
+      AccessibleStateSet states = super.getAccessibleStateSet();
+      states.add(AccessibleState.SELECTABLE);
+      if (isMultipleMode())
+        states.add(AccessibleState.MULTISELECTABLE);
+      return states;
+    }
+
+    public int getAccessibleChildrenCount()
+    {
+      return getItemCount();
+    }
+
+    public Accessible getAccessibleChild(int i)
+    {
+      if (i >= getItemCount())
+        return null;
+      return new AccessibleAWTListChild(List.this, i);
+    }
+    
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#getAccessibleSelectionCount()
+     */
+    public int getAccessibleSelectionCount()
+    {
+      return getSelectedIndexes().length;
+    }
+
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#getAccessibleSelection()
+     */
+    public AccessibleSelection getAccessibleSelection()
+    {
+      return this;
+    }
+
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#getAccessibleSelection(int)
+     */
+    public Accessible getAccessibleSelection(int i)
+    {
+      int[] items = getSelectedIndexes();
+      if (i >= items.length)
+        return null;
+      return new AccessibleAWTListChild(List.this, items[i]);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#isAccessibleChildSelected(int)
+     */
+    public boolean isAccessibleChildSelected(int i)
+    {
+      return isIndexSelected(i);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#addAccessibleSelection(int)
+     */
+    public void addAccessibleSelection(int i)
+    {
+      select(i);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#removeAccessibleSelection(int)
+     */
+    public void removeAccessibleSelection(int i)
+    {
+      deselect(i);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#clearAccessibleSelection()
+     */
+    public void clearAccessibleSelection()
+    {
+      for (int i = 0; i < getItemCount(); i++)
+        deselect(i);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.accessibility.AccessibleSelection#selectAllAccessibleSelection()
+     */
+    public void selectAllAccessibleSelection()
+    {
+      if (isMultipleMode())
+        for (int i = 0; i < getItemCount(); i++)
+          select(i);
+    }
+
+    /* (non-Javadoc)
+     * @see java.awt.event.ItemListener#itemStateChanged(java.awt.event.ItemEvent)
+     */
+    public void itemStateChanged(ItemEvent event)
+    {
+    }
+
+    /* (non-Javadoc)
+     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
+     */
+    public void actionPerformed(ActionEvent event)
+    {
+    }
+    
+  }
+
+  /**
+   * Gets the AccessibleContext associated with this <code>List</code>.
+   * The context is created, if necessary.
+   *
+   * @return the associated context
+   */
+  public AccessibleContext getAccessibleContext()
+  {
+    /* Create the context if this is the first request */
+    if (accessibleContext == null)
+      accessibleContext = new AccessibleAWTList();
+    return accessibleContext;
   }
 } // class List

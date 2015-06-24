@@ -1,32 +1,55 @@
-2006-03-05  Release Manager
+2007-01-31  Release Manager
 
-	* GCC 3.4.6 released.
+	* GCC 4.0.4 released.
 
-2005-11-30  Release Manager
+2006-03-09  Release Manager
 
-	* GCC 3.4.5 released.
+	* GCC 4.0.3 released.
 
-2005-05-19  Release Manager
+2005-09-20  Release Manager
 
-	* GCC 3.4.4 released.
+	* GCC 4.0.2 released.
 
-2004-11-04  Release Manager
+2005-07-07  Release Manager
 
-	* GCC 3.4.3 released.
+	* GCC 4.0.1 released.
 
-2004-09-06  Release Manager
+2005-04-20  Release Manager
 
-	* GCC 3.4.2 released.
+	* GCC 4.0.0 released.
 
-2004-07-01  Release Manager
+2004-11-24  Kelley Cook  <kcook@gcc.gnu.org>
 
-	* GCC 3.4.1 released.
+	* Makefile.in: Regenrate with Automake 1.9.3.
+	* aclocal.m4: Likewise.
+	* configure: Regenerate.
 
-2004-04-18  Release Manager
+2004-06-15  Paolo Bonzini  <bonzini@gnu.org>
 
-	* GCC 3.4.0 released.
+	* Makefile.in: Regenerate with Automake 1.8.5.
+	* aclocal.m4: Likewise.
+	* configure: Regenerate.
 
-2004-02-22  Matthias Klose  <doko@debian.org>
+2004-05-03  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* acinclude.m4: Replace -W with more speaking -Wextra.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2004-03-10  Kelley Cook  <kcook@gcc.gnu.org>
+
+	* configure.ac: Bump AC_PREREQ to 2.59.
+	* configure: Regenerate.
+	* config-h.in: Regenerate.
+
+2004-02-22  Zack Weinberg <zack@codesourcery.com>
+	    Nathanael Nerode <neroden@twcny.rr.com>
+	    Alexandre Oliva <aoliva@redhat.com>
+
+	* config.sub, config.guess: Replace with forwarding scripts
+	which invoke the master copies in the top level.
+
+2004-02-20  Andrew Cagney  <cagney@redhat.com>
 
 	* config.guess: Update from version 2003-10-07 to 2004-02-16.
 	* config.sub: Update from version 2003-10-07 to 2004-02-16.
@@ -34,7 +57,7 @@
 2003-08-07  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
 
 	* configure.in: Don't initialize GCINCS to boehm-gc/include.
-	* Regenerate.	
+	* Regenerate.
 
 2002-04-28  Mark Mitchell  <mark@codesourcery.com>
 

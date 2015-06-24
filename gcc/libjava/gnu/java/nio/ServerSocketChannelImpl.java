@@ -1,5 +1,5 @@
 /* ServerSocketChannelImpl.java -- 
-   Copyright (C) 2002, 2003 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,13 +38,8 @@ exception statement from your version. */
 
 package gnu.java.nio;
 
-import gnu.java.net.PlainSocketImpl;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetBoundException;
@@ -69,7 +64,7 @@ public final class ServerSocketChannelImpl extends ServerSocketChannel
   {
     return serverSocket.getPlainSocketImpl().getNativeFD();
   }
- 
+  
   public void finalizer()
   {
     if (connected)

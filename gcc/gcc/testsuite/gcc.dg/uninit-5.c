@@ -1,5 +1,4 @@
-/* Spurious uninitialized-variable warnings.
-   These cases are documented as not working in the gcc manual. */
+/* Spurious uninitialized-variable warnings.  */
 
 /* { dg-do compile } */
 /* { dg-options "-O -Wuninitialized" } */

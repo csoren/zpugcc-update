@@ -2,42 +2,47 @@
    about serialized objects.
    Copyright (C) 1998, 1999, 2000, 2001, 2003  Free Software Foundation, Inc.
 
-   This file is part of GNU Classpath.
+This file is part of GNU Classpath.
 
-   GNU Classpath is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+GNU Classpath is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2, or (at your option)
+any later version.
  
-   GNU Classpath is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+GNU Classpath is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GNU Classpath; see the file COPYING.  If not, write to the
-   Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-   02111-1307 USA.
+You should have received a copy of the GNU General Public License
+along with GNU Classpath; see the file COPYING.  If not, write to the
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
 
-   Linking this library statically or dynamically with other modules is
-   making a combined work based on this library.  Thus, the terms and
-   conditions of the GNU General Public License cover the whole
-   combination.
+Linking this library statically or dynamically with other modules is
+making a combined work based on this library.  Thus, the terms and
+conditions of the GNU General Public License cover the whole
+combination.
 
-   As a special exception, the copyright holders of this library give you
-   permission to link this library with independent modules to produce an
-   executable, regardless of the license terms of these independent
-   modules, and to copy and distribute the resulting executable under
-   terms of your choice, provided that you also meet, for each linked
-   independent module, the terms and conditions of the license of that
-   module.  An independent module is a module which is not derived from
-   or based on this library.  If you modify this library, you may extend
-   this exception to your version of the library, but you are not
-   obligated to do so.  If you do not wish to do so, delete this
-   exception statement from your version. */
+As a special exception, the copyright holders of this library give you
+permission to link this library with independent modules to produce an
+executable, regardless of the license terms of these independent
+modules, and to copy and distribute the resulting executable under
+terms of your choice, provided that you also meet, for each linked
+independent module, the terms and conditions of the license of that
+module.  An independent module is a module which is not derived from
+or based on this library.  If you modify this library, you may extend
+this exception to your version of the library, but you are not
+obligated to do so.  If you do not wish to do so, delete this
+exception statement from your version. */
 
 
 package java.io;
+
+import gnu.java.io.NullOutputStream;
+import gnu.java.lang.reflect.TypeSignature;
+import gnu.java.security.action.SetAccessibleAction;
+import gnu.java.security.provider.Gnu;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -45,18 +50,16 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.security.AccessController;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.Vector;
-import gnu.java.io.NullOutputStream;
-import gnu.java.lang.reflect.TypeSignature;
-import gnu.java.security.provider.Gnu;
-
 
 public class ObjectStreamClass implements Serializable
 {
@@ -102,16 +105,16 @@ public class ObjectStreamClass implements Serializable
       }
   }
 
-
   /**
    * Returns the name of the class that this
    * <code>ObjectStreamClass</code> represents.
+   *
+   * @return the name of the class.
    */
   public String getName()
   {
     return name;
   }
-
 
   /**
    * Returns the class that this <code>ObjectStreamClass</code>
@@ -127,31 +130,33 @@ public class ObjectStreamClass implements Serializable
     return clazz;
   }
 
-
   /**
    * Returns the serial version stream-unique identifier for the class
    * represented by this <code>ObjectStreamClass</code>.  This SUID is
    * either defined by the class as <code>static final long
    * serialVersionUID</code> or is calculated as specified in
    * Javasoft's "Object Serialization Specification" XXX: add reference
+   *
+   * @return the serial version UID.
    */
   public long getSerialVersionUID()
   {
     return uid;
   }
 
-
-  // Returns the serializable (non-static and non-transient) Fields
-  // of the class represented by this ObjectStreamClass.  The Fields
-  // are sorted by name.
-  // XXX doc
+  /**
+   * Returns the serializable (non-static and non-transient) Fields
+   * of the class represented by this ObjectStreamClass.  The Fields
+   * are sorted by name.
+   *
+   * @return the fields.
+   */
   public ObjectStreamField[] getFields()
   {
     ObjectStreamField[] copy = new ObjectStreamField[ fields.length ];
     System.arraycopy(fields, 0, copy, 0, fields.length);
     return copy;
   }
-
 
   // XXX doc
   // Can't do binary search since fields is sorted by name and
@@ -163,7 +168,6 @@ public class ObjectStreamClass implements Serializable
 	return fields[i];
     return null;
   }
-
 
   /**
    * Returns a textual representation of this
@@ -179,7 +183,6 @@ public class ObjectStreamClass implements Serializable
     return "java.io.ObjectStreamClass< " + name + ", " + uid + " >";
   }
 
-
   // Returns true iff the class that this ObjectStreamClass represents
   // has the following method:
   //
@@ -191,29 +194,6 @@ public class ObjectStreamClass implements Serializable
   {
     return (flags & ObjectStreamConstants.SC_WRITE_METHOD) != 0;
   }
-
-
-  // Returns true iff the class that this ObjectStreamClass represents
-  // has the following method:
-  //
-  // private void readObject (ObjectOutputStream)
-  //
-  // This method is used by the class to override default
-  // serialization behavior.
-  boolean hasReadMethod()
-  {
-    try
-      {
-	Class[] readObjectParams = { ObjectInputStream.class };
-	forClass().getDeclaredMethod("readObject", readObjectParams);
-	return true;
-      }
-    catch (NoSuchMethodException e)
-      {
-	return false;
-      }
-  }
-
 
   // Returns true iff the class that this ObjectStreamClass represents
   // implements Serializable but does *not* implement Externalizable.
@@ -306,6 +286,8 @@ public class ObjectStreamClass implements Serializable
   {
     this.clazz = cl;
 
+    cacheMethods();
+
     long class_uid = getClassUID(cl);
     if (uid == 0)
       uid = class_uid;
@@ -346,7 +328,7 @@ public class ObjectStreamClass implements Serializable
 	i = 0; j = 0; k = 0;
 	while (i < fields.length && j < exportedFields.length)
 	  {
-	    int comp = fields[i].getName().compareTo(exportedFields[j].getName());
+	    int comp = fields[i].compareTo(exportedFields[j]);
 
 	    if (comp < 0)
 	      {
@@ -363,10 +345,27 @@ public class ObjectStreamClass implements Serializable
 		newFieldList[k] = exportedFields[j];
 		newFieldList[k].setPersistent(true);
 		newFieldList[k].setToSet(false);
+		try
+		  {
+		    newFieldList[k].lookupField(clazz);
+		    newFieldList[k].checkFieldType();
+		  }
+		catch (NoSuchFieldException _)
+		  {
+		  }
 		j++;
 	      }
 	    else
 	      {
+		try
+		  {
+		    exportedFields[j].lookupField(clazz);
+		    exportedFields[j].checkFieldType();
+		  }
+		catch (NoSuchFieldException _)
+		  {
+		  }
+
 		if (!fields[i].getType().equals(exportedFields[j].getType()))
 		  throw new InvalidClassException
 		    ("serialPersistentFields must be compatible with" +
@@ -452,6 +451,103 @@ public class ObjectStreamClass implements Serializable
       fields[i].setOffset(objectFieldCount++);
   }
 
+  private Method findMethod(Method[] methods, String name, Class[] params,
+			    Class returnType, boolean mustBePrivate)
+  {
+outer:
+    for (int i = 0; i < methods.length; i++)
+    {
+	final Method m = methods[i];
+        int mods = m.getModifiers();
+        if (Modifier.isStatic(mods)
+            || (mustBePrivate && !Modifier.isPrivate(mods)))
+        {
+            continue;
+        }
+
+	if (m.getName().equals(name)
+	   && m.getReturnType() == returnType)
+	{
+	    Class[] mp = m.getParameterTypes();
+	    if (mp.length == params.length)
+	    {
+		for (int j = 0; j < mp.length; j++)
+		{
+		    if (mp[j] != params[j])
+		    {
+			continue outer;
+		    }
+		}
+		AccessController.doPrivileged(new SetAccessibleAction(m));
+		return m;
+	    }
+	}
+    }
+    return null;
+  }
+
+  private static boolean inSamePackage(Class c1, Class c2)
+  {
+    String name1 = c1.getName();
+    String name2 = c2.getName();
+
+    int id1 = name1.lastIndexOf('.');
+    int id2 = name2.lastIndexOf('.');
+
+    // Handle the default package
+    if (id1 == -1 || id2 == -1)
+      return id1 == id2;
+
+    String package1 = name1.substring(0, id1);
+    String package2 = name2.substring(0, id2);
+
+    return package1.equals(package2);
+  }
+
+  final static Class[] noArgs = new Class[0];
+
+  private static Method findAccessibleMethod(String name, Class from)
+  {
+    for (Class c = from; c != null; c = c.getSuperclass())
+      {
+	try
+	  {
+	    Method res = c.getDeclaredMethod(name, noArgs);
+	    int mods = res.getModifiers();
+	    
+	    if (c == from  
+		|| Modifier.isProtected(mods)
+		|| Modifier.isPublic(mods)
+		|| (! Modifier.isPrivate(mods) && inSamePackage(c, from)))
+	      {
+		AccessController.doPrivileged(new SetAccessibleAction(res));
+		return res;
+	      }
+	  }
+	catch (NoSuchMethodException e)
+	  {
+	  }
+      }
+
+    return null;
+  }
+
+  private void cacheMethods()
+  {
+    Method[] methods = forClass().getDeclaredMethods();
+
+    readObjectMethod = findMethod(methods, "readObject",
+				  new Class[] { ObjectInputStream.class },
+				  Void.TYPE, true);
+    writeObjectMethod = findMethod(methods, "writeObject",
+                                   new Class[] { ObjectOutputStream.class },
+                                   Void.TYPE, true);
+
+    // readResolve and writeReplace can be in parent classes, as long as they
+    // are accessible from this class.
+    readResolveMethod = findAccessibleMethod("readResolve", forClass());
+    writeReplaceMethod = findAccessibleMethod("writeReplace", forClass());
+  }
 
   private ObjectStreamClass(Class cl)
   {
@@ -460,6 +556,7 @@ public class ObjectStreamClass implements Serializable
     isProxyClass = Proxy.isProxyClass(cl);
 
     clazz = cl;
+    cacheMethods();
     name = cl.getName();
     setFlags(cl);
     setFields(cl);
@@ -479,20 +576,8 @@ public class ObjectStreamClass implements Serializable
       // only set this bit if CL is NOT Externalizable
       flags |= ObjectStreamConstants.SC_SERIALIZABLE;
 
-    try
-      {
-	Method writeMethod = cl.getDeclaredMethod("writeObject",
-						  writeMethodArgTypes);
-	int modifiers = writeMethod.getModifiers();
-
-	if (writeMethod.getReturnType() == Void.TYPE
-	    && Modifier.isPrivate(modifiers)
-	    && !Modifier.isStatic(modifiers))
-	  flags |= ObjectStreamConstants.SC_WRITE_METHOD;
-      }
-    catch(NoSuchMethodException oh_well)
-      {
-      }
+    if (writeObjectMethod != null)
+      flags |= ObjectStreamConstants.SC_WRITE_METHOD;
   }
 
 
@@ -500,6 +585,8 @@ public class ObjectStreamClass implements Serializable
   // clazz.
   private void setFields(Class cl)
   {
+    SetAccessibleAction setAccessible = new SetAccessibleAction();
+
     if (!isSerializable() || isExternalizable())
       {
 	fields = NO_FIELDS;
@@ -508,10 +595,11 @@ public class ObjectStreamClass implements Serializable
 
     try
       {
-	Field serialPersistentFields =
+	final Field f =
 	  cl.getDeclaredField("serialPersistentFields");
-	serialPersistentFields.setAccessible(true);
-	int modifiers = serialPersistentFields.getModifiers();
+	setAccessible.setMember(f);
+	AccessController.doPrivileged(setAccessible);
+	int modifiers = f.getModifiers();
 
 	if (Modifier.isStatic(modifiers)
 	    && Modifier.isFinal(modifiers)
@@ -521,6 +609,19 @@ public class ObjectStreamClass implements Serializable
 	    if (fields != null)
 	      {
 		Arrays.sort (fields);
+		// Retrieve field reference.
+		for (int i=0; i < fields.length; i++)
+		  {
+		    try
+		      {
+			fields[i].lookupField(cl);
+		      }
+		    catch (NoSuchFieldException _)
+		      {
+			fields[i].setToSet(false);
+		      }
+		  }
+		
 		calculateOffsets();
 		return;
 	      }
@@ -553,12 +654,22 @@ public class ObjectStreamClass implements Serializable
     for (int from = 0, to = 0; from < all_fields.length; from++)
       if (all_fields[from] != null)
 	{
-	  Field f = all_fields[from];
-	  fields[to] = new ObjectStreamField(f.getName(), f.getType());
+	  final Field f = all_fields[from];
+	  setAccessible.setMember(f);
+	  AccessController.doPrivileged(setAccessible);
+	  fields[to] = new ObjectStreamField(all_fields[from]);
 	  to++;
 	}
 
     Arrays.sort(fields);
+    // Make sure we don't have any duplicate field names
+    // (Sun JDK 1.4.1. throws an Internal Error as well)
+    for (int i = 1; i < fields.length; i++)
+      {
+	if(fields[i - 1].getName().equals(fields[i].getName()))
+	    throw new InternalError("Duplicate field " + 
+			fields[i].getName() + " in class " + cl.getName());
+      }
     calculateOffsets();
   }
 
@@ -571,8 +682,9 @@ public class ObjectStreamClass implements Serializable
 	// Use getDeclaredField rather than getField, since serialVersionUID
 	// may not be public AND we only want the serialVersionUID of this
 	// class, not a superclass or interface.
-	Field suid = cl.getDeclaredField("serialVersionUID");
-	suid.setAccessible(true);
+	final Field suid = cl.getDeclaredField("serialVersionUID");
+	SetAccessibleAction setAccessible = new SetAccessibleAction(suid);
+	AccessController.doPrivileged(setAccessible);
 	int modifiers = suid.getModifiers();
 
 	if (Modifier.isStatic(modifiers)
@@ -742,8 +854,56 @@ public class ObjectStreamClass implements Serializable
 
     fieldsArray = new ObjectStreamField[ o.length ];
     System.arraycopy(o, 0, fieldsArray, 0, o.length);
-    
+
     return fieldsArray;
+  }
+
+  /**
+   * Returns a new instance of the Class this ObjectStreamClass corresponds
+   * to.
+   * Note that this should only be used for Externalizable classes.
+   *
+   * @return A new instance.
+   */
+  Externalizable newInstance() throws InvalidClassException
+  {
+    synchronized(this)
+    {
+	if (constructor == null)
+	{
+	    try
+	    {
+		final Constructor c = clazz.getConstructor(new Class[0]);
+
+		AccessController.doPrivileged(new PrivilegedAction()
+		{
+		    public Object run()
+		    {
+			c.setAccessible(true);
+			return null;
+		    }
+		});
+
+		constructor = c;
+	    }
+	    catch(NoSuchMethodException x)
+	    {
+		throw new InvalidClassException(clazz.getName(),
+		    "No public zero-argument constructor");
+	    }
+	}
+    }
+
+    try
+    {
+	return (Externalizable)constructor.newInstance(null);
+    }
+    catch(Exception x)
+    {
+	throw (InvalidClassException)
+	    new InvalidClassException(clazz.getName(),
+		     "Unable to instantiate").initCause(x);
+    }
   }
 
   public static final ObjectStreamField[] NO_FIELDS = {};
@@ -769,40 +929,49 @@ public class ObjectStreamClass implements Serializable
   int primFieldSize = -1;  // -1 if not yet calculated
   int objectFieldCount;
 
+  Method readObjectMethod;
+  Method readResolveMethod;
+  Method writeReplaceMethod;
+  Method writeObjectMethod;
+  boolean realClassIsSerializable;
+  boolean realClassIsExternalizable;
+  ObjectStreamField[] fieldMapping;
+  Constructor firstNonSerializableParentConstructor;
+  private Constructor constructor;  // default constructor for Externalizable
+
   boolean isProxyClass = false;
 
   // This is probably not necessary because this class is special cased already
   // but it will avoid showing up as a discrepancy when comparing SUIDs.
   private static final long serialVersionUID = -6120832682080437368L;
 
-}
 
-
-// interfaces are compared only by name
-class InterfaceComparator implements Comparator
-{
-  public int compare(Object o1, Object o2)
+  // interfaces are compared only by name
+  private static final class InterfaceComparator implements Comparator
   {
-    return ((Class) o1).getName().compareTo(((Class) o2).getName());
+    public int compare(Object o1, Object o2)
+    {
+      return ((Class) o1).getName().compareTo(((Class) o2).getName());
+    }
   }
-}
 
 
-// Members (Methods and Constructors) are compared first by name,
-// conflicts are resolved by comparing type signatures
-class MemberComparator implements Comparator
-{
-  public int compare(Object o1, Object o2)
+  // Members (Methods and Constructors) are compared first by name,
+  // conflicts are resolved by comparing type signatures
+  private static final class MemberComparator implements Comparator
   {
-    Member m1 = (Member) o1;
-    Member m2 = (Member) o2;
+    public int compare(Object o1, Object o2)
+    {
+      Member m1 = (Member) o1;
+      Member m2 = (Member) o2;
 
-    int comp = m1.getName().compareTo(m2.getName());
+      int comp = m1.getName().compareTo(m2.getName());
 
-    if (comp == 0)
-      return TypeSignature.getEncodingOfMember(m1).
-	compareTo(TypeSignature.getEncodingOfMember(m2));
-    else
-      return comp;
+      if (comp == 0)
+        return TypeSignature.getEncodingOfMember(m1).
+	  compareTo(TypeSignature.getEncodingOfMember(m2));
+      else
+        return comp;
+    }
   }
 }

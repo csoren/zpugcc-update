@@ -1,5 +1,5 @@
 /* AbstractListModel.java --
-   Copyright (C) 2002 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -35,158 +35,145 @@ this exception to your version of the library, but you are not
 obligated to do so.  If you do not wish to do so, delete this
 exception statement from your version. */
 
+
 package javax.swing;
 
 import java.io.Serializable;
 import java.util.EventListener;
+
 import javax.swing.event.EventListenerList;
-import javax.swing.event.ListDataListener;
 import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
 
 /**
  * AbstractListModel
- * A2uthor	Ronald Veldema
- * @author	Andrew Selkirk
- * @version	1.0
+ *
+ * @author Ronald Veldema
+ * @author Andrew Selkirk
+ * @version 1.0
  */
-public abstract class AbstractListModel
-  implements ListModel, Serializable
+public abstract class AbstractListModel implements ListModel, Serializable
 {
-  static final long serialVersionUID = -3285184064379168730L;
+  private static final long serialVersionUID = -3285184064379168730L;
 
-  /**
-   * listenerList
-   */
-  protected EventListenerList listenerList = new EventListenerList ();
-  
-  /**
-   * Constructor AbstractListModel
-   */
-  public AbstractListModel ()
+  /** List of ListDataListeners called for each change to the list. */
+  protected EventListenerList listenerList;
+
+  public AbstractListModel()
   {
+    listenerList = new EventListenerList();
   }
 
   /**
-   * addListDataListener
-   * @param listener TODO
+   * Add a listener object to this model. The listener will be called
+   * any time the set of elements in the model is changed.
+   *
+   * @param listener The listener to add
    */
-  public void addListDataListener(ListDataListener listener) 
+  public void addListDataListener(ListDataListener listener)
   {
-    listenerList.add (ListDataListener.class, listener);
+    listenerList.add(ListDataListener.class, listener);
   }
 
   /**
-   * removeListDataListener
-   * @param listener TODO
+   * Add a listener object to this model. The listener will no longer be
+   * called when the set of elements in the model is changed.
+   *
+   * @param listener The listener to remove
    */
   public void removeListDataListener(ListDataListener listener)
   {
-    listenerList.remove (ListDataListener.class, listener);
+    listenerList.remove(ListDataListener.class, listener);
   }
 
   /**
-   * fireContentsChanged
-   * @param source TODO
-   * @param startIndex TODO
-   * @param endIndex TODO
+   * Call {@link ListDataListener#contentsChanged} on each element of the
+   * {@link listenerList} which is a {@link ListDataListener}. The event
+   * fired has type {@ListDataEvent.CONTENTS_CHANGED} and represents a
+   * change to the data elements in the range [startIndex, endIndex]
+   * inclusive.
+   *
+   * @param source The source of the change, typically <code>this</code>
+   * @param startIndex The index of the first element which changed
+   * @param endIndex The index of the last element which changed
    */
-  protected void fireContentsChanged(Object source, int startIndex, int endIndex)
-  {
-    // Variables
-    ListDataEvent event;
-    ListDataListener[] listeners;
-    ListDataListener listener;
-    int index;
-
-    // Create Event
-    event = new ListDataEvent(source, ListDataEvent.CONTENTS_CHANGED,
-    startIndex, endIndex);
-
-    // Get Listeners
-    listeners = getListDataListeners ();
-
-    // Process Listeners
-    for (index = 0; index < listeners.length; index++)
-      {
-        listener = (ListDataListener) listeners[index];
-        listener.contentsChanged(event);
-      }
-  }
-
-  /**
-   * fireIntervalAdded
-   * @param source TODO
-   * @param startIndex TODO
-   * @param endIndex TODO
-   */
-  protected void fireIntervalAdded (Object source, int startIndex, int endIndex)
-  {
-    // Variables
-    ListDataEvent event;
-    ListDataListener[] listeners;
-    ListDataListener listener;
-    int index;
-
-    // Create Event
-    event = new ListDataEvent (source, ListDataEvent.INTERVAL_ADDED, startIndex,
-                               endIndex);
-
-    // Get Listeners
-    listeners = getListDataListeners ();
-
-    // Process Listeners
-    for (index = 0; index < listeners.length; index++)
-      {
-        listener = listeners [index];
-        listener.intervalAdded (event);
-      }
-  }
-
-  /**
-   * fireIntervalRemoved
-   * @param source TODO
-   * @param startIndex TODO
-   * @param endIndex TODO
-   */
-  protected void fireIntervalRemoved (Object source, int startIndex,
+  protected void fireContentsChanged(Object source, int startIndex,
                                      int endIndex)
   {
-    // Variables
-    ListDataEvent event;
-    ListDataListener[] listeners;
-    ListDataListener listener;
-    int index;
+    ListDataEvent event = new ListDataEvent(source, ListDataEvent.CONTENTS_CHANGED,
+                                            startIndex, endIndex);
+    ListDataListener[] listeners = getListDataListeners();
 
-    // Create Event
-    event = new ListDataEvent (source, ListDataEvent.INTERVAL_REMOVED,
-                               startIndex, endIndex);
-
-    // Get Listeners
-    listeners = getListDataListeners ();
-
-    // Process Listeners
-    for (index = 0; index < listeners.length; index++)
-      {
-        listener = listeners [index];
-        listener.intervalRemoved (event);
-      }
+    for (int index = 0; index < listeners.length; index++)
+      listeners[index].contentsChanged(event);
   }
 
   /**
-   * getListeners
-   * @param listenerType TODO
-   * @returns EventListener[]
+   * Call {@link ListDataListener#intervalAdded} on each element of the
+   * {@link listenerList} which is a {@link ListDataListener}. The event
+   * fired has type {@ListDataEvent.INTERVAL_ADDED} and represents an
+   * addition of the data elements in the range [startIndex, endIndex]
+   * inclusive.
+   *
+   * @param source The source of the change, typically <code>this</code>
+   * @param startIndex The index of the first new element
+   * @param endIndex The index of the last new element
    */
-  public EventListener[] getListeners (Class listenerType)
+  protected void fireIntervalAdded(Object source, int startIndex, int endIndex)
   {
-    return listenerList.getListeners (listenerType);
+    ListDataEvent event =
+      new ListDataEvent(source, ListDataEvent.INTERVAL_ADDED,
+			startIndex, endIndex);
+    ListDataListener[] listeners = getListDataListeners();
+
+    for (int index = 0; index < listeners.length; index++)
+      listeners[index].intervalAdded(event);
   }
 
   /**
-   * getListDataListeners
+   * Call {@link ListDataListener#intervalRemoved} on each element of the
+   * {@link listenerList} which is a {@link ListDataListener}. The event
+   * fired has type {@ListDataEvent.INTERVAL_REMOVED} and represents a
+   * removal of the data elements in the range [startIndex, endIndex]
+   * inclusive.
+   *
+   * @param source The source of the change, typically <code>this</code>
+   * @param startIndex The index of the first element removed
+   * @param endIndex The index of the last element removed
    */
-  public ListDataListener[] getListDataListeners ()
+  protected void fireIntervalRemoved(Object source, int startIndex,
+                                     int endIndex)
   {
-    return (ListDataListener[]) getListeners (ListDataListener.class);
+    ListDataEvent event =
+      new ListDataEvent(source, ListDataEvent.INTERVAL_REMOVED,
+			startIndex, endIndex);
+    ListDataListener[] listeners = getListDataListeners();
+
+    for (int index = 0; index < listeners.length; index++)
+      listeners[index].intervalRemoved(event);
+  }
+
+  /**
+   * Return the subset of {@link EventListener} objects found in this
+   * object's {@link listenerList} which are elements of the specified
+   * type.
+   *
+   * @param listenerType The type of listeners to select
+   *
+   * @return The set of listeners of the specified type
+   */
+  public EventListener[] getListeners(Class listenerType)
+  {
+    return listenerList.getListeners(listenerType);
+  }
+
+  /**
+   * A synonym for <code>getListeners(ListDataListener.class)</code>.
+   *
+   * @return The set of ListDataListeners found in the {@link listenerList}
+   */
+  public ListDataListener[] getListDataListeners()
+  {
+    return (ListDataListener[]) getListeners(ListDataListener.class);
   }
 }

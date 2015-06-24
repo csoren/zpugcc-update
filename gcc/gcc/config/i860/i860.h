@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for Intel 860.
    Copyright (C) 1989, 1991, 1993, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004 Free Software Foundation, Inc.
    Hacked substantially by Ron Guilmette (rfg@monkeys.com) to cater to
    the whims of the System V Release 4 assembler.
 
@@ -240,7 +240,7 @@ extern int target_flags;
 
 /* Register in which address to store a structure value
    is passed to a function.  */
-#define STRUCT_VALUE_REGNUM 16
+#define I860_STRUCT_VALUE_REGNUM 16
 
 /* Register to use when a source of a floating-point zero is needed.  */
 #define F0_REGNUM	32
@@ -271,7 +271,7 @@ enum reg_class { NO_REGS, GENERAL_REGS, FP_REGS, ALL_REGS, LIM_REG_CLASSES };
 
 #define N_REG_CLASSES (int) LIM_REG_CLASSES
 
-/* Give names of register classes as strings for dump file.   */
+/* Give names of register classes as strings for dump file.  */
 
 #define REG_CLASS_NAMES \
  {"NO_REGS", "GENERAL_REGS", "FP_REGS", "ALL_REGS" }
@@ -529,12 +529,6 @@ struct cumulative_args { int ints, floats; };
      : 0)						\
   : 0)
 
-/* For an arg passed partly in registers and partly in memory,
-   this is the number of registers used.
-   For args passed entirely in registers or entirely in memory, zero.  */
-
-#define FUNCTION_ARG_PARTIAL_NREGS(CUM, MODE, TYPE, NAMED) 0
-
 /* If defined, a C expression that gives the alignment boundary, in
    bits, of an argument with the specified mode and type.  If it is
    not defined,  `PARM_BOUNDARY' is used for all arguments.  */
@@ -567,17 +561,9 @@ struct cumulative_args { int ints, floats; };
 
 #define EXIT_IGNORE_STACK 1
 
-/* Generate necessary RTL for __builtin_saveregs().  */
-#define EXPAND_BUILTIN_SAVEREGS() \
-  i860_saveregs()
-
 /* Implement `va_start' for varargs and stdarg.  */
 #define EXPAND_BUILTIN_VA_START(valist, nextarg) \
   i860_va_start (valist, nextarg)
-
-/* Implement `va_arg'.  */
-#define EXPAND_BUILTIN_VA_ARG(valist, type) \
-  i860_va_arg (valist, type)
 
 /* Store in the variable DEPTH the initial difference between the
    frame pointer reg contents and the stack pointer reg contents,
@@ -824,12 +810,6 @@ struct cumulative_args { int ints, floats; };
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE SImode
-
-/* Define as C expression which evaluates to nonzero if the tablejump
-   instruction expects the table to contain offsets from the address of the
-   table.
-   Do not define this if the table should contain absolute addresses. */
-/* #define CASE_VECTOR_PC_RELATIVE 1 */
 
 /* Define this as 1 if `char' should by default be signed; else as 0.  */
 #define DEFAULT_SIGNED_CHAR 1

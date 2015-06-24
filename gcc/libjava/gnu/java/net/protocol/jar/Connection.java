@@ -1,5 +1,5 @@
 /* Connection - jar url connection for java.net
-   Copyright (C) 1999, 2002, 2003 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2002, 2003, 2005 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -41,6 +41,7 @@ package gnu.java.net.protocol.jar;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -49,15 +50,16 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Map;
-import java.util.Vector;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.jar.JarFile;
+import java.util.Locale;
 import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * This subclass of java.net.JarURLConnection models a URLConnection via
@@ -68,10 +70,18 @@ import java.util.zip.ZipEntry;
 public final class Connection extends JarURLConnection
 {
   private static Hashtable file_cache = new Hashtable();
+
+  /**
+   * HTTP-style DateFormat, used to format the last-modified header.
+   */
+  private static SimpleDateFormat dateFormat
+    = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss 'GMT'",
+                           new Locale ("En", "Us", "Unix"));
+
   private JarFile jar_file;
 
   /**
-   * Cached JarURLConnection objects .
+   * Cached JarURLConnection objects.
    */
   static HashMap connectionCache = new HashMap();
 
@@ -142,12 +152,11 @@ public final class Connection extends JarURLConnection
     if (jarfile != null)
       {
 	// this is the easy way...
-	ZipEntry entry = jarfile.getEntry(getEntryName());
+	ZipEntry entry = jarfile.getEntry
+	  (gnu.java.net.protocol.file.Connection.unquote(getEntryName()));
         
 	if (entry != null)
 	  return jarfile.getInputStream (entry);
-	else
-	  return null;
       }
     else
       {
@@ -155,12 +164,14 @@ public final class Connection extends JarURLConnection
 	JarInputStream zis = new JarInputStream(
 			jarFileURLConnection.getInputStream ());
 
+	String entryName = gnu.java.net.protocol.file.Connection.unquote(getEntryName());
+
 	// This is hideous, we're doing a linear search...
 	for (ZipEntry entry = zis.getNextEntry(); 
 	     entry != null; 
 	     entry = zis.getNextEntry())
 	  {
-	    if (getEntryName().equals(entry.getName()))
+	    if (entryName.equals(entry.getName()))
 	      {
 		int size = (int) entry.getSize();
 		byte[] data = new byte[size];
@@ -170,7 +181,10 @@ public final class Connection extends JarURLConnection
 	  }
       }
 
-    return null;
+    throw new FileNotFoundException("No entry for \"" + getEntryName()
+				    + "\" in \""
+				    + getJarFileURL()
+				    + "\"");
   }
 
   public synchronized JarFile getJarFile() throws IOException
@@ -194,12 +208,14 @@ public final class Connection extends JarURLConnection
 	    jar_file = (JarFile) file_cache.get (jarFileURL);
 	    if (jar_file == null)
 	      {
-		jar_file = new JarFile (jarFileURL.getFile());
+		jar_file = new JarFile 
+		  (gnu.java.net.protocol.file.Connection.unquote(jarFileURL.getFile()));
 		file_cache.put (jarFileURL, jar_file);
 	      }
 	  }
 	else
-	  jar_file = new JarFile (jarFileURL.getFile());
+	  jar_file = new JarFile 
+	    (gnu.java.net.protocol.file.Connection.unquote(jarFileURL.getFile()));
       }
     else
       {
@@ -213,136 +229,66 @@ public final class Connection extends JarURLConnection
 	  fos.write(buf, 0, len);
         fos.close();
 	// Always verify the Manifest, open read only and delete when done.
-	// XXX ZipFile.OPEN_DELETE not yet implemented.
-	// jf = new JarFile(f, true, ZipFile.OPEN_READ | ZipFile.OPEN_DELETE);
-	jar_file = new JarFile (f, true, ZipFile.OPEN_READ);
+	jar_file = new JarFile (f, true,
+				ZipFile.OPEN_READ | ZipFile.OPEN_DELETE);
       }
 
     return jar_file;
   }
 
-  // Steal and borrow from protocol/file/Connection.java
-
-  private Hashtable hdrHash = new Hashtable();
-  private Vector hdrVec = new Vector();
-  private boolean gotHeaders = false;
-
-  // Override default method in URLConnection.
-  public String getHeaderField(String name)
+  public String getHeaderField(String field)
   {
     try
       {
-	getHeaders();
-      }
-    catch (IOException x)
-      {
-	return null;
-      }
-    return (String) hdrHash.get(name.toLowerCase());
-  }
+	if (!connected)
+	  connect();
 
-  // Override default method in URLConnection.
-  public Map getHeaderFields()
-  {
-    try
-      {
-        getHeaders();
+	if (field.equals("content-type"))
+          return guessContentTypeFromName(getJarEntry().getName());
+	else if (field.equals("content-length"))
+          return Long.toString(getJarEntry().getSize());
+	else if (field.equals("last-modified"))
+	  {
+	    synchronized (dateFormat)
+	      {
+        	return dateFormat.format(new Date(getJarEntry().getTime()));
+	      }
+	  }
       }
-    catch (IOException x)
+    catch (IOException e)
       {
-        return null;
+        // Fall through.
       }
-    return hdrHash;
-  }
-
-  // Override default method in URLConnection.
-  public String getHeaderField(int n)
-  {
-    try
-      {
-	getHeaders();
-      }
-    catch (IOException x)
-      {
-	return null;
-      }
-    if (n < hdrVec.size())
-      return getField((String) hdrVec.elementAt(n));
-
     return null;
   }
 
-  // Override default method in URLConnection.
-  public String getHeaderFieldKey(int n)
+  public int getContentLength()
   {
+    if (!connected)
+      return -1;
+
     try
       {
-	getHeaders();
+        return (int) getJarEntry().getSize();
       }
-    catch (IOException x)
+    catch (IOException e)
       {
-	return null;
+	return -1;
       }
-    if (n < hdrVec.size())
-      return getKey((String) hdrVec.elementAt(n));
-
-    return null;
   }
 
-  private String getKey(String str)
+  public long getLastModified()
   {
-    if (str == null)
-      return null;
-    int index = str.indexOf(':');
-    if (index >= 0)
-      return str.substring(0, index);
-    else
-      return null;
-  }
+    if (!connected)
+      return -1;
 
-  private String getField(String str)
-  {
-    if (str == null)
-      return null;
-    int index = str.indexOf(':');
-    if (index >= 0)
-      return str.substring(index + 1).trim();
-    else
-      return str;
-  }
-
-  private void getHeaders() throws IOException
-  {
-    if (gotHeaders)
-      return;
-    gotHeaders = true;
-
-    connect();
-
-    // Yes, it is overkill to use the hash table and vector here since
-    // we're only putting one header in the file, but in case we need
-    // to add others later and for consistency, we'll implement it this way.
-
-    // Add the only header we know about right now:  Content-length.
-    long len = -1;
-
-    if (getEntryName() == null)
-      if (jarFileURLConnection != null)
-	len = jarFileURLConnection.getContentLength ();
-    else
+    try
       {
-	JarEntry entry = getJarEntry();
-	if (entry != null)
-	  len = entry.getSize ();
+	return getJarEntry().getTime();
       }
-
-    String line = "Content-length: " + len;
-    hdrVec.addElement(line);
-
-    // The key will never be null in this scenario since we build up the
-    // headers ourselves.  If we ever rely on getting a header from somewhere
-    // else, then we may have to check if the result of getKey() is null.
-    String key = getKey(line);
-    hdrHash.put(key.toLowerCase(), Long.toString(len));
+    catch (IOException e)
+      {
+	return -1;
+      }
   }
 }

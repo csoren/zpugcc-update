@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---             Copyright (C) 2001-2003 Free Software Foundation, Inc.       --
+--             Copyright (C) 2001-2004 Free Software Foundation, Inc.       --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -111,6 +111,7 @@ package body Prj.Tree is
             Packages         => Empty_Node,
             Pkg_Id           => Empty_Package,
             Name             => No_Name,
+            Src_Index        => 0,
             Path_Name        => No_Name,
             Value            => No_Name,
             Field1           => Empty_Node,
@@ -157,6 +158,7 @@ package body Prj.Tree is
                Packages         => Empty_Node,
                Pkg_Id           => Empty_Package,
                Name             => No_Name,
+               Src_Index        => 0,
                Path_Name        => No_Name,
                Value            => Comments.Table (J).Value,
                Field1           => Empty_Node,
@@ -203,7 +205,6 @@ package body Prj.Tree is
 
       Comments.Set_Last (0);
    end Add_Comments;
-
 
    --------------------------------
    -- Associative_Array_Index_Of --
@@ -310,6 +311,7 @@ package body Prj.Tree is
          Packages         => Empty_Node,
          Pkg_Id           => Empty_Package,
          Name             => No_Name,
+         Src_Index        => 0,
          Path_Name        => No_Name,
          Value            => No_Name,
          Field1           => Empty_Node,
@@ -379,6 +381,7 @@ package body Prj.Tree is
          Packages         => Empty_Node,
          Pkg_Id           => Empty_Package,
          Name             => No_Name,
+         Src_Index        => 0,
          Path_Name        => No_Name,
          Value            => No_Name,
          Field1           => Empty_Node,
@@ -411,6 +414,7 @@ package body Prj.Tree is
                Packages         => Empty_Node,
                Pkg_Id           => Empty_Package,
                Name             => No_Name,
+               Src_Index        => 0,
                Path_Name        => No_Name,
                Value            => No_Name,
                Field1           => Empty_Node,
@@ -441,6 +445,7 @@ package body Prj.Tree is
                   Packages         => Empty_Node,
                   Pkg_Id           => Empty_Package,
                   Name             => No_Name,
+                  Src_Index        => 0,
                   Path_Name        => No_Name,
                   Value            => Comments.Table (J).Value,
                   Field1           => Empty_Node,
@@ -933,7 +938,9 @@ package body Prj.Tree is
       pragma Assert
         (Node /= Empty_Node
           and then
-            Project_Nodes.Table (Node).Kind = N_Project);
+           (Project_Nodes.Table (Node).Kind = N_Project
+              or else
+            Project_Nodes.Table (Node).Kind = N_With_Clause));
       return Project_Nodes.Table (Node).Flag2;
    end Is_Extending_All;
 
@@ -1242,8 +1249,7 @@ package body Prj.Tree is
    function Project_File_Includes_Unkept_Comments
      (Node : Project_Node_Id) return Boolean
    is
-      Declaration : constant Project_Node_Id :=
-        Project_Declaration_Of (Node);
+      Declaration : constant Project_Node_Id := Project_Declaration_Of (Node);
    begin
       return Project_Nodes.Table (Declaration).Flag1;
    end Project_File_Includes_Unkept_Comments;
@@ -1329,7 +1335,8 @@ package body Prj.Tree is
    ----------
 
    procedure Save (S : out Comment_State) is
-      Cmts : Comments_Ptr := new Comment_Array (1 .. Comments.Last);
+      Cmts : constant Comments_Ptr := new Comment_Array (1 .. Comments.Last);
+
    begin
       for J in 1 .. Comments.Last loop
          Cmts (J) := Comments.Table (J);
@@ -1393,7 +1400,7 @@ package body Prj.Tree is
                elsif End_Of_Line_Node /= Empty_Node then
                   declare
                      Zones : constant Project_Node_Id :=
-                       Comment_Zones_Of (End_Of_Line_Node);
+                               Comment_Zones_Of (End_Of_Line_Node);
                   begin
                      Project_Nodes.Table (Zones).Value := Comment_Id;
                   end;
@@ -1722,8 +1729,7 @@ package body Prj.Tree is
      (Node : Project_Node_Id;
       To   : Project_Node_Id)
    is
-      Zone : constant Project_Node_Id :=
-                Comment_Zones_Of (Node);
+      Zone : constant Project_Node_Id := Comment_Zones_Of (Node);
    begin
       Project_Nodes.Table (Zone).Field2 := To;
    end Set_First_Comment_After;
@@ -1736,8 +1742,7 @@ package body Prj.Tree is
      (Node : Project_Node_Id;
       To   : Project_Node_Id)
    is
-      Zone : constant Project_Node_Id :=
-                Comment_Zones_Of (Node);
+      Zone : constant Project_Node_Id := Comment_Zones_Of (Node);
    begin
       Project_Nodes.Table (Zone).Comments := To;
    end Set_First_Comment_After_End;
@@ -1751,8 +1756,7 @@ package body Prj.Tree is
       To   : Project_Node_Id)
 
    is
-      Zone : constant Project_Node_Id :=
-                Comment_Zones_Of (Node);
+      Zone : constant Project_Node_Id := Comment_Zones_Of (Node);
    begin
       Project_Nodes.Table (Zone).Field1 := To;
    end Set_First_Comment_Before;
@@ -1765,8 +1769,7 @@ package body Prj.Tree is
      (Node : Project_Node_Id;
       To   : Project_Node_Id)
    is
-      Zone : constant Project_Node_Id :=
-                Comment_Zones_Of (Node);
+      Zone : constant Project_Node_Id := Comment_Zones_Of (Node);
    begin
       Project_Nodes.Table (Zone).Field2 := To;
    end Set_First_Comment_Before_End;
@@ -1951,7 +1954,9 @@ package body Prj.Tree is
       pragma Assert
         (Node /= Empty_Node
           and then
-            Project_Nodes.Table (Node).Kind = N_Project);
+            (Project_Nodes.Table (Node).Kind = N_Project
+               or else
+             Project_Nodes.Table (Node).Kind = N_With_Clause));
       Project_Nodes.Table (Node).Flag2 := True;
    end Set_Is_Extending_All;
 
@@ -2275,8 +2280,7 @@ package body Prj.Tree is
      (Node : Project_Node_Id;
       To   : Boolean)
    is
-      Declaration : constant Project_Node_Id :=
-        Project_Declaration_Of (Node);
+      Declaration : constant Project_Node_Id := Project_Declaration_Of (Node);
    begin
       Project_Nodes.Table (Declaration).Flag1 := To;
    end Set_Project_File_Includes_Unkept_Comments;
@@ -2324,6 +2328,24 @@ package body Prj.Tree is
       Project_Nodes.Table (Node).Field1 := To;
    end Set_Project_Of_Renamed_Package_Of;
 
+   -------------------------
+   -- Set_Source_Index_Of --
+   -------------------------
+
+   procedure Set_Source_Index_Of
+     (Node : Project_Node_Id;
+      To   : Int)
+   is
+   begin
+      pragma Assert
+        (Node /= Empty_Node
+          and then
+           (Project_Nodes.Table (Node).Kind = N_Literal_String
+            or else
+            Project_Nodes.Table (Node).Kind = N_Attribute_Declaration));
+      Project_Nodes.Table (Node).Src_Index := To;
+   end Set_Source_Index_Of;
+
    ------------------------
    -- Set_String_Type_Of --
    ------------------------
@@ -2339,8 +2361,8 @@ package body Prj.Tree is
             (Project_Nodes.Table (Node).Kind = N_Variable_Reference
                or else
              Project_Nodes.Table (Node).Kind = N_Typed_Variable_Declaration)
-           and then
-            Project_Nodes.Table (To).Kind    = N_String_Type_Declaration);
+          and then
+            Project_Nodes.Table (To).Kind = N_String_Type_Declaration);
 
       if Project_Nodes.Table (Node).Kind = N_Variable_Reference then
          Project_Nodes.Table (Node).Field3 := To;
@@ -2369,13 +2391,26 @@ package body Prj.Tree is
       Project_Nodes.Table (Node).Value := To;
    end Set_String_Value_Of;
 
+   ---------------------
+   -- Source_Index_Of --
+   ---------------------
+
+   function Source_Index_Of (Node : Project_Node_Id) return Int is
+   begin
+      pragma Assert
+        (Node /= Empty_Node
+          and then
+            (Project_Nodes.Table (Node).Kind = N_Literal_String
+              or else
+             Project_Nodes.Table (Node).Kind = N_Attribute_Declaration));
+      return Project_Nodes.Table (Node).Src_Index;
+   end Source_Index_Of;
+
    --------------------
    -- String_Type_Of --
    --------------------
 
-   function String_Type_Of
-     (Node : Project_Node_Id) return Project_Node_Id
-   is
+   function String_Type_Of (Node : Project_Node_Id) return Project_Node_Id is
    begin
       pragma Assert
         (Node /= Empty_Node
@@ -2450,6 +2485,5 @@ package body Prj.Tree is
    begin
       return Unkept_Comments;
    end There_Are_Unkept_Comments;
-
 
 end Prj.Tree;

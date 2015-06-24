@@ -287,7 +287,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 49 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 49 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
 
 #include "config.h"
 #include "system.h"
@@ -299,6 +299,8 @@
 #include "real.h"
 #include "obstack.h"
 #include "toplev.h"
+#include "pretty-print.h"
+#include "diagnostic.h"
 #include "flags.h"
 #include "java-tree.h"
 #include "jcf.h"
@@ -314,9 +316,11 @@
 #include "debug.h"
 #include "tree-inline.h"
 #include "cgraph.h"
+#include "target.h"
 
 /* Local function prototypes */
 static char *java_accstring_lookup (int);
+static const char *accessibility_string (int);
 static void  classitf_redefinition_error (const char *,tree, tree, tree);
 static void  variable_redefinition_error (tree, tree, tree, int);
 static tree  create_class (int, tree, tree, tree);
@@ -335,10 +339,14 @@ static tree lookup_java_method2 (tree, tree, int);
 static tree method_header (int, tree, tree, tree);
 static void fix_method_argument_names (tree ,tree);
 static tree method_declarator (tree, tree);
-static void parse_warning_context (tree cl, const char *msg, ...)
-  ATTRIBUTE_PRINTF_2;
-static void issue_warning_error_from_context (tree, const char *msg, va_list)
-  ATTRIBUTE_PRINTF (2, 0);
+static void parse_warning_context (tree cl, const char *gmsgid, ...);
+#ifdef USE_MAPPED_LOCATION
+static void issue_warning_error_from_context
+  (source_location, const char *gmsgid, va_list *);
+#else
+static void issue_warning_error_from_context
+  (tree, const char *gmsgid, va_list *);
+#endif
 static void parse_ctor_invocation_error (void);
 static tree parse_jdk1_1_error (const char *);
 static void complete_class_report_errors (jdep *);
@@ -347,8 +355,7 @@ static void read_import_dir (tree);
 static int find_in_imports_on_demand (tree, tree);
 static void find_in_imports (tree, tree);
 static void check_inner_class_access (tree, tree, tree);
-static int check_pkg_class_access (tree, tree, bool);
-static void register_package (tree);
+static int check_pkg_class_access (tree, tree, bool, tree);
 static tree resolve_package (tree, tree *, tree *);
 static tree resolve_class (tree, tree, tree, tree);
 static void declare_local_variables (int, tree, tree);
@@ -362,8 +369,6 @@ static tree resolve_expression_name (tree, tree *);
 static tree maybe_create_class_interface_decl (tree, tree, tree, tree);
 static int check_class_interface_creation (int, int, tree, tree, tree, tree);
 static tree patch_method_invocation (tree, tree, tree, int, int *, tree *);
-static int breakdown_qualified (tree *, tree *, tree);
-static int in_same_package (tree, tree);
 static tree resolve_and_layout (tree, tree);
 static tree qualify_and_find (tree, tree, tree);
 static tree resolve_no_layout (tree, tree);
@@ -384,6 +389,7 @@ static tree java_complete_tree (tree);
 static tree maybe_generate_pre_expand_clinit (tree);
 static int analyze_clinit_body (tree, tree);
 static int maybe_yank_clinit (tree);
+static void start_complete_expand_method (tree);
 static void java_complete_expand_method (tree);
 static void java_expand_method_bodies (tree);
 static int  unresolved_type_p (tree, tree *);
@@ -398,7 +404,7 @@ static tree build_new_invocation (tree, tree);
 static tree build_assignment (int, int, tree, tree);
 static tree build_binop (enum tree_code, int, tree, tree);
 static tree patch_assignment (tree, tree);
-static tree patch_binop (tree, tree, tree);
+static tree patch_binop (tree, tree, tree, int);
 static tree build_unaryop (int, int, tree);
 static tree build_incdec (int, int, tree, int);
 static tree patch_unaryop (tree, tree);
@@ -416,7 +422,11 @@ static int build_type_name_from_array_name (tree, tree *);
 static tree build_array_from_name (tree, tree, tree, tree *);
 static tree build_array_ref (int, tree, tree);
 static tree patch_array_ref (tree);
+#ifdef USE_MAPPED_LOCATION
+static tree make_qualified_name (tree, tree, source_location);
+#else
 static tree make_qualified_name (tree, tree, int);
+#endif
 static tree merge_qualified_name (tree, tree);
 static tree make_qualified_primary (tree, tree, int);
 static int resolve_qualified_expression_name (tree, tree *, tree *, tree *);
@@ -437,7 +447,6 @@ static void check_deprecation (tree, tree);
 static int class_in_current_package (tree);
 static tree build_if_else_statement (int, tree, tree, tree);
 static tree patch_if_else_statement (tree);
-static tree add_stmt_to_compound (tree, tree, tree);
 static tree add_stmt_to_block (tree, tree, tree);
 static tree patch_exit_expr (tree);
 static tree build_labeled_block (int, tree);
@@ -456,13 +465,21 @@ static tree build_string_concatenation (tree, tree);
 static tree patch_string_cst (tree);
 static tree patch_string (tree);
 static tree encapsulate_with_try_catch (int, tree, tree, tree);
+#ifdef USE_MAPPED_LOCATION
+static tree build_assertion (source_location, tree, tree);
+#else
 static tree build_assertion (int, tree, tree);
+#endif
 static tree build_try_statement (int, tree, tree);
 static tree build_try_finally_statement (int, tree, tree);
 static tree patch_try_statement (tree);
 static tree patch_synchronized_statement (tree, tree);
 static tree patch_throw_statement (tree, tree);
+#ifdef USE_MAPPED_LOCATION
+static void check_thrown_exceptions (source_location, tree, tree);
+#else
 static void check_thrown_exceptions (int, tree, tree);
+#endif
 static int check_thrown_exceptions_do (tree);
 static void purge_unchecked_exceptions (tree);
 static bool ctors_unchecked_throws_clause_p (tree);
@@ -535,7 +552,6 @@ static int pop_current_osb (struct parser_ctxt *);
 
 static tree maybe_make_nested_class_name (tree);
 static int make_nested_class_name (tree);
-static void set_nested_class_simple_name_value (tree, int);
 static void link_nested_class_to_enclosing (void);
 static tree resolve_inner_class (htab_t, tree, tree *, tree *, tree);
 static tree find_as_inner_class (tree, tree, tree);
@@ -547,22 +563,20 @@ static tree build_current_thisn (tree);
 static tree build_access_to_thisn (tree, tree, int);
 static tree maybe_build_thisn_access_method (tree);
 
-static tree build_outer_field_access (tree, tree);
-static tree build_outer_field_access_methods (tree);
-static tree build_outer_field_access_expr (int, tree, tree,
-						  tree, tree);
-static tree build_outer_method_access_method (tree);
+static tree build_nested_field_access (tree, tree);
+static tree build_nested_field_access_methods (tree);
+static tree build_nested_field_access_method (tree, tree, tree, tree, tree);
+static tree build_nested_field_access_expr (int, tree, tree, tree, tree);
+static tree build_nested_method_access_method (tree);
 static tree build_new_access_id (void);
-static tree build_outer_field_access_method (tree, tree, tree,
-						    tree, tree);
 
-static int outer_field_access_p (tree, tree);
-static int outer_field_expanded_access_p (tree, tree *,
-						 tree *, tree *);
-static tree outer_field_access_fix (tree, tree, tree);
+static int nested_member_access_p (tree, tree);
+static int nested_field_expanded_access_p (tree, tree *, tree *, tree *);
+static tree nested_field_access_fix (tree, tree, tree);
+
 static tree build_incomplete_class_ref (int, tree);
 static tree patch_incomplete_class_ref (tree);
-static tree create_anonymous_class (int, tree);
+static tree create_anonymous_class (tree);
 static void patch_anonymous_class (tree, tree, tree);
 static void add_inner_class_fields (tree, tree);
 
@@ -571,7 +585,6 @@ static tree build_dot_class_method_invocation (tree, tree);
 static void create_new_parser_context (int);
 static tree maybe_build_class_init_for_field (tree, tree);
 
-static int attach_init_test_initialization_flags (void **, void *);
 static int emit_test_initialization (void **, void *);
 
 static char *string_convert_int_cst (tree);
@@ -590,6 +603,7 @@ struct parser_ctxt *ctxp;
 
 /* List of things that were analyzed for which code will be generated */
 struct parser_ctxt *ctxp_for_generation = NULL;
+struct parser_ctxt *ctxp_for_generation_last = NULL;
 
 /* binop_lookup maps token to tree_code. It is used where binary
    operations are involved and required by the parser. RDIV_EXPR
@@ -635,9 +649,6 @@ static GTY(()) tree current_static_block;
 
 /* The generated `write_parm_value$' identifier.  */
 static GTY(()) tree wpv_id;
-
-/* The list of all packages we've seen so far */
-static GTY(()) tree package_list;
 
 /* Hold THIS for the scope of the current method decl.  */
 static GTY(()) tree current_this;
@@ -694,18 +705,22 @@ static GTY(()) tree src_parse_roots[1];
 #endif
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 441 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 452 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
 typedef union YYSTYPE {
   tree node;
   int sub_token;
   struct {
     int token;
+#ifdef USE_MAPPED_LOCATION
+    source_location location;
+#else
     int location;
+#endif
   } operator;
   int value;
 } YYSTYPE;
 /* Line 191 of yacc.c.  */
-#line 708 "java/parse.c"
+#line 723 "java/parse.c"
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1
@@ -714,13 +729,21 @@ typedef union YYSTYPE {
 
 
 /* Copy the second part of user declarations.  */
-#line 451 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 466 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+
+#ifdef USE_MAPPED_LOCATION
+#define SET_EXPR_LOCATION_FROM_TOKEN(EXPR, TOKEN) \
+  SET_EXPR_LOCATION(EXPR, (TOKEN).location)
+#else
+#define SET_EXPR_LOCATION_FROM_TOKEN(EXPR, TOKEN) \
+  (EXPR_WFL_LINECOL (EXPR) = (TOKEN).location)
+#endif
 
 #include "lex.c"
 
 
 /* Line 214 of yacc.c.  */
-#line 723 "java/parse.c"
+#line 746 "java/parse.c"
 
 #if ! defined (yyoverflow) || YYERROR_VERBOSE
 
@@ -819,16 +842,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state. */
 #define YYFINAL  32
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   5590
+#define YYLAST   5705
 
 /* YYNTOKENS -- Number of terminals. */
 #define YYNTOKENS  112
 /* YYNNTS -- Number of nonterminals. */
-#define YYNNTS  164
+#define YYNNTS  165
 /* YYNRULES -- Number of rules. */
-#define YYNRULES  510
+#define YYNRULES  516
 /* YYNRULES -- Number of states. */
-#define YYNSTATES  785
+#define YYNSTATES  791
 
 /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
@@ -918,24 +941,24 @@ static const unsigned short yyprhs[] =
      998,  1001,  1005,  1009,  1012,  1016,  1022,  1026,  1029,  1033,
     1039,  1045,  1048,  1053,  1057,  1059,  1063,  1067,  1072,  1075,
     1077,  1080,  1083,  1088,  1091,  1095,  1100,  1103,  1106,  1108,
-    1110,  1112,  1114,  1118,  1120,  1122,  1124,  1126,  1128,  1132,
-    1136,  1140,  1144,  1148,  1152,  1156,  1160,  1164,  1170,  1175,
-    1177,  1182,  1188,  1194,  1201,  1205,  1209,  1214,  1220,  1223,
-    1227,  1228,  1236,  1237,  1244,  1248,  1252,  1254,  1258,  1262,
-    1266,  1270,  1275,  1280,  1285,  1290,  1294,  1298,  1300,  1303,
-    1307,  1311,  1314,  1317,  1321,  1325,  1329,  1333,  1336,  1340,
-    1345,  1351,  1358,  1364,  1371,  1376,  1381,  1386,  1391,  1395,
-    1400,  1404,  1409,  1411,  1413,  1415,  1417,  1420,  1423,  1425,
-    1427,  1430,  1432,  1435,  1437,  1440,  1443,  1446,  1449,  1452,
-    1455,  1457,  1460,  1463,  1465,  1468,  1471,  1477,  1482,  1487,
-    1493,  1498,  1501,  1507,  1512,  1518,  1520,  1524,  1528,  1532,
-    1536,  1540,  1544,  1546,  1550,  1554,  1558,  1562,  1564,  1568,
-    1572,  1576,  1580,  1584,  1588,  1590,  1594,  1598,  1602,  1606,
-    1610,  1614,  1618,  1622,  1626,  1630,  1632,  1636,  1640,  1644,
-    1648,  1650,  1654,  1658,  1660,  1664,  1668,  1670,  1674,  1678,
-    1680,  1684,  1688,  1690,  1694,  1698,  1700,  1706,  1711,  1715,
-    1721,  1723,  1725,  1729,  1733,  1735,  1737,  1739,  1741,  1743,
-    1745
+    1110,  1112,  1114,  1116,  1120,  1122,  1124,  1126,  1128,  1130,
+    1134,  1138,  1142,  1146,  1150,  1154,  1158,  1162,  1166,  1172,
+    1177,  1179,  1184,  1190,  1196,  1203,  1207,  1211,  1216,  1222,
+    1225,  1229,  1230,  1238,  1239,  1246,  1250,  1254,  1256,  1260,
+    1264,  1268,  1272,  1277,  1282,  1286,  1290,  1295,  1300,  1304,
+    1308,  1310,  1313,  1317,  1321,  1324,  1327,  1331,  1335,  1339,
+    1343,  1346,  1350,  1355,  1361,  1368,  1374,  1381,  1386,  1391,
+    1396,  1401,  1406,  1410,  1415,  1419,  1424,  1428,  1433,  1435,
+    1437,  1439,  1441,  1444,  1447,  1449,  1451,  1454,  1456,  1459,
+    1461,  1464,  1467,  1470,  1473,  1476,  1479,  1481,  1484,  1487,
+    1489,  1492,  1495,  1501,  1506,  1511,  1517,  1522,  1525,  1531,
+    1536,  1542,  1544,  1548,  1552,  1556,  1560,  1564,  1568,  1570,
+    1574,  1578,  1582,  1586,  1588,  1592,  1596,  1600,  1604,  1608,
+    1612,  1614,  1618,  1622,  1626,  1630,  1634,  1638,  1642,  1646,
+    1650,  1654,  1656,  1660,  1664,  1668,  1672,  1674,  1678,  1682,
+    1684,  1688,  1692,  1694,  1698,  1702,  1704,  1708,  1712,  1714,
+    1718,  1722,  1724,  1730,  1735,  1739,  1745,  1747,  1749,  1753,
+    1757,  1759,  1761,  1763,  1765,  1767,  1769
 };
 
 /* YYRHS -- A `-1'-separated list of the rules' RHS. */
@@ -944,8 +967,8 @@ static const short yyrhs[] =
      113,     0,    -1,   126,    -1,   106,    -1,   107,    -1,   110,
       -1,   105,    -1,   104,    -1,   111,    -1,   116,    -1,   117,
       -1,    84,    -1,    87,    -1,    51,    -1,   118,    -1,   121,
-      -1,   122,    -1,   118,    -1,   118,    -1,   116,   246,    -1,
-     122,   246,    -1,   123,    -1,   124,    -1,   125,    -1,   122,
+      -1,   122,    -1,   118,    -1,   118,    -1,   116,   247,    -1,
+     122,   247,    -1,   123,    -1,   124,    -1,   125,    -1,   122,
      103,   125,    -1,    88,    -1,    -1,   129,    -1,   127,    -1,
      128,    -1,   129,   127,    -1,   129,   128,    -1,   127,   128,
       -1,   129,   127,   128,    -1,   130,    -1,   127,   130,    -1,
@@ -969,7 +992,7 @@ static const short yyrhs[] =
       -1,   148,    -1,   148,    94,   149,    -1,   148,    94,     1,
       -1,   148,    94,   149,     1,    -1,   125,    -1,   148,    99,
      100,    -1,   125,     1,    -1,   148,    99,     1,    -1,   148,
-     100,     1,    -1,   274,    -1,   181,    -1,    -1,   152,   151,
+     100,     1,    -1,   275,    -1,   181,    -1,    -1,   152,   151,
      159,    -1,   152,     1,    -1,   115,   153,   157,    -1,    60,
      153,   157,    -1,   134,   115,   153,   157,    -1,   134,    60,
      153,   157,    -1,   115,     1,    -1,   134,   115,     1,    -1,
@@ -1014,25 +1037,25 @@ static const short yyrhs[] =
       -1,   122,   103,    66,     1,    -1,   122,   103,    66,    95,
        1,    -1,   122,   103,    66,    95,   242,     1,    -1,   122,
      103,    66,    95,   242,    96,     1,    -1,   122,   103,    66,
-      95,    96,     1,    -1,   271,    -1,   255,    -1,   256,    -1,
-     251,    -1,   252,    -1,   248,    -1,   237,    -1,    49,    95,
-     274,    96,   190,    -1,    49,     1,    -1,    49,    95,     1,
-      -1,    49,    95,   274,     1,    -1,    49,    95,   274,    96,
-     191,    57,   190,    -1,    49,    95,   274,    96,   191,    57,
-     191,    -1,    -1,   204,   203,   205,    -1,    69,    95,   274,
+      95,    96,     1,    -1,   272,    -1,   256,    -1,   257,    -1,
+     252,    -1,   253,    -1,   249,    -1,   237,    -1,    49,    95,
+     275,    96,   190,    -1,    49,     1,    -1,    49,    95,     1,
+      -1,    49,    95,   275,     1,    -1,    49,    95,   275,    96,
+     191,    57,   190,    -1,    49,    95,   275,    96,   191,    57,
+     191,    -1,    -1,   204,   203,   205,    -1,    69,    95,   275,
       96,    -1,    69,     1,    -1,    69,    95,     1,    -1,    69,
-      95,   274,    96,     1,    -1,    97,    98,    -1,    97,   208,
+      95,   275,    96,     1,    -1,    97,    98,    -1,    97,   208,
       98,    -1,    97,   206,    98,    -1,    97,   206,   208,    98,
       -1,   207,    -1,   206,   207,    -1,   208,   186,    -1,   209,
-      -1,   208,   209,    -1,    63,   275,    90,    -1,    48,    90,
-      -1,    63,     1,    -1,    63,   275,     1,    -1,    48,     1,
-      -1,    67,    95,   274,    96,    -1,   210,   190,    -1,    67,
-       1,    -1,    67,    95,     1,    -1,    67,    95,   274,     1,
+      -1,   208,   209,    -1,    63,   276,    90,    -1,    48,    90,
+      -1,    63,     1,    -1,    63,   276,     1,    -1,    48,     1,
+      -1,    67,    95,   275,    96,    -1,   210,   190,    -1,    67,
+       1,    -1,    67,    95,     1,    -1,    67,    95,   275,     1,
       -1,   210,   191,    -1,    52,    -1,   213,   190,    67,    95,
-     274,    96,   101,    -1,   218,   101,   274,   101,   220,    96,
+     275,    96,   101,    -1,   218,   101,   275,   101,   220,    96,
      190,    -1,   218,   101,   101,   220,    96,   190,    -1,   218,
-     101,     1,    -1,   218,   101,   274,   101,     1,    -1,   218,
-     101,   101,     1,    -1,   218,   101,   274,   101,   220,    96,
+     101,     1,    -1,   218,   101,   275,   101,     1,    -1,   218,
+     101,   101,     1,    -1,   218,   101,   275,   101,   220,    96,
      191,    -1,   218,   101,   101,   220,    96,   191,    -1,    72,
       95,    -1,    72,     1,    -1,    72,    95,     1,    -1,   217,
      219,    -1,    -1,   221,    -1,   189,    -1,   221,     1,    -1,
@@ -1040,139 +1063,142 @@ static const short yyrhs[] =
      102,     1,    -1,    55,   101,    -1,    55,   125,   101,    -1,
       55,     1,    -1,    55,   125,     1,    -1,    74,   101,    -1,
       74,   125,   101,    -1,    74,     1,    -1,    74,   125,     1,
-      -1,    59,   101,    -1,    59,   274,   101,    -1,    59,     1,
-      -1,    59,   274,     1,    -1,    50,   274,   101,    -1,    50,
-       1,    -1,    50,   274,     1,    -1,    78,   274,    90,   274,
-     101,    -1,    78,   274,   101,    -1,    78,     1,    -1,    78,
-     274,     1,    -1,   228,    95,   274,    96,   183,    -1,   228,
-      95,   274,    96,     1,    -1,   228,     1,    -1,   228,    95,
+      -1,    59,   101,    -1,    59,   275,   101,    -1,    59,     1,
+      -1,    59,   275,     1,    -1,    50,   275,   101,    -1,    50,
+       1,    -1,    50,   275,     1,    -1,    78,   275,    90,   275,
+     101,    -1,    78,   275,   101,    -1,    78,     1,    -1,    78,
+     275,     1,    -1,   228,    95,   275,    96,   183,    -1,   228,
+      95,   275,    96,     1,    -1,   228,     1,    -1,   228,    95,
        1,    96,    -1,   228,    95,     1,    -1,   134,    -1,    71,
      183,   230,    -1,    71,   183,   233,    -1,    71,   183,   230,
      233,    -1,    71,     1,    -1,   231,    -1,   230,   231,    -1,
      232,   183,    -1,    61,    95,   155,    96,    -1,    61,     1,
       -1,    61,    95,     1,    -1,    61,    95,     1,    96,    -1,
       65,   183,    -1,    65,     1,    -1,   235,    -1,   243,    -1,
-     114,    -1,    77,    -1,    95,   274,    96,    -1,   237,    -1,
-     247,    -1,   248,    -1,   249,    -1,   236,    -1,   122,   103,
-      77,    -1,    95,   274,     1,    -1,   122,   103,     1,    -1,
-     116,   103,     1,    -1,    60,   103,     1,    -1,   122,   103,
-      68,    -1,   121,   103,    68,    -1,   116,   103,    68,    -1,
-      60,   103,    68,    -1,    73,   119,    95,   242,    96,    -1,
-      73,   119,    95,    96,    -1,   238,    -1,   241,   125,    95,
-      96,    -1,   241,   125,    95,    96,   141,    -1,   241,   125,
-      95,   242,    96,    -1,   241,   125,    95,   242,    96,   141,
-      -1,    73,     1,   101,    -1,    73,   119,     1,    -1,    73,
-     119,    95,     1,    -1,    73,   119,    95,   242,     1,    -1,
-     241,     1,    -1,   241,   125,     1,    -1,    -1,    73,   119,
-      95,   242,    96,   239,   141,    -1,    -1,    73,   119,    95,
-      96,   240,   141,    -1,   122,   103,    73,    -1,   234,   103,
-      73,    -1,   274,    -1,   242,   102,   274,    -1,   242,   102,
-       1,    -1,    73,   116,   244,    -1,    73,   118,   244,    -1,
-      73,   116,   244,   246,    -1,    73,   118,   244,   246,    -1,
-      73,   118,   246,   181,    -1,    73,   116,   246,   181,    -1,
-      73,     1,   100,    -1,    73,     1,    99,    -1,   245,    -1,
-     244,   245,    -1,    99,   274,   100,    -1,    99,   274,     1,
-      -1,    99,     1,    -1,    99,   100,    -1,   246,    99,   100,
-      -1,   246,    99,     1,    -1,   234,   103,   125,    -1,    66,
+     244,    -1,   114,    -1,    77,    -1,    95,   275,    96,    -1,
+     237,    -1,   248,    -1,   249,    -1,   250,    -1,   236,    -1,
+     122,   103,    77,    -1,    95,   275,     1,    -1,   122,   103,
+       1,    -1,   116,   103,     1,    -1,    60,   103,     1,    -1,
+     122,   103,    68,    -1,   121,   103,    68,    -1,   116,   103,
+      68,    -1,    60,   103,    68,    -1,    73,   119,    95,   242,
+      96,    -1,    73,   119,    95,    96,    -1,   238,    -1,   241,
+     125,    95,    96,    -1,   241,   125,    95,    96,   141,    -1,
+     241,   125,    95,   242,    96,    -1,   241,   125,    95,   242,
+      96,   141,    -1,    73,     1,   101,    -1,    73,   119,     1,
+      -1,    73,   119,    95,     1,    -1,    73,   119,    95,   242,
+       1,    -1,   241,     1,    -1,   241,   125,     1,    -1,    -1,
+      73,   119,    95,   242,    96,   239,   141,    -1,    -1,    73,
+     119,    95,    96,   240,   141,    -1,   122,   103,    73,    -1,
+     234,   103,    73,    -1,   275,    -1,   242,   102,   275,    -1,
+     242,   102,     1,    -1,    73,   116,   245,    -1,    73,   118,
+     245,    -1,    73,   116,   245,   247,    -1,    73,   118,   245,
+     247,    -1,    73,     1,   100,    -1,    73,     1,    99,    -1,
+      73,   118,   247,   181,    -1,    73,   116,   247,   181,    -1,
+      73,     1,   100,    -1,    73,     1,    99,    -1,   246,    -1,
+     245,   246,    -1,    99,   275,   100,    -1,    99,   275,     1,
+      -1,    99,     1,    -1,    99,   100,    -1,   247,    99,   100,
+      -1,   247,    99,     1,    -1,   234,   103,   125,    -1,    66,
      103,   125,    -1,    66,     1,    -1,   122,    95,    96,    -1,
      122,    95,   242,    96,    -1,   234,   103,   125,    95,    96,
       -1,   234,   103,   125,    95,   242,    96,    -1,    66,   103,
      125,    95,    96,    -1,    66,   103,   125,    95,   242,    96,
       -1,    66,   103,     1,    96,    -1,    66,   103,     1,   103,
-      -1,   122,    99,   274,   100,    -1,   235,    99,   274,   100,
-      -1,   122,    99,     1,    -1,   122,    99,   274,     1,    -1,
-     235,    99,     1,    -1,   235,    99,   274,     1,    -1,   234,
-      -1,   122,    -1,   251,    -1,   252,    -1,   250,    47,    -1,
-     250,    46,    -1,   255,    -1,   256,    -1,     3,   254,    -1,
-     257,    -1,     3,     1,    -1,   253,    -1,     4,   253,    -1,
-       4,     1,    -1,    47,   254,    -1,    47,     1,    -1,    46,
-     254,    -1,    46,     1,    -1,   250,    -1,    91,   254,    -1,
-      92,   254,    -1,   258,    -1,    91,     1,    -1,    92,     1,
-      -1,    95,   116,   246,    96,   254,    -1,    95,   116,    96,
-     254,    -1,    95,   274,    96,   257,    -1,    95,   122,   246,
-      96,   257,    -1,    95,   116,    99,     1,    -1,    95,     1,
-      -1,    95,   116,   246,    96,     1,    -1,    95,   116,    96,
-       1,    -1,    95,   122,   246,    96,     1,    -1,   254,    -1,
-     259,     5,   254,    -1,   259,     6,   254,    -1,   259,     7,
-     254,    -1,   259,     5,     1,    -1,   259,     6,     1,    -1,
-     259,     7,     1,    -1,   259,    -1,   260,     3,   259,    -1,
-     260,     4,   259,    -1,   260,     3,     1,    -1,   260,     4,
-       1,    -1,   260,    -1,   261,     8,   260,    -1,   261,     9,
-     260,    -1,   261,    10,   260,    -1,   261,     8,     1,    -1,
-     261,     9,     1,    -1,   261,    10,     1,    -1,   261,    -1,
-     262,    20,   261,    -1,   262,    18,   261,    -1,   262,    21,
-     261,    -1,   262,    19,   261,    -1,   262,    58,   117,    -1,
-     262,    20,     1,    -1,   262,    18,     1,    -1,   262,    21,
-       1,    -1,   262,    19,     1,    -1,   262,    58,     1,    -1,
-     262,    -1,   263,    16,   262,    -1,   263,    17,   262,    -1,
-     263,    16,     1,    -1,   263,    17,     1,    -1,   263,    -1,
-     264,    11,   263,    -1,   264,    11,     1,    -1,   264,    -1,
-     265,    12,   264,    -1,   265,    12,     1,    -1,   265,    -1,
-     266,    13,   265,    -1,   266,    13,     1,    -1,   266,    -1,
-     267,    14,   266,    -1,   267,    14,     1,    -1,   267,    -1,
-     268,    15,   267,    -1,   268,    15,     1,    -1,   268,    -1,
-     268,    89,   274,    90,   269,    -1,   268,    89,    90,     1,
-      -1,   268,    89,     1,    -1,   268,    89,   274,    90,     1,
-      -1,   269,    -1,   271,    -1,   272,   273,   270,    -1,   272,
-     273,     1,    -1,   122,    -1,   247,    -1,   249,    -1,    93,
-      -1,    94,    -1,   270,    -1,   274,    -1
+      -1,   122,    99,   275,   100,    -1,   235,    99,   275,   100,
+      -1,   244,    99,   275,   100,    -1,   122,    99,     1,    -1,
+     122,    99,   275,     1,    -1,   235,    99,     1,    -1,   235,
+      99,   275,     1,    -1,   244,    99,     1,    -1,   244,    99,
+     275,     1,    -1,   234,    -1,   122,    -1,   252,    -1,   253,
+      -1,   251,    47,    -1,   251,    46,    -1,   256,    -1,   257,
+      -1,     3,   255,    -1,   258,    -1,     3,     1,    -1,   254,
+      -1,     4,   254,    -1,     4,     1,    -1,    47,   255,    -1,
+      47,     1,    -1,    46,   255,    -1,    46,     1,    -1,   251,
+      -1,    91,   255,    -1,    92,   255,    -1,   259,    -1,    91,
+       1,    -1,    92,     1,    -1,    95,   116,   247,    96,   255,
+      -1,    95,   116,    96,   255,    -1,    95,   275,    96,   258,
+      -1,    95,   122,   247,    96,   258,    -1,    95,   116,    99,
+       1,    -1,    95,     1,    -1,    95,   116,   247,    96,     1,
+      -1,    95,   116,    96,     1,    -1,    95,   122,   247,    96,
+       1,    -1,   255,    -1,   260,     5,   255,    -1,   260,     6,
+     255,    -1,   260,     7,   255,    -1,   260,     5,     1,    -1,
+     260,     6,     1,    -1,   260,     7,     1,    -1,   260,    -1,
+     261,     3,   260,    -1,   261,     4,   260,    -1,   261,     3,
+       1,    -1,   261,     4,     1,    -1,   261,    -1,   262,     8,
+     261,    -1,   262,     9,   261,    -1,   262,    10,   261,    -1,
+     262,     8,     1,    -1,   262,     9,     1,    -1,   262,    10,
+       1,    -1,   262,    -1,   263,    20,   262,    -1,   263,    18,
+     262,    -1,   263,    21,   262,    -1,   263,    19,   262,    -1,
+     263,    58,   117,    -1,   263,    20,     1,    -1,   263,    18,
+       1,    -1,   263,    21,     1,    -1,   263,    19,     1,    -1,
+     263,    58,     1,    -1,   263,    -1,   264,    16,   263,    -1,
+     264,    17,   263,    -1,   264,    16,     1,    -1,   264,    17,
+       1,    -1,   264,    -1,   265,    11,   264,    -1,   265,    11,
+       1,    -1,   265,    -1,   266,    12,   265,    -1,   266,    12,
+       1,    -1,   266,    -1,   267,    13,   266,    -1,   267,    13,
+       1,    -1,   267,    -1,   268,    14,   267,    -1,   268,    14,
+       1,    -1,   268,    -1,   269,    15,   268,    -1,   269,    15,
+       1,    -1,   269,    -1,   269,    89,   275,    90,   270,    -1,
+     269,    89,    90,     1,    -1,   269,    89,     1,    -1,   269,
+      89,   275,    90,     1,    -1,   270,    -1,   272,    -1,   273,
+     274,   271,    -1,   273,   274,     1,    -1,   122,    -1,   248,
+      -1,   250,    -1,    93,    -1,    94,    -1,   271,    -1,   275,
+      -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const unsigned short yyrline[] =
 {
-       0,   602,   602,   608,   609,   610,   611,   612,   613,   618,
-     619,   623,   624,   625,   629,   630,   634,   638,   642,   646,
-     654,   666,   667,   671,   675,   680,   685,   686,   687,   688,
-     689,   690,   691,   692,   696,   700,   707,   708,   712,   717,
-     719,   724,   725,   729,   755,   757,   762,   780,   782,   787,
-     789,   791,   792,   803,   807,   824,   823,   828,   827,   831,
-     833,   835,   840,   845,   846,   848,   850,   855,   856,   858,
-     866,   871,   876,   881,   889,   900,   901,   905,   906,   907,
-     908,   919,   920,   921,   923,   925,   930,   932,   944,   945,
-     947,   952,   954,   961,   967,   976,   977,   979,   981,   986,
-     991,   992,   998,   997,  1008,  1013,  1015,  1017,  1019,  1021,
-    1026,  1031,  1036,  1041,  1049,  1054,  1056,  1065,  1067,  1072,
-    1076,  1081,  1086,  1090,  1095,  1100,  1108,  1118,  1119,  1121,
-    1126,  1128,  1130,  1135,  1136,  1141,  1150,  1167,  1166,  1176,
-    1178,  1183,  1188,  1196,  1201,  1203,  1205,  1210,  1215,  1221,
-    1229,  1231,  1236,  1242,  1254,  1253,  1258,  1257,  1262,  1261,
-    1266,  1265,  1269,  1271,  1276,  1281,  1286,  1288,  1293,  1295,
-    1300,  1301,  1305,  1306,  1307,  1309,  1314,  1318,  1323,  1329,
-    1331,  1333,  1335,  1340,  1345,  1349,  1355,  1357,  1362,  1367,
-    1381,  1382,  1386,  1387,  1389,  1397,  1401,  1403,  1408,  1409,
-    1410,  1411,  1412,  1413,  1418,  1419,  1420,  1421,  1422,  1427,
-    1428,  1429,  1430,  1431,  1432,  1433,  1434,  1435,  1436,  1437,
-    1438,  1442,  1460,  1471,  1473,  1478,  1485,  1494,  1499,  1504,
-    1509,  1511,  1516,  1518,  1523,  1525,  1527,  1529,  1531,  1536,
-    1537,  1538,  1539,  1540,  1541,  1542,  1546,  1551,  1553,  1555,
-    1560,  1565,  1571,  1570,  1586,  1591,  1593,  1595,  1603,  1605,
-    1607,  1609,  1614,  1615,  1619,  1623,  1624,  1628,  1634,  1640,
-    1642,  1644,  1649,  1657,  1659,  1661,  1663,  1668,  1673,  1682,
-    1687,  1693,  1700,  1702,  1704,  1709,  1711,  1721,  1727,  1729,
-    1734,  1747,  1748,  1754,  1760,  1765,  1766,  1771,  1773,  1775,
-    1780,  1782,  1784,  1786,  1791,  1793,  1795,  1797,  1802,  1804,
-    1806,  1808,  1813,  1818,  1820,  1825,  1829,  1833,  1835,  1840,
-    1846,  1848,  1850,  1852,  1857,  1869,  1871,  1873,  1878,  1883,
-    1884,  1892,  1901,  1926,  1928,  1933,  1938,  1940,  1946,  1947,
-    1951,  1952,  1954,  1956,  1957,  1958,  1959,  1960,  1964,  1969,
-    1971,  1973,  1975,  1980,  1982,  1984,  1986,  1994,  1996,  1998,
-    2002,  2008,  2009,  2015,  2016,  2018,  2020,  2022,  2024,  2026,
-    2037,  2036,  2070,  2069,  2087,  2089,  2094,  2099,  2104,  2109,
-    2111,  2113,  2115,  2119,  2130,  2139,  2141,  2146,  2148,  2153,
-    2163,  2165,  2174,  2200,  2202,  2207,  2211,  2217,  2222,  2224,
-    2226,  2237,  2248,  2253,  2262,  2264,  2269,  2271,  2273,  2278,
-    2283,  2288,  2296,  2297,  2298,  2299,  2303,  2308,  2313,  2314,
-    2315,  2317,  2318,  2323,  2328,  2330,  2335,  2337,  2342,  2344,
-    2349,  2350,  2352,  2354,  2355,  2357,  2362,  2370,  2372,  2374,
-    2388,  2390,  2395,  2397,  2399,  2404,  2405,  2410,  2415,  2420,
-    2422,  2424,  2429,  2430,  2435,  2440,  2442,  2447,  2448,  2453,
-    2458,  2463,  2465,  2467,  2472,  2473,  2478,  2483,  2488,  2493,
-    2495,  2497,  2499,  2501,  2503,  2508,  2509,  2514,  2519,  2521,
-    2526,  2527,  2532,  2537,  2538,  2543,  2548,  2549,  2554,  2559,
-    2560,  2565,  2570,  2571,  2576,  2581,  2582,  2587,  2593,  2595,
-    2600,  2601,  2605,  2607,  2615,  2616,  2617,  2621,  2622,  2626,
-    2630
+       0,   625,   625,   631,   632,   633,   634,   635,   636,   641,
+     642,   646,   647,   648,   652,   653,   657,   661,   665,   669,
+     677,   689,   690,   694,   698,   703,   708,   709,   710,   711,
+     712,   713,   714,   715,   719,   723,   730,   731,   735,   739,
+     741,   746,   747,   751,   777,   779,   784,   802,   804,   809,
+     811,   813,   814,   825,   829,   846,   845,   850,   849,   853,
+     855,   857,   862,   867,   868,   870,   872,   877,   878,   880,
+     888,   893,   898,   903,   910,   920,   921,   925,   926,   927,
+     928,   939,   940,   941,   943,   945,   950,   952,   964,   965,
+     967,   972,   974,   981,   987,   996,   997,   999,  1001,  1006,
+    1011,  1012,  1018,  1017,  1028,  1033,  1035,  1037,  1039,  1041,
+    1046,  1051,  1056,  1061,  1069,  1074,  1076,  1085,  1087,  1092,
+    1096,  1101,  1106,  1110,  1115,  1120,  1128,  1138,  1139,  1141,
+    1146,  1148,  1150,  1155,  1156,  1161,  1170,  1187,  1186,  1196,
+    1198,  1203,  1208,  1216,  1221,  1223,  1225,  1230,  1235,  1241,
+    1249,  1251,  1256,  1262,  1274,  1273,  1278,  1277,  1282,  1281,
+    1286,  1285,  1289,  1291,  1296,  1301,  1306,  1308,  1313,  1315,
+    1320,  1321,  1325,  1326,  1327,  1329,  1334,  1338,  1343,  1349,
+    1351,  1353,  1355,  1360,  1365,  1369,  1375,  1377,  1382,  1387,
+    1400,  1401,  1405,  1406,  1408,  1416,  1420,  1422,  1427,  1428,
+    1429,  1430,  1431,  1432,  1437,  1438,  1439,  1440,  1441,  1446,
+    1447,  1448,  1449,  1450,  1451,  1452,  1453,  1454,  1455,  1456,
+    1457,  1461,  1483,  1494,  1496,  1501,  1508,  1521,  1526,  1531,
+    1536,  1538,  1543,  1545,  1550,  1552,  1554,  1556,  1558,  1563,
+    1564,  1565,  1566,  1567,  1568,  1569,  1573,  1578,  1580,  1582,
+    1587,  1592,  1598,  1597,  1613,  1619,  1621,  1623,  1631,  1633,
+    1635,  1637,  1642,  1643,  1647,  1651,  1652,  1656,  1662,  1668,
+    1670,  1672,  1677,  1685,  1687,  1689,  1691,  1696,  1701,  1710,
+    1715,  1721,  1728,  1730,  1732,  1737,  1739,  1749,  1755,  1757,
+    1762,  1775,  1776,  1782,  1788,  1793,  1794,  1799,  1801,  1803,
+    1808,  1810,  1812,  1814,  1819,  1821,  1823,  1825,  1830,  1832,
+    1834,  1836,  1841,  1846,  1848,  1853,  1857,  1861,  1863,  1868,
+    1874,  1876,  1878,  1880,  1885,  1897,  1899,  1901,  1906,  1911,
+    1912,  1920,  1929,  1954,  1956,  1961,  1966,  1968,  1974,  1975,
+    1976,  1980,  1981,  1983,  1985,  1986,  1987,  1988,  1989,  1993,
+    1998,  2000,  2002,  2004,  2009,  2011,  2013,  2015,  2023,  2025,
+    2027,  2031,  2037,  2038,  2044,  2045,  2047,  2049,  2051,  2053,
+    2060,  2071,  2070,  2104,  2103,  2121,  2123,  2128,  2133,  2138,
+    2143,  2145,  2147,  2149,  2151,  2153,  2160,  2171,  2180,  2182,
+    2187,  2189,  2194,  2204,  2206,  2215,  2241,  2243,  2248,  2252,
+    2258,  2263,  2265,  2267,  2278,  2289,  2294,  2303,  2305,  2310,
+    2312,  2314,  2316,  2321,  2326,  2331,  2336,  2341,  2349,  2350,
+    2351,  2352,  2356,  2361,  2366,  2367,  2368,  2370,  2371,  2376,
+    2382,  2384,  2389,  2391,  2396,  2398,  2403,  2404,  2406,  2408,
+    2409,  2411,  2416,  2424,  2426,  2428,  2442,  2444,  2449,  2451,
+    2453,  2458,  2459,  2464,  2469,  2474,  2476,  2478,  2483,  2484,
+    2489,  2494,  2496,  2501,  2502,  2507,  2512,  2517,  2519,  2521,
+    2526,  2527,  2532,  2537,  2542,  2547,  2549,  2551,  2553,  2555,
+    2557,  2562,  2563,  2568,  2573,  2575,  2580,  2581,  2586,  2591,
+    2592,  2597,  2602,  2603,  2608,  2613,  2614,  2619,  2624,  2625,
+    2630,  2635,  2636,  2641,  2647,  2649,  2654,  2655,  2659,  2661,
+    2669,  2670,  2671,  2675,  2676,  2680,  2684
 };
 #endif
 
@@ -1243,9 +1269,9 @@ static const char *const yytname[] =
   "finally", "primary", "primary_no_new_array", "type_literals", 
   "class_instance_creation_expression", "anonymous_class_creation", "@10", 
   "@11", "something_dot_new", "argument_list", 
-  "array_creation_expression", "dim_exprs", "dim_expr", "dims", 
-  "field_access", "method_invocation", "array_access", 
-  "postfix_expression", "post_increment_expression", 
+  "array_creation_uninitialized", "array_creation_initialized", 
+  "dim_exprs", "dim_expr", "dims", "field_access", "method_invocation", 
+  "array_access", "postfix_expression", "post_increment_expression", 
   "post_decrement_expression", "trap_overflow_corner_case", 
   "unary_expression", "pre_increment_expression", 
   "pre_decrement_expression", "unary_expression_not_plus_minus", 
@@ -1316,24 +1342,24 @@ static const unsigned short yyr1[] =
      224,   224,   225,   225,   225,   226,   226,   226,   226,   227,
      227,   227,   227,   227,   228,   229,   229,   229,   229,   230,
      230,   231,   232,   232,   232,   232,   233,   233,   234,   234,
-     235,   235,   235,   235,   235,   235,   235,   235,   235,   235,
-     235,   235,   235,   236,   236,   236,   236,   237,   237,   237,
+     234,   235,   235,   235,   235,   235,   235,   235,   235,   235,
+     235,   235,   235,   235,   236,   236,   236,   236,   237,   237,
      237,   237,   237,   237,   237,   237,   237,   237,   237,   237,
-     239,   238,   240,   238,   241,   241,   242,   242,   242,   243,
-     243,   243,   243,   243,   243,   243,   243,   244,   244,   245,
+     237,   239,   238,   240,   238,   241,   241,   242,   242,   242,
+     243,   243,   243,   243,   243,   243,   244,   244,   244,   244,
      245,   245,   246,   246,   246,   247,   247,   247,   248,   248,
-     248,   248,   248,   248,   248,   248,   249,   249,   249,   249,
-     249,   249,   250,   250,   250,   250,   251,   252,   253,   253,
-     253,   253,   253,   254,   254,   254,   255,   255,   256,   256,
-     257,   257,   257,   257,   257,   257,   258,   258,   258,   258,
-     258,   258,   258,   258,   258,   259,   259,   259,   259,   259,
-     259,   259,   260,   260,   260,   260,   260,   261,   261,   261,
-     261,   261,   261,   261,   262,   262,   262,   262,   262,   262,
-     262,   262,   262,   262,   262,   263,   263,   263,   263,   263,
-     264,   264,   264,   265,   265,   265,   266,   266,   266,   267,
-     267,   267,   268,   268,   268,   269,   269,   269,   269,   269,
-     270,   270,   271,   271,   272,   272,   272,   273,   273,   274,
-     275
+     248,   249,   249,   249,   249,   249,   249,   249,   249,   250,
+     250,   250,   250,   250,   250,   250,   250,   250,   251,   251,
+     251,   251,   252,   253,   254,   254,   254,   254,   254,   255,
+     255,   255,   256,   256,   257,   257,   258,   258,   258,   258,
+     258,   258,   259,   259,   259,   259,   259,   259,   259,   259,
+     259,   260,   260,   260,   260,   260,   260,   260,   261,   261,
+     261,   261,   261,   262,   262,   262,   262,   262,   262,   262,
+     263,   263,   263,   263,   263,   263,   263,   263,   263,   263,
+     263,   264,   264,   264,   264,   264,   265,   265,   265,   266,
+     266,   266,   267,   267,   267,   268,   268,   268,   269,   269,
+     269,   270,   270,   270,   270,   270,   271,   271,   272,   272,
+     273,   273,   273,   274,   274,   275,   276
 };
 
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
@@ -1373,24 +1399,24 @@ static const unsigned char yyr2[] =
        2,     3,     3,     2,     3,     5,     3,     2,     3,     5,
        5,     2,     4,     3,     1,     3,     3,     4,     2,     1,
        2,     2,     4,     2,     3,     4,     2,     2,     1,     1,
-       1,     1,     3,     1,     1,     1,     1,     1,     3,     3,
-       3,     3,     3,     3,     3,     3,     3,     5,     4,     1,
-       4,     5,     5,     6,     3,     3,     4,     5,     2,     3,
-       0,     7,     0,     6,     3,     3,     1,     3,     3,     3,
-       3,     4,     4,     4,     4,     3,     3,     1,     2,     3,
-       3,     2,     2,     3,     3,     3,     3,     2,     3,     4,
-       5,     6,     5,     6,     4,     4,     4,     4,     3,     4,
-       3,     4,     1,     1,     1,     1,     2,     2,     1,     1,
-       2,     1,     2,     1,     2,     2,     2,     2,     2,     2,
-       1,     2,     2,     1,     2,     2,     5,     4,     4,     5,
-       4,     2,     5,     4,     5,     1,     3,     3,     3,     3,
-       3,     3,     1,     3,     3,     3,     3,     1,     3,     3,
-       3,     3,     3,     3,     1,     3,     3,     3,     3,     3,
-       3,     3,     3,     3,     3,     1,     3,     3,     3,     3,
-       1,     3,     3,     1,     3,     3,     1,     3,     3,     1,
-       3,     3,     1,     3,     3,     1,     5,     4,     3,     5,
-       1,     1,     3,     3,     1,     1,     1,     1,     1,     1,
-       1
+       1,     1,     1,     3,     1,     1,     1,     1,     1,     3,
+       3,     3,     3,     3,     3,     3,     3,     3,     5,     4,
+       1,     4,     5,     5,     6,     3,     3,     4,     5,     2,
+       3,     0,     7,     0,     6,     3,     3,     1,     3,     3,
+       3,     3,     4,     4,     3,     3,     4,     4,     3,     3,
+       1,     2,     3,     3,     2,     2,     3,     3,     3,     3,
+       2,     3,     4,     5,     6,     5,     6,     4,     4,     4,
+       4,     4,     3,     4,     3,     4,     3,     4,     1,     1,
+       1,     1,     2,     2,     1,     1,     2,     1,     2,     1,
+       2,     2,     2,     2,     2,     2,     1,     2,     2,     1,
+       2,     2,     5,     4,     4,     5,     4,     2,     5,     4,
+       5,     1,     3,     3,     3,     3,     3,     3,     1,     3,
+       3,     3,     3,     1,     3,     3,     3,     3,     3,     3,
+       1,     3,     3,     3,     3,     3,     3,     3,     3,     3,
+       3,     1,     3,     3,     3,     3,     1,     3,     3,     1,
+       3,     3,     1,     3,     3,     1,     3,     3,     1,     3,
+       3,     1,     5,     4,     3,     5,     1,     1,     3,     3,
+       1,     1,     1,     1,     1,     1,     1
 };
 
 /* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
@@ -1412,754 +1438,770 @@ static const unsigned short yydefact[] =
        0,    55,   111,     0,   127,   109,     0,     0,    88,    91,
      127,     0,    19,    20,   113,     0,     0,   178,   177,   169,
      171,     0,     0,    58,   161,     0,     0,     0,     0,   106,
-      97,    86,     0,     0,     0,     0,   105,   392,     0,   112,
+      97,    86,     0,     0,     0,     0,   105,   395,     0,   112,
      127,   110,     0,   127,    72,    71,   188,    73,    21,     0,
       83,     0,    75,    77,    81,    82,     0,    78,     0,    79,
      137,   127,    84,    80,     0,    85,    56,   117,   114,     0,
      126,     0,   119,     0,   129,   130,   128,   118,   116,    90,
        0,    89,    93,     0,     0,     0,     0,     0,     0,     0,
-     341,     0,     0,     0,     0,     7,     6,     3,     4,     5,
-       8,   340,     0,     0,   413,     0,   101,   412,   338,   347,
-     343,   359,     0,   339,   344,   345,   346,   430,   414,   415,
-     423,   445,   418,   419,   421,   433,   452,   457,   464,   475,
-     480,   483,   486,   489,   492,   495,   500,   509,   501,     0,
-     100,    98,    96,    99,   394,   393,   108,    87,   107,     0,
-     127,    74,    76,   104,     0,   135,     0,   139,     0,     0,
-       0,   278,     0,     0,     0,     0,     0,     0,     0,     0,
-     341,     0,     0,   189,     0,     9,    15,   413,     0,   126,
-     194,     0,     0,   209,   186,     0,   190,   192,     0,   193,
-     198,   210,     0,   199,   211,     0,   200,   201,   212,   252,
-       0,   202,     0,   213,   203,   291,     0,   214,   215,   216,
-     218,   220,   217,     0,   219,   245,   244,     0,   242,   243,
-     240,   241,   239,   124,   122,   115,     0,     0,     0,   422,
-     413,   344,   346,   420,   425,   424,   429,   428,   427,   426,
-       0,   397,     0,     0,     0,    17,     0,   434,   431,   435,
-     432,   441,     0,   413,     0,   179,     0,   183,     0,     0,
-       0,     0,     0,     0,    94,     0,     0,   368,     0,   417,
-     416,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+     342,     0,     0,     0,     0,     7,     6,     3,     4,     5,
+       8,   341,     0,     0,   419,     0,   101,   418,   338,   348,
+     344,   360,     0,   339,   340,   345,   346,   347,   436,   420,
+     421,   429,   451,   424,   425,   427,   439,   458,   463,   470,
+     481,   486,   489,   492,   495,   498,   501,   506,   515,   507,
+       0,   100,    98,    96,    99,   397,   396,   108,    87,   107,
+       0,   127,    74,    76,   104,     0,   135,     0,   139,     0,
+       0,     0,   278,     0,     0,     0,     0,     0,     0,     0,
+       0,   342,     0,     0,   189,     0,     9,    15,   419,     0,
+     126,   194,     0,     0,   209,   186,     0,   190,   192,     0,
+     193,   198,   210,     0,   199,   211,     0,   200,   201,   212,
+     252,     0,   202,     0,   213,   203,   291,     0,   214,   215,
+     216,   218,   220,   217,     0,   219,   245,   244,     0,   242,
+     243,   240,   241,   239,   124,   122,   115,     0,     0,     0,
+     428,   419,   345,   347,   426,   431,   430,   435,   434,   433,
+     432,     0,   400,     0,     0,     0,    17,     0,   440,   437,
+     441,   438,   447,     0,   419,     0,   179,     0,   183,     0,
+       0,     0,     0,     0,     0,    94,     0,     0,   369,     0,
+       0,   423,   422,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,   507,   508,     0,   141,     0,   140,   134,   103,
-     133,   138,     0,   228,   229,   227,   247,     0,   313,     0,
-     302,   300,     0,   310,   308,     0,   274,     0,   255,     0,
-     328,     0,   288,     0,   306,   304,     0,   317,     0,     0,
-     196,     0,   224,   222,     0,     0,   187,   191,   195,   413,
-     324,   223,   226,     0,   273,     0,   413,   293,   297,   290,
-       0,     0,   321,     0,   121,   120,   125,   123,   132,   131,
-     352,   356,     0,   396,   386,   385,   364,     0,   379,   387,
-       0,   380,     0,   365,     0,     0,     0,    19,    20,   349,
-     342,   180,   181,     0,   351,   355,   354,   398,     0,   376,
-     408,     0,   350,   353,   374,   348,   375,   395,   410,     0,
-     369,     0,   449,   446,   450,   447,   451,   448,   455,   453,
-     456,   454,   461,   458,   462,   459,   463,   460,   471,   466,
-     473,   468,   470,   465,   472,   467,   474,     0,   469,   478,
-     476,   479,   477,   482,   481,   485,   484,   488,   487,   491,
-     490,   494,   493,   498,     0,     0,   503,   502,   142,   413,
-     143,     0,     0,   147,     0,   248,     0,   314,   312,   303,
-     301,   311,   309,   275,     0,   256,     0,     0,     0,   325,
-     329,     0,   326,   289,   307,   305,   318,     0,   316,   342,
-       0,   197,   230,     0,     0,     0,   253,     0,   294,     0,
-     282,     0,     0,   323,     0,   404,   405,     0,   391,     0,
-     388,   381,   384,   382,   383,   366,   358,     0,   443,   437,
-     440,     0,     0,   438,   185,   182,   184,   399,     0,   409,
-     406,     0,   411,   407,   360,     0,   497,     0,     0,   144,
-       0,     0,   145,   249,     0,   276,   272,     0,   333,     0,
-     337,   336,   330,   327,   331,     0,   234,     0,   231,   232,
-       0,     0,     0,   258,     0,   262,     0,   265,     0,   299,
-     298,   284,     0,   296,     0,   322,     0,   402,     0,   390,
-     389,     0,   367,   357,   442,   436,   444,   439,   378,   377,
-     400,     0,   361,   362,   499,   496,     0,   146,     0,     0,
-       0,   246,     0,   198,     0,   205,   206,     0,   207,   208,
-       0,   257,   334,     0,   315,   235,     0,     0,   233,   271,
-     268,   269,   510,     0,   260,   263,     0,   259,     0,   266,
-       0,     0,   283,     0,   320,   319,   403,   373,     0,   401,
-     363,     0,   148,     0,     0,     0,   225,   277,     0,   335,
-     332,   238,   236,     0,   270,   267,   261,     0,   281,     0,
-     371,     0,     0,   149,     0,   250,     0,     0,   237,   279,
-     280,   151,     0,     0,     0,     0,   150,     0,     0,     0,
-       0,   286,     0,   251,   285
+       0,     0,     0,     0,   513,   514,     0,   141,     0,   140,
+     134,   103,   133,   138,     0,   228,   229,   227,   247,     0,
+     313,     0,   302,   300,     0,   310,   308,     0,   274,     0,
+     255,     0,   328,     0,   288,     0,   306,   304,     0,   317,
+       0,     0,   196,     0,   224,   222,     0,     0,   187,   191,
+     195,   419,   324,   223,   226,     0,   273,     0,   419,   293,
+     297,   290,     0,     0,   321,     0,   121,   120,   125,   123,
+     132,   131,   353,   357,     0,   399,   385,   384,   365,     0,
+     380,   390,     0,   381,     0,   366,     0,     0,     0,    19,
+      20,   350,   343,   180,   181,     0,   352,   356,   355,   401,
+       0,   377,   412,     0,   351,   354,   375,   349,   376,   398,
+     414,     0,   370,     0,   416,     0,   455,   452,   456,   453,
+     457,   454,   461,   459,   462,   460,   467,   464,   468,   465,
+     469,   466,   477,   472,   479,   474,   476,   471,   478,   473,
+     480,     0,   475,   484,   482,   485,   483,   488,   487,   491,
+     490,   494,   493,   497,   496,   500,   499,   504,     0,     0,
+     509,   508,   142,   419,   143,     0,     0,   147,     0,   248,
+       0,   314,   312,   303,   301,   311,   309,   275,     0,   256,
+       0,     0,     0,   325,   329,     0,   326,   289,   307,   305,
+     318,     0,   316,   343,     0,   197,   230,     0,     0,     0,
+     253,     0,   294,     0,   282,     0,     0,   323,     0,   407,
+     408,     0,   394,     0,   391,   382,   387,   383,   386,   367,
+     359,     0,   449,   443,   446,     0,     0,   444,   185,   182,
+     184,   402,     0,   413,   409,     0,   415,   410,   361,     0,
+     417,   411,   503,     0,     0,   144,     0,     0,   145,   249,
+       0,   276,   272,     0,   333,     0,   337,   336,   330,   327,
+     331,     0,   234,     0,   231,   232,     0,     0,     0,   258,
+       0,   262,     0,   265,     0,   299,   298,   284,     0,   296,
+       0,   322,     0,   405,     0,   393,   392,     0,   368,   358,
+     448,   442,   450,   445,   379,   378,   403,     0,   362,   363,
+     505,   502,     0,   146,     0,     0,     0,   246,     0,   198,
+       0,   205,   206,     0,   207,   208,     0,   257,   334,     0,
+     315,   235,     0,     0,   233,   271,   268,   269,   516,     0,
+     260,   263,     0,   259,     0,   266,     0,     0,   283,     0,
+     320,   319,   406,   374,     0,   404,   364,     0,   148,     0,
+       0,     0,   225,   277,     0,   335,   332,   238,   236,     0,
+     270,   267,   261,     0,   281,     0,   372,     0,     0,   149,
+       0,   250,     0,     0,   237,   279,   280,   151,     0,     0,
+       0,     0,   150,     0,     0,     0,     0,   286,     0,   251,
+     285
 };
 
 /* YYDEFGOTO[NTERM-NUM]. */
 static const short yydefgoto[] =
 {
-      -1,     8,   211,   284,   212,    88,    89,    71,    63,   213,
+      -1,     8,   211,   285,   212,    88,    89,    71,    63,   213,
      214,    24,    25,    26,     9,    10,    11,    12,    13,    14,
-      15,    16,   450,   290,   135,   108,    50,    73,   107,   133,
-     161,   162,   163,    94,   117,   118,   119,   215,   165,   264,
-      95,   114,   181,   182,   291,   139,   186,   409,   167,   168,
-     169,   266,   170,   171,   411,   560,   561,   292,    19,    46,
+      15,    16,   452,   291,   135,   108,    50,    73,   107,   133,
+     161,   162,   163,    94,   117,   118,   119,   215,   165,   265,
+      95,   114,   181,   182,   292,   139,   186,   411,   167,   168,
+     169,   267,   170,   171,   413,   564,   565,   293,    19,    46,
       75,    68,   110,    47,    66,    97,    98,    99,   100,   216,
-     368,   293,   174,   563,   728,   296,   297,   298,   299,   702,
-     300,   301,   302,   303,   705,   304,   305,   306,   307,   706,
-     308,   453,   309,   596,   664,   665,   666,   667,   310,   311,
-     708,   312,   313,   314,   709,   315,   316,   459,   672,   673,
-     317,   318,   319,   320,   321,   322,   323,   324,   579,   580,
-     581,   582,   217,   218,   219,   220,   221,   738,   681,   222,
-     498,   223,   478,   479,   123,   224,   225,   226,   227,   228,
+     369,   294,   174,   567,   734,   297,   298,   299,   300,   708,
+     301,   302,   303,   304,   711,   305,   306,   307,   308,   712,
+     309,   455,   310,   600,   670,   671,   672,   673,   311,   312,
+     714,   313,   314,   315,   715,   316,   317,   461,   678,   679,
+     318,   319,   320,   321,   322,   323,   324,   325,   583,   584,
+     585,   586,   217,   218,   219,   220,   221,   744,   687,   222,
+     500,   223,   224,   480,   481,   123,   225,   226,   227,   228,
      229,   230,   231,   232,   233,   234,   235,   236,   237,   238,
      239,   240,   241,   242,   243,   244,   245,   246,   247,   248,
-     249,   404,   499,   723
+     249,   250,   406,   501,   729
 };
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
-#define YYPACT_NINF -564
+#define YYPACT_NINF -641
 static const short yypact[] =
 {
-     185,  -564,  -564,    25,   -60,   234,   437,  -564,    52,  -564,
-     422,   473,   527,  -564,  -564,  -564,  -564,   451,  -564,  -564,
-    -564,  -564,  -564,    16,  -564,  -564,  -564,   169,  -564,   419,
-    -564,    22,  -564,   621,  -564,  -564,   532,   623,  -564,   -60,
-     442,  -564,  -564,   289,  -564,   480,   -15,    -9,  -564,   488,
-      57,  -564,  -564,   -60,   631,   278,  -564,   585,  -564,    75,
-    -564,  -564,  -564,  -564,   137,  1277,  -564,   505,   -15,  -564,
-    -564,     6,   541,  -564,  -564,   -15,    -9,  -564,    57,  -564,
-    -564,  -564,   552,  -564,  -564,  -564,   579,   146,  -564,  -564,
-    -564,   499,   971,  -564,  -564,   104,  -564,  1325,  -564,  -564,
-    -564,  -564,  -564,  -564,  -564,  -564,  -564,   191,   205,  -564,
-     -15,  -564,  -564,   305,   -18,  -564,   619,   469,  -564,   740,
-     -18,   307,   251,   251,  -564,   600,   604,  -564,  -564,  -564,
-    -564,   608,  1108,  -564,  -564,   205,   735,   609,    24,  -564,
-    -564,  -564,   638,  2004,    97,   433,  -564,  -564,   148,  -564,
-     -18,  -564,   667,   -18,  -564,  -564,  -564,  -564,   356,  1103,
-    -564,  1259,  -564,  -564,  -564,  -564,    62,  -564,   367,  -564,
-    -564,   472,  -564,  -564,  1724,  -564,  -564,  -564,  -564,   646,
-     511,   -11,  -564,   954,  -564,  -564,   510,  -564,  -564,  -564,
-     268,  -564,  -564,  2712,  1429,  2764,  2830,   523,    33,   867,
-    -564,  2882,  2948,  3000,  5100,  -564,  -564,  -564,  -564,  -564,
-    -564,  -564,   682,   545,  1139,    42,  -564,   566,   591,  -564,
-    -564,  -564,   679,  -564,   743,  -564,   763,   863,  -564,  -564,
-    -564,  -564,  -564,  -564,  -564,  -564,  1003,   927,  1041,  1071,
-     919,   704,   666,   717,   724,   338,  -564,  -564,  -564,   854,
-    -564,  -564,  -564,  -564,  -564,  -564,  -564,  -564,  -564,   992,
-     472,  -564,  -564,  -564,   752,  -564,   367,  -564,   802,   336,
-    3066,  -564,    34,  2056,    17,   407,   429,    64,   439,   114,
-     650,  3118,  5402,  -564,   -60,   682,   545,  1086,   235,   402,
-    -564,   954,   681,  -564,  -564,  1724,  -564,  -564,   701,  -564,
-    -564,  -564,  1793,  -564,  -564,   741,  -564,  -564,  -564,  -564,
-    1793,  -564,  1793,  -564,  -564,  5454,   746,  -564,  -564,  -564,
-    -564,  -564,  -564,   449,  -564,   613,   713,   863,   910,   913,
-    -564,  -564,  -564,  -564,   875,  -564,   807,   683,   685,  -564,
-     655,  -564,  -564,  -564,  -564,  -564,  -564,  -564,  -564,  -564,
-      28,  -564,   702,   961,   760,   760,   453,  -564,  -564,  -564,
-    -564,  -564,   784,  1139,    18,  -564,   766,  -564,   768,    36,
-     801,  5166,  2122,   809,  -564,   326,  3184,  -564,   454,  -564,
-    -564,  3236,  3302,  3354,  3420,  3472,  3538,  3590,  3656,  3708,
-    3774,  3826,  3892,   907,  3944,  4010,  4062,  4128,  4180,  4246,
-    4298,  2174,  -564,  -564,  4364,  -564,   199,  -564,  -564,  -564,
-    -564,  -564,  1724,  -564,  -564,  -564,  -564,  4416,  -564,   174,
-    -564,  -564,   188,  -564,  -564,   230,  -564,  4482,  -564,  4534,
-    -564,   823,  -564,  4955,  -564,  -564,   231,  -564,   225,   218,
-     769,   716,  -564,  -564,   -60,  2240,  -564,  -564,  -564,  1178,
-     511,  -564,  -564,   799,  -564,   814,  1123,  -564,  -564,  -564,
-      46,  2292,  -564,  4600,  -564,  -564,  -564,   875,  -564,  -564,
-    -564,  -564,   -48,   803,  -564,  -564,  -564,  2358,   760,  -564,
-     565,   760,   565,  -564,  2410,  4652,   168,   357,   396,  -564,
-    5479,  -564,  -564,  1938,  -564,  -564,  -564,  -564,   515,  -564,
-    -564,   243,  -564,  -564,  -564,  -564,  -564,   820,  -564,   271,
-    -564,  5218,  -564,  -564,  -564,  -564,  -564,  -564,  -564,  1003,
-    -564,  1003,  -564,   927,  -564,   927,  -564,   927,  -564,  1041,
-    -564,  1041,  -564,  1041,  -564,  1041,  -564,   146,  -564,  -564,
-    1071,  -564,  1071,  -564,   919,  -564,   704,  -564,   666,  -564,
-     717,  -564,   724,  -564,   932,   838,  -564,  -564,  -564,  1136,
-    -564,  1724,   843,  -564,  1724,  -564,   228,  -564,  -564,  -564,
-    -564,  -564,  -564,  -564,   276,  -564,   848,   467,    86,   823,
-    -564,   367,  -564,  -564,  -564,  -564,  -564,  5402,  -564,  -564,
-     484,   769,  -564,   964,    49,     3,  -564,   882,  -564,  5048,
-    -564,  4980,   878,   890,   902,  -564,  -564,  5284,  -564,   273,
-    -564,   251,  -564,   251,  -564,  -564,   903,    76,  -564,  -564,
-    -564,  4718,  1051,  -564,  -564,  -564,  -564,  -564,  4770,  -564,
-    -564,  5336,  -564,  -564,   205,   641,  -564,  4836,   726,  -564,
-    1724,  2476,  -564,  -564,  1860,  -564,  -564,   348,  -564,   942,
-    -564,  -564,  -564,  -564,  -564,   911,  -564,  2528,  -564,  -564,
-    1002,    26,  4888,  -564,   757,  -564,  1502,  -564,  5402,  -564,
-    -564,  -564,   917,   915,  5023,  -564,   351,  -564,   722,  -564,
-    -564,   205,  -564,   922,  -564,  -564,  -564,  -564,  -564,  -564,
-    -564,   730,  -564,   205,  -564,  -564,   504,  -564,   250,   125,
-     519,  -564,   967,   975,  1860,  -564,  -564,  1860,  -564,  -564,
-     920,  -564,   939,   940,  -564,  -564,  1027,   141,  -564,  -564,
-    -564,  -564,  -564,   375,  -564,  -564,  1581,  -564,  1655,  -564,
-     944,  1793,  -564,   950,  -564,  -564,  -564,  -564,   205,  -564,
-    -564,  2594,  -564,   253,  4416,  1793,  -564,  -564,  2646,  -564,
-    -564,  -564,  -564,  1052,  -564,  -564,  -564,   953,  -564,  1793,
-    -564,   254,   161,  -564,   316,  -564,  4980,   955,  -564,  -564,
-    -564,  -564,   257,  1860,   968,  5023,  -564,  1000,  1860,   969,
-    1860,  -564,  1860,  -564,  -564
+     472,  -641,  -641,   313,   -38,   413,   435,  -641,    85,  -641,
+     364,   161,   670,  -641,  -641,  -641,  -641,   617,  -641,  -641,
+    -641,  -641,  -641,    18,  -641,  -641,  -641,   340,  -641,   377,
+    -641,    56,  -641,   267,  -641,  -641,   688,   567,  -641,   -38,
+     445,  -641,  -641,   508,  -641,   451,   -37,    22,  -641,   463,
+      38,  -641,  -641,   -38,   592,   341,  -641,   405,  -641,    26,
+    -641,  -641,  -641,  -641,   129,  1344,  -641,   518,   -37,  -641,
+    -641,   401,   521,  -641,  -641,   -37,    22,  -641,    38,  -641,
+    -641,  -641,   525,  -641,  -641,  -641,   543,   141,  -641,  -641,
+    -641,   619,   974,  -641,  -641,    65,  -641,  1394,  -641,  -641,
+    -641,  -641,  -641,  -641,  -641,  -641,  -641,   200,   316,  -641,
+     -37,  -641,  -641,   396,   -11,  -641,   604,     5,  -641,   573,
+     -11,   414,   400,   400,  -641,   548,   554,  -641,  -641,  -641,
+    -641,   568,  1052,  -641,  -641,   316,   679,   593,    79,  -641,
+    -641,  -641,   599,  2059,   104,   523,  -641,  -641,   137,  -641,
+     -11,  -641,   369,   -11,  -641,  -641,  -641,  -641,   436,   890,
+    -641,  1255,  -641,  -641,  -641,  -641,   275,  -641,   455,  -641,
+    -641,   553,  -641,  -641,  1779,  -641,  -641,  -641,  -641,   623,
+     575,   -41,  -641,   747,  -641,  -641,   551,  -641,  -641,  -641,
+     484,  -641,  -641,  2767,  1191,  2819,  2885,   558,    48,   607,
+    -641,  2937,  3003,  3055,  5240,  -641,  -641,  -641,  -641,  -641,
+    -641,  -641,   624,   598,   862,    76,  -641,   638,   673,  -641,
+    -641,  -641,   625,  -641,   680,   478,  -641,   539,   803,  -641,
+    -641,  -641,  -641,  -641,  -641,  -641,  -641,   975,   871,  1030,
+     852,   891,   785,   828,   790,   832,     9,  -641,  -641,  -641,
+     833,  -641,  -641,  -641,  -641,  -641,  -641,  -641,  -641,  -641,
+     908,   553,  -641,  -641,  -641,   668,  -641,   455,  -641,   801,
+     235,  3121,  -641,    81,  2111,    28,   320,   332,   208,   411,
+     227,   767,  3173,  5542,  -641,   -38,   624,   598,   938,   556,
+     448,  -641,   747,   773,  -641,  -641,  1779,  -641,  -641,   776,
+    -641,  -641,  -641,  1848,  -641,  -641,   795,  -641,  -641,  -641,
+    -641,  1848,  -641,  1848,  -641,  -641,  5594,   799,  -641,  -641,
+    -641,  -641,  -641,  -641,   432,  -641,   786,   846,   803,   893,
+     896,  -641,  -641,  -641,  -641,   863,  -641,   633,   637,   663,
+    -641,   791,  -641,  -641,  -641,  -641,  -641,  -641,  -641,  -641,
+    -641,    32,  -641,   664,   956,   804,   804,   441,  -641,  -641,
+    -641,  -641,  -641,   756,   862,    19,  -641,   807,  -641,   695,
+     422,   844,  5306,  2177,   753,  -641,    -2,  3239,  -641,   443,
+    3291,  -641,  -641,  3357,  3409,  3475,  3527,  3593,  3645,  3711,
+    3763,  3829,  3881,  3947,  3999,   837,  4065,  4117,  4183,  4235,
+    4301,  4353,  4419,  2229,  -641,  -641,  4471,  -641,   433,  -641,
+    -641,  -641,  -641,  -641,  1779,  -641,  -641,  -641,  -641,  4537,
+    -641,   174,  -641,  -641,   193,  -641,  -641,   194,  -641,  4589,
+    -641,  4655,  -641,   758,  -641,  5061,  -641,  -641,   210,  -641,
+     111,    72,   820,   718,  -641,  -641,   -38,  2295,  -641,  -641,
+    -641,   988,   575,  -641,  -641,   836,  -641,   870,   981,  -641,
+    -641,  -641,   113,  2347,  -641,  4707,  -641,  -641,  -641,   863,
+    -641,  -641,  -641,  -641,   152,   851,   849,   868,  -641,  2413,
+     804,  -641,   464,   804,   464,  -641,  2465,  4773,   164,   640,
+     714,  -641,  1078,  -641,  -641,  1993,  -641,  -641,  -641,  -641,
+     600,  -641,  -641,   245,  -641,  -641,  -641,  -641,  -641,   856,
+    -641,   253,  -641,  5358,  -641,   260,  -641,  -641,  -641,  -641,
+    -641,  -641,  -641,   975,  -641,   975,  -641,   871,  -641,   871,
+    -641,   871,  -641,  1030,  -641,  1030,  -641,  1030,  -641,  1030,
+    -641,   141,  -641,  -641,   852,  -641,   852,  -641,   891,  -641,
+     785,  -641,   828,  -641,   790,  -641,   832,  -641,   983,   898,
+    -641,  -641,  -641,  1016,  -641,  1779,   894,  -641,  1779,  -641,
+     188,  -641,  -641,  -641,  -641,  -641,  -641,  -641,   273,  -641,
+     895,   475,   276,   758,  -641,   455,  -641,  -641,  -641,  -641,
+    -641,  5542,  -641,  -641,   479,   820,  -641,   992,    50,   493,
+    -641,   902,  -641,  5154,  -641,  5086,   900,   906,   909,  -641,
+    -641,  5424,  -641,   271,  -641,   400,  -641,   400,  -641,  -641,
+     910,   185,  -641,  -641,  -641,  4825,  5197,  -641,  -641,  -641,
+    -641,  -641,  4891,  -641,  -641,  5476,  -641,  -641,   316,   657,
+    -641,  -641,  -641,  4943,   741,  -641,  1779,  2531,  -641,  -641,
+    1915,  -641,  -641,   319,  -641,   760,  -641,  -641,  -641,  -641,
+    -641,   907,  -641,  2583,  -641,  -641,  1009,   265,  5009,  -641,
+     729,  -641,  1556,  -641,  5542,  -641,  -641,  -641,   915,   912,
+    5129,  -641,   325,  -641,   662,  -641,  -641,   316,  -641,   919,
+    -641,  -641,  -641,  -641,  -641,  -641,  -641,   678,  -641,   316,
+    -641,  -641,   480,  -641,   215,   207,   482,  -641,   960,   964,
+    1915,  -641,  -641,  1915,  -641,  -641,   922,  -641,   933,   934,
+    -641,  -641,  1034,   223,  -641,  -641,  -641,  -641,  -641,   366,
+    -641,  -641,  1631,  -641,  1700,  -641,   947,  1848,  -641,   948,
+    -641,  -641,  -641,  -641,   316,  -641,  -641,  2649,  -641,   242,
+    4537,  1848,  -641,  -641,  2701,  -641,  -641,  -641,  -641,  1058,
+    -641,  -641,  -641,   962,  -641,  1848,  -641,   243,   244,  -641,
+     399,  -641,  5086,   963,  -641,  -641,  -641,  -641,   249,  1915,
+     970,  5129,  -641,  1010,  1915,   976,  1915,  -641,  1915,  -641,
+    -641
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const short yypgoto[] =
 {
-    -564,  -564,  -564,   -52,   -53,   677,    23,  -121,   633,     5,
-      -3,   656,  -564,   134,  -564,  1065,   500,  -564,   255,  -564,
-    -564,   796,    21,   213,  -564,  -564,  1024,  1005,  -564,  -130,
-    -564,   923,  -564,  -108,  -117,   945,  -169,  -189,  -564,  -564,
-     -94,   -26,   834,  -330,  -132,   -79,  -564,  -564,  -564,  -564,
-    -564,  -564,  -564,   936,  -564,   -73,  -564,   684,   361,  -564,
-    -564,  -564,  -564,  1043,   634,  -564,  1004,  -564,  -564,   275,
-    -564,  -112,   837,  -163,  -160,  -293,  -564,   790,   219,    94,
-    -434,   729,  -341,  -564,  -564,  -564,  -314,  -564,  -564,  -564,
-    -564,  -564,  -564,  -564,  -564,   444,   445,  -251,  -279,  -564,
-    -564,  -564,  -564,  -564,  -564,  -564,  -228,  -564,  -563,   795,
-    -564,  -564,  -564,  -564,  -564,  -564,  -564,  -564,  -564,   546,
-    -564,   547,  -564,  -564,  -564,  -101,  -564,  -564,  -564,  -564,
-    -423,  -564,   772,   103,   -57,  1053,   147,  1074,   245,   340,
-     341,   918,   209,   533,   622,  -482,  -564,   598,   687,   578,
-     594,   734,   736,   733,   737,   744,  -564,   503,   745,   651,
-    -564,  -564,   334,  -564
+    -641,  -641,  -641,   -39,   -58,   676,    23,  -112,   -13,   -57,
+      -3,   531,  -641,   144,  -641,  1065,   609,  -641,    60,  -641,
+    -641,    30,    11,   467,  -641,  -641,  1021,  1007,  -641,  -133,
+    -641,   931,  -641,   -80,  -122,   954,  -164,  -199,  -641,  -641,
+     131,   456,   839,  -324,  -130,    17,  -641,  -641,  -641,  -641,
+    -641,  -641,  -641,   958,  -641,  -134,  -641,   692,   354,  -641,
+    -641,  -641,  -641,  1063,   485,  -641,  1033,  -641,  -641,   383,
+    -641,  -123,   840,  -156,  -162,  -295,  -641,   797,   150,   266,
+    -537,    99,  -425,  -641,  -641,  -641,  -306,  -641,  -641,  -641,
+    -641,  -641,  -641,  -641,  -641,   461,   462,  -640,  -409,  -641,
+    -641,  -641,  -641,  -641,  -641,  -641,  -292,  -641,  -516,   817,
+    -641,  -641,  -641,  -641,  -641,  -641,  -641,  -641,  -641,   552,
+    -641,   559,  -641,  -641,  -641,    36,  -641,  -641,  -641,  -641,
+    -430,  -641,  -641,   778,   345,   -73,  1177,   132,  1197,   234,
+     314,   444,   943,  -165,   540,   687,  -476,  -641,   583,   733,
+     734,   576,   743,   748,   746,   751,   759,  -641,   505,   752,
+     757,  -641,  -641,   885,  -641
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
    positive, shift that token.  If negative, reduce the rule which
    number is the opposite.  If zero, do what YYDEFACT says.
    If YYTABLE_NINF, syntax error.  */
-#define YYTABLE_NINF -507
+#define YYTABLE_NINF -513
 static const short yytable[] =
 {
-      23,   458,   447,    31,   183,   176,   465,   104,   623,   152,
-     334,   294,    87,    86,   295,   367,   185,    41,   351,   489,
-     173,    17,   594,    51,   164,   187,    21,   719,    22,   470,
-     122,    17,    17,    17,   351,   420,   137,   494,   166,    87,
-     126,   146,    64,   374,    87,    86,    64,   598,   605,   173,
-     659,   661,    32,   164,    17,   606,   265,    17,    17,   -64,
-     120,   617,    91,   263,    64,   430,   662,   166,    62,    64,
-      90,   256,    70,   325,   258,    17,    79,   682,   356,    87,
-      86,   138,    65,    87,   179,   335,    92,   650,   635,    91,
-      62,   336,   267,    67,    91,    62,   471,    90,   251,   150,
-     153,   663,    90,   -64,   495,   127,    87,   126,    87,    86,
-      72,   733,  -153,    22,   490,   434,   720,    42,    92,    43,
-     352,   285,    22,    52,   188,    53,   659,   183,    64,    91,
-      87,   337,   446,    91,    64,   421,   352,    90,    27,    29,
-     687,    90,   752,   -92,   -92,   660,   354,  -292,   599,   254,
-     362,   628,   410,   159,    62,   122,    91,   180,    91,  -102,
-      70,   156,   752,  -102,    90,   431,    90,   440,   467,   620,
-      44,   287,   683,    55,    57,   567,    80,    60,   628,   286,
-      91,   407,   159,   156,   678,   -26,     1,    60,    90,   569,
-     340,   340,   340,   340,   325,   289,    64,   252,   340,   340,
-     363,   325,    22,   774,   183,   128,    87,   179,   691,   325,
-     703,   325,   779,    18,   325,   435,   113,   469,   699,   489,
-     116,   743,   355,    18,    18,    18,   586,   628,   122,   643,
-       2,   571,   584,    45,   717,    28,   442,   753,    87,   444,
-      53,     3,   285,   628,   629,   121,    18,     4,   255,    18,
-      18,   658,   564,     5,   718,   751,    91,   772,   768,   113,
-     116,     6,   285,   628,    90,    34,  -154,    18,   147,   140,
-     703,   447,   632,   703,   679,   568,   190,   645,    93,    74,
-     180,   -23,   -23,    87,   179,   670,     7,   458,    91,   570,
-      58,    34,   287,   131,    59,   558,    90,   480,   482,   449,
-     286,   336,   132,   704,   626,   487,   488,   449,   288,   449,
-      93,   325,   456,   190,   589,   587,   289,   643,   762,   713,
-     286,   326,    22,   -23,   644,   443,   588,   591,   -23,   -23,
-     -23,   572,   585,    91,   -23,    64,   180,   416,   -23,   703,
-     537,    90,    45,   630,   703,   160,   703,   447,   703,   711,
-     148,   742,   734,   400,   763,   771,   378,   180,   776,   285,
-     458,    70,   -95,   704,   -95,   707,   704,   -95,   -95,   -95,
-     -95,   633,   646,   680,   160,  -156,   754,    22,   340,   340,
-     340,   340,   340,   340,   340,   340,   340,   340,   340,   340,
-      91,   340,   340,   340,   340,   340,   340,   340,    90,   506,
-     136,   640,   343,  -324,   347,   349,   422,   147,   426,   559,
-     358,   360,   773,   436,    22,   729,   710,   286,   190,   327,
-      48,   611,   -28,     1,   613,   707,    96,   401,   707,   288,
-     428,   417,   704,   289,   253,   447,   288,   704,    30,   704,
-     432,   704,   326,    56,   288,  -254,   288,    38,   156,   326,
-     462,   259,   458,   621,   483,   510,   148,   326,    96,   326,
-     325,   458,   326,   325,   156,   755,   651,     2,   648,   654,
-      40,   190,   -63,   -29,     1,   729,   710,   250,     3,   710,
-     122,    61,   340,    49,     4,   656,   473,   340,   639,    69,
-       5,   642,   622,   172,   707,   148,    38,  -324,   325,   707,
-     325,   707,   427,   707,   692,   656,   101,    60,   285,   507,
-      33,   285,    37,    39,   328,   329,   -63,   183,     2,    40,
-     416,   451,   172,     7,   429,    22,   137,   -27,     1,   454,
-      22,   455,   -30,     1,   433,     4,    54,   364,   250,   325,
-     327,     5,   105,   325,   463,   710,   288,   327,   484,   511,
-     710,   737,   710,   112,   710,   327,    38,   327,   287,   326,
-     327,   287,   649,   740,   735,   325,   286,   697,    22,   286,
-     141,   142,     2,   325,     7,    60,    22,     2,   190,   657,
-     115,   610,   289,     3,   610,   289,    77,   285,     3,     4,
-     513,   515,   517,    22,     4,     5,    87,   179,   121,   741,
-       5,   149,    53,   325,   419,   151,   325,   425,   760,   154,
-     184,   627,   338,   285,   744,   438,   439,   628,   340,   340,
-     140,   -32,     1,   -31,     1,   325,   350,   325,     7,    22,
-     325,   -33,     1,     7,   340,   328,   329,   287,   -63,   189,
-      22,   449,   328,   329,   325,   286,    91,   333,   370,    49,
-     328,   329,   328,   329,    90,   328,   329,   327,   325,  -343,
-    -343,   289,   204,   287,   148,   325,     2,    22,     2,   375,
-     180,   286,   325,   285,   325,   285,     2,   325,   397,   325,
-     377,   325,   -63,     4,   466,     4,   468,   289,    22,     5,
-     376,     5,    22,     4,   619,   288,    22,    22,   288,     5,
-     102,   449,   103,   472,   449,   106,   501,   330,   326,   109,
-     509,   326,  -343,   -95,   136,   396,  -343,   502,   -95,   -95,
-     -95,   -95,     7,   287,     7,   287,    22,   502,   449,    20,
-     398,   286,     7,   286,    22,   555,   177,   693,   399,    20,
-      20,    20,   449,   628,   134,  -152,   326,   289,   326,   289,
-     371,   566,   328,   329,   372,   612,   449,   614,   373,  -345,
-    -345,   574,    20,   576,   155,    20,    20,    22,   257,   142,
-     449,    22,    60,    22,   288,   449,   445,   449,   288,   449,
-       2,   121,   590,    20,   503,   369,    81,   326,   158,   504,
-      22,   326,   696,   505,   503,   602,   331,   604,   746,   504,
-     288,   747,   448,   505,    22,   661,   327,    35,   464,   327,
-     502,   609,  -345,   326,    22,   158,  -345,   158,   736,    83,
-     662,   326,    84,    22,   628,   332,   739,   250,   330,    35,
-     685,   178,   628,    35,   143,   330,  -505,  -505,   288,   144,
-     145,   288,   452,   330,   327,   330,   327,   461,   330,   156,
-      35,   326,     2,   408,   326,   724,  -506,  -506,    81,   477,
-     288,   175,   288,   701,   491,   288,   492,   777,   353,   496,
-     493,   142,   781,   326,   783,   326,   784,   503,   326,   288,
-     485,   597,   504,   486,   577,   327,   505,   369,   578,   327,
-     175,    83,   326,   288,    84,    22,   595,    22,   607,   413,
-     414,   328,   329,   415,   328,   329,   326,   288,   536,   379,
-     380,   327,   288,   326,   288,   631,   288,   331,    81,   327,
-     326,   655,   326,   451,   331,   326,   454,   326,   637,   326,
-     384,   385,   331,   636,   331,   394,   395,   331,   641,   328,
-     329,   328,   329,   712,   647,   330,   332,   402,   403,   327,
-     758,    83,   327,   332,    84,    22,  -414,  -414,    81,  -415,
-    -415,   332,   689,   332,   765,   658,   332,   529,   531,   533,
-     535,   327,   124,   327,   144,   145,   327,   668,   770,   674,
-     328,   329,   519,   521,   328,   329,   675,     2,   540,   542,
-     327,    83,   701,    81,    84,    22,   722,   758,   676,   765,
-    -372,   770,   730,   718,   327,    81,   328,   329,   381,   382,
-     383,   327,   714,   731,   328,   329,    38,   599,   327,  -370,
-     327,   748,    81,   327,   745,   327,    83,   327,   751,    84,
-      22,   125,  -204,    39,   331,   749,   750,     2,    83,    40,
-     757,    84,    22,    81,   328,   329,   759,   328,   329,   386,
-     387,   388,   686,   768,   769,    83,   775,   780,    84,    22,
-     474,   475,   476,   332,   778,   782,   328,   329,   328,   329,
-     538,   328,   329,   523,   525,   527,    83,    36,   764,    84,
-      22,    78,   767,   111,   262,   328,   329,   191,   405,   389,
-     390,   391,   392,   406,   330,   260,   562,   330,    76,   328,
-     329,   130,    81,   412,   124,   457,   328,   329,   725,   726,
-     460,   197,   345,   328,   329,   328,   329,   198,   328,   329,
-     328,   329,   328,   329,   199,   652,   653,   481,   200,   393,
-     544,   548,   330,   546,   330,    83,   550,     0,    84,    22,
-     695,     0,   201,   202,   552,     0,   203,     0,    38,   557,
-       0,     0,     0,     2,    81,   205,   206,   207,   208,    81,
-       0,   209,   210,   125,     0,    39,     0,     0,    82,     0,
-       4,    40,     0,   330,   -16,     0,     5,   330,     0,  -504,
-    -504,   371,     0,   331,     0,   372,   331,    83,     0,   441,
-      84,    22,    83,     0,     0,    84,    22,     0,     0,   330,
-    -136,     0,     0,     0,     0,   156,   157,   330,     0,     7,
-       0,   -16,   332,     0,     0,   332,  -504,  -504,   371,     0,
-       0,   331,   372,   331,   -16,     0,   373,     0,     0,  -504,
-    -504,   371,  -504,  -504,   371,   372,     0,   330,   372,   638,
-     330,     0,   373,     0,     0,     0,   341,   341,   341,   341,
-     332,     0,   332,     0,   341,   341,     0,     0,     0,   330,
-       0,   330,   331,     0,   330,     0,   331,   342,   342,   342,
-     342,  -504,  -504,   371,     0,   342,   342,   372,   330,     0,
-       0,   441,     0,     0,     0,     0,     0,     0,   331,     0,
-       0,   332,   330,     0,     0,   332,   331,     0,     0,   330,
-       0,     0,     0,     0,     2,     0,   330,     0,   330,     0,
-      81,   330,     0,   330,     0,   330,     0,   332,     0,    82,
-       0,     4,     2,     0,     0,   332,   331,     5,    81,   331,
-       0,     0,     0,     0,     0,     0,     0,    82,     0,     4,
-       0,     0,     0,    83,     0,     5,    84,    22,   331,     0,
-     331,     0,     0,   331,     0,   332,   156,   261,   332,     0,
-       7,    83,     0,     0,    84,    22,     0,   331,     0,     0,
-       2,     0,     0,     0,     0,    85,    81,   332,     0,   332,
-       0,   331,   332,     0,     0,    82,     0,     4,   331,     0,
-       0,     0,     0,     5,     0,   331,   332,   331,     0,     0,
-     331,     0,   331,     0,   331,     0,     0,     0,     0,    83,
-     332,     0,    84,    22,     0,     0,     0,   332,     0,     0,
-       0,     0,     0,   129,   332,     0,   332,     0,     0,   332,
-     344,   332,   193,   332,   341,   341,   341,   341,   341,   341,
-     341,   341,   341,   341,   341,   341,     0,   341,   341,   341,
-     341,   341,   341,   341,     0,   342,   342,   342,   342,   342,
-     342,   342,   342,   342,   342,   342,   342,     0,   342,   342,
-     342,   342,   342,   342,   342,   195,   196,     0,     0,     0,
-      81,     0,     0,     0,     0,     0,     0,     0,     0,   197,
+      23,   449,   176,    31,   152,   368,   183,    87,    90,   173,
+     460,    17,   296,   467,   122,   335,   627,   598,   295,    41,
+     491,    17,    17,    17,   402,   185,    86,    79,   344,   352,
+     348,   350,   735,   472,    87,    90,   359,   361,   173,    87,
+      90,    35,    64,   137,    17,   266,    64,    17,    17,   352,
+      22,   665,   164,   126,   102,   336,   621,    51,    86,   106,
+      65,   337,    91,    35,    64,    17,   127,    35,    62,    64,
+      34,   508,    70,   491,    87,    90,    92,   375,    87,    90,
+     187,   164,   422,   639,    35,    32,    22,   357,   138,    91,
+      62,    72,   735,    86,    91,    62,    34,   179,   403,    20,
+     473,    87,    90,    87,    90,   252,   141,   142,    92,    20,
+      20,    20,   590,   709,   602,   492,   286,   287,   155,    42,
+     126,    43,    86,  -153,    67,    87,    90,    80,    64,    91,
+     183,   353,    20,    91,    64,    20,    20,   146,   255,   122,
+     448,   355,   412,   159,   338,   363,   666,   180,    27,    29,
+     693,   353,   632,    20,    62,   433,    91,    52,    91,    53,
+      70,   -29,     1,   442,   739,   624,   128,   257,   593,    22,
+     259,   288,   159,   709,   469,   571,   709,   -92,   -92,   188,
+      91,   684,   423,    55,    57,   290,   688,    60,   268,   649,
+     341,   341,   341,   341,   573,   575,    64,    60,   341,   341,
+     364,   591,    87,    90,   253,   697,     2,   183,   665,   432,
+     326,   588,   592,   122,  -292,   603,   664,   705,   517,   519,
+     521,   179,   356,     4,   758,   710,   113,   471,   436,     5,
+     116,   175,    53,   723,    87,    90,   418,   256,   286,   287,
+     121,   713,   709,   724,   757,   758,   633,   709,   609,   709,
+     774,   709,   568,   446,   636,   610,   780,    91,   286,   287,
+     175,   640,     7,   166,   147,   785,   725,   -32,     1,   113,
+     116,   180,   685,   449,   651,   572,   264,   656,   409,    87,
+      90,   689,   482,   484,   650,   710,   190,   632,   710,    91,
+     489,   490,   166,   288,   574,   576,   630,   676,   179,   460,
+     451,   713,   131,   749,   713,   156,   327,   290,   451,   632,
+     451,   589,     2,   458,    21,    22,   748,   768,   289,   759,
+     717,   428,   623,   190,   595,   632,   740,   180,   437,     4,
+     419,   719,   326,   430,    91,     5,    64,   541,    90,   326,
+     778,    44,    74,   769,   777,   634,   632,   326,   180,   326,
+     782,   449,   326,   637,   710,   726,   286,   287,   716,   710,
+     641,   710,    70,   710,   -28,     1,   379,   760,     7,   652,
+     713,   686,  -102,   156,   460,   713,  -102,   713,    48,   713,
+     341,   341,   341,   341,   341,   341,   341,   341,   341,   341,
+     341,   341,    91,   341,   341,   341,   341,   341,   341,   341,
+     649,    22,   104,   646,    45,    45,    77,   615,   328,     2,
+     617,   563,   434,   132,    28,   429,  -254,   424,   716,    96,
+       3,   716,   156,   496,   438,   290,     4,   431,   327,   190,
+     -63,   645,     5,   464,   648,   327,    30,  -154,  -156,   449,
+     289,    49,   485,   327,   512,   327,    56,   289,   327,  -324,
+     326,    96,    61,   453,   -64,   289,   761,   289,   -63,   657,
+     691,   456,   660,   457,    69,     7,   460,    18,   122,    49,
+     258,   142,   -26,     1,   -63,   460,   654,    18,    18,    18,
+     662,   662,   190,   418,   341,   140,   172,   716,   329,   341,
+     497,   136,   716,    38,   716,   779,   716,   475,   -64,   148,
+      18,    22,   -63,    18,    18,   698,   435,   286,   287,    58,
+     286,   287,   703,    59,   147,   172,    40,     2,    60,   101,
+     509,    18,   105,    22,   254,   183,   112,   465,     3,   562,
+     328,   260,    93,    22,     4,   337,   486,   328,   513,    22,
+       5,   667,   120,  -324,   115,   328,   327,   328,     6,   149,
+     328,    22,   156,   103,   743,   151,   668,   444,   289,   741,
+     109,   204,   288,   148,    93,   288,   746,   -31,     1,   154,
+     655,  -511,  -511,     7,   663,   747,   290,   750,   -95,   290,
+     -95,   150,   153,   -95,   -95,   -95,   -95,    60,   286,   287,
+     190,   669,   -33,     1,   184,   134,    22,    87,    90,   160,
+     189,   326,   -23,   -23,   326,   140,    22,   137,   354,    22,
+     329,   766,     2,    22,   286,   287,   179,   329,   330,    33,
+      38,    37,   341,   341,   334,   329,   378,   329,   160,     4,
+     329,    22,  -512,  -512,   466,     5,    22,     2,   468,   326,
+     341,   326,    22,   288,   -23,    54,   445,   451,   328,   -23,
+     -23,   -23,    91,   339,     4,   -23,    22,   290,    81,   -23,
+       5,   351,    38,   158,   470,   474,   180,   143,     7,   288,
+     -27,     1,   144,   145,   286,   287,   286,   287,     2,    39,
+     177,    22,   326,   290,    81,    40,   326,    22,   -30,     1,
+     158,    83,   158,     7,    84,    22,   631,   327,   -95,   136,
+     327,   371,   632,   -95,   -95,   -95,   -95,   451,   326,   289,
+     451,    22,   289,    22,   331,     2,   326,    83,   121,   504,
+      84,    22,    53,   121,     2,    22,     3,   370,   329,   288,
+      81,   288,     4,     2,   451,   327,   625,   327,     5,   148,
+     330,   376,   504,   290,     3,   290,   326,   330,   451,   326,
+       4,    22,    22,   699,   504,   330,     5,   330,   742,   632,
+     330,   718,   451,    83,   632,   156,    84,    22,   326,   410,
+     326,     7,   377,   326,   745,   178,   451,   667,   327,   380,
+     632,   451,   327,   451,   594,   451,   505,   326,    60,     7,
+     289,   506,   668,   494,   289,   507,   398,   495,    81,   328,
+     707,   326,   328,   400,   327,     2,    22,   702,   326,   505,
+     626,    81,   327,   148,   506,   326,   289,   326,   507,   581,
+     326,   505,   326,   582,   326,   614,   506,   730,   614,    22,
+     507,    83,  -344,  -344,    84,    22,   331,   328,   540,   328,
+     399,    22,   327,   331,    83,   327,   401,    84,    22,   381,
+     382,   331,   487,   331,   289,   488,   331,   289,   330,   370,
+     453,   332,  -152,   456,   327,   616,   327,   618,   447,   327,
+     391,   392,   393,   394,   386,   387,   289,   450,   289,   329,
+     328,   289,   329,   327,   328,  -344,   372,   764,    81,  -344,
+     373,   124,  -346,  -346,   374,   289,   454,   327,   415,   416,
+     463,   771,   417,   479,   327,   493,   328,   396,   397,   289,
+     395,   327,   498,   327,   328,   776,   327,   329,   327,   329,
+     327,    83,   142,   289,    84,    22,   404,   405,   289,   707,
+     289,   333,   289,   599,   764,    38,   771,   601,   776,  -420,
+    -420,    81,  -421,  -421,   328,  -346,   611,   328,  -389,  -346,
+     125,   635,    39,     2,   331,  -510,  -510,   372,    40,    81,
+     329,   373,   144,   145,   329,   374,   328,  -388,   328,   523,
+     525,   328,   544,   546,    83,   124,   752,    84,    22,   753,
+     383,   384,   385,   332,   642,   328,   329,  -136,   643,   647,
+     332,   653,    83,   664,   329,    84,    22,   674,   332,   328,
+     332,   680,   681,   332,   407,   682,   328,  -373,   720,   330,
+     724,   737,   330,   328,   603,   328,  -371,   751,   328,    38,
+     328,  -204,   328,   754,   329,    81,   -16,   329,   251,   755,
+     756,  -510,  -510,   372,   125,   757,    39,   373,   388,   389,
+     390,   443,    40,   763,   765,   783,   329,   330,   329,   330,
+     787,   329,   789,   333,   790,   476,   477,   478,    83,   774,
+     333,    84,    22,   775,   781,   329,   784,   786,   333,   -16,
+     333,   542,   788,   333,  -510,  -510,   372,    36,    78,   329,
+     373,  -510,  -510,   372,   374,   111,   329,   373,   365,   251,
+     330,   443,   263,   329,   330,   329,   191,     2,   329,   408,
+     329,   332,   329,    81,   -16,   331,   566,   414,   331,  -510,
+    -510,   372,    82,   459,     4,   373,   330,   261,    76,   644,
+       5,   527,   529,   531,   330,   533,   535,   537,   539,    81,
+     130,   731,   732,   462,   483,   658,    83,   346,   197,    84,
+      22,   548,   659,   331,   198,   331,   552,   550,   701,   156,
+     157,   199,   554,     7,   330,   200,   421,   330,   561,   427,
+       0,   556,    83,     0,     0,    84,    22,   440,   441,   201,
+     202,   333,     0,   203,     0,     0,   330,     0,   330,     0,
+       0,   330,   205,   206,   207,   208,   331,     0,   209,   210,
+     331,     0,   345,     0,   193,   330,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,   330,
+       0,     0,   331,     0,     0,     0,   330,     0,     0,     0,
+     331,     0,     0,   330,     0,   330,     0,     0,   330,     0,
+     330,     0,   330,     0,     0,     0,     0,   195,   196,     0,
+       0,     0,    81,     0,     0,     0,     0,     0,     0,     0,
+     331,   197,   332,   331,     0,   332,     0,   198,   503,     0,
+       0,     0,   511,     0,   199,   515,     0,     0,   200,     0,
+       0,     0,   331,     0,   331,    83,     0,   331,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,   559,     0,
+     332,   331,   332,     0,     0,   205,   206,   207,   208,     0,
+       2,   209,   210,     0,   570,   331,    81,     0,     0,     0,
+       0,     0,   331,     0,   578,    82,   580,     4,     0,   331,
+       0,   331,   333,     5,   331,   333,   331,     0,   331,     0,
+       0,     0,     0,   332,     0,     0,     0,   332,     0,    83,
+       0,     0,    84,    22,     0,     0,     0,     0,   606,     0,
+     608,     0,   156,   262,     0,     0,     7,     0,     0,   332,
+     333,     0,   333,     0,   613,     0,     0,   332,     0,     0,
+     342,   342,   342,   342,     0,     0,     0,     0,   342,   342,
+     251,     0,     0,     0,     0,     0,     0,     0,     0,     2,
+     343,   343,   343,   343,     0,    81,     0,   332,   343,   343,
+     332,     0,     0,   333,    82,     0,     4,   333,     0,     0,
+       0,     0,     5,     0,     0,     0,     0,     0,     0,   332,
+       0,   332,     0,     0,   332,     0,     0,     0,    83,   333,
+       0,    84,    22,     0,     0,     0,     0,   333,   332,     2,
+       0,     0,    85,     0,     0,    81,     0,     0,     0,     0,
+       0,     0,   332,     0,    82,     0,     4,     0,     0,   332,
+       0,     0,     5,     0,     0,     0,   332,   333,   332,     0,
+     333,   332,     0,   332,     0,   332,   661,     0,    83,     0,
+       0,    84,    22,     0,     0,     0,     0,     0,     0,   333,
+       0,   333,   129,     0,   333,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,   333,     0,
+       0,     0,     0,     0,     0,     0,     0,   695,     0,     0,
+       0,     0,   333,     0,     0,     0,     0,     0,     0,   333,
+       0,     0,     0,     0,     0,     0,   333,     0,   333,     0,
+       0,   333,     0,   333,     0,   333,     0,     0,     0,     0,
+       0,     0,     0,   728,     0,     0,     0,   269,     0,   736,
+     342,   342,   342,   342,   342,   342,   342,   342,   342,   342,
+     342,   342,     0,   342,   342,   342,   342,   342,   342,   342,
+     343,   343,   343,   343,   343,   343,   343,   343,   343,   343,
+     343,   343,     0,   343,   343,   343,   343,   343,   343,   343,
+       0,     2,   195,   196,   667,   270,   271,    81,   272,     0,
+       0,   273,     0,     0,     0,   274,   197,     0,     0,   668,
+       0,     0,   275,   276,     5,   277,     0,   278,   279,   199,
+     280,     0,   269,   281,   282,   770,     0,     0,     0,   773,
+      83,     0,     0,    84,    22,     0,     0,     0,     0,     0,
+       0,   283,     0,   156,   733,     0,     0,     7,     0,     0,
+     205,   206,   207,   208,   342,     0,   209,   210,     0,   342,
+       0,     0,     0,     0,     0,     0,     2,   195,   196,   667,
+     270,   271,    81,   272,   343,     0,   273,     0,     0,   343,
+     274,   197,     0,     0,   668,     0,     0,   275,   276,     5,
+     277,   269,   278,   279,   199,   280,     0,     0,   281,   282,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,     0,     0,     0,     0,   283,     0,   156,   762,
+       0,     0,     7,     0,     0,   205,   206,   207,   208,     0,
+       0,   209,   210,     0,     0,     2,   195,   196,  -264,   270,
+     271,    81,   272,     0,     0,   273,     0,     0,     0,   274,
+     197,     0,     0,  -264,     0,     0,   275,   276,     5,   277,
+       0,   278,   279,   199,   280,     0,     0,   281,   282,     0,
+     269,     0,     0,     0,    83,     0,     0,    84,    22,     0,
+       0,     0,     0,     0,     0,   283,     0,   156,  -264,     0,
+       0,     7,   342,   342,   205,   206,   207,   208,     0,     0,
+     209,   210,     0,     0,     0,     0,     0,     0,     0,     0,
+     342,     0,   343,   343,     2,   195,   196,     0,   270,   271,
+      81,   272,     0,     0,   273,     0,     0,     0,   274,   197,
+     343,     0,     0,     0,     0,   275,   276,     5,   277,   269,
+     278,   279,   199,   280,     0,     0,   281,   282,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+       0,     0,     0,     0,   283,     0,   156,   284,     0,     0,
+       7,     0,     0,   205,   206,   207,   208,     0,     0,   209,
+     210,     0,     0,     2,   195,   196,     0,   270,   271,    81,
+     272,     0,     0,   273,     0,     0,     0,   274,   197,     0,
+       0,     0,     0,     0,   275,   276,   269,   277,     0,   278,
+     279,   199,   280,     0,     0,   281,   282,     0,     0,     0,
+       0,     0,    83,     0,     0,    84,    22,     0,     0,     0,
+       0,     0,     0,   283,     0,   156,     0,     0,     0,     7,
+       0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
+       2,   195,   196,     0,   706,   271,    81,   272,     0,     0,
+     273,     0,     0,     0,   274,   197,     0,     0,     0,     0,
+       0,   275,   276,     0,   277,     0,   278,   279,   199,   280,
+       0,     0,   281,   282,   628,     0,   193,   194,     0,    83,
+       0,     0,    84,    22,     0,     0,     0,     0,     0,     0,
+     283,     0,   156,     0,     0,     0,     7,     0,     0,   205,
+     206,   207,   208,     0,     0,   209,   210,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,   195,
+     196,     0,     0,     0,    81,     0,     0,     0,     0,     0,
+       0,     0,     0,   197,     0,     0,     0,     0,     0,   198,
+     192,     0,   193,   194,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+     204,   629,     0,     0,     0,     0,     0,   205,   206,   207,
+     208,     0,     0,   209,   210,   195,   196,     0,     0,     0,
+      81,     0,   425,     0,   193,   194,     0,     0,     0,   197,
        0,     0,     0,     0,     0,   198,     0,     0,     0,     0,
-       0,     0,   199,   268,     0,     0,   200,     0,     0,     0,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,   204,   195,   196,     0,
+       0,     0,    81,   205,   206,   207,   208,     0,     0,   209,
+     210,   197,     0,     0,     0,     0,     0,   198,   502,     0,
+     193,   194,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,     0,
+       0,     0,   426,     0,     0,   205,   206,   207,   208,     0,
+       0,   209,   210,   195,   196,     0,     0,     0,    81,     0,
+     557,     0,   193,   194,     0,     0,     0,   197,     0,     0,
+       0,     0,     0,   198,     0,     0,     0,     0,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,   195,   196,   147,     0,     0,
+      81,   205,   206,   207,   208,     0,     0,   209,   210,   197,
+       0,     0,     0,     0,     0,   198,   596,     0,   193,   194,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,   558,
+     201,   202,     0,     0,   203,     0,     0,     0,     0,     0,
+       0,     0,     0,   205,   206,   207,   208,     0,     0,   209,
+     210,   195,   196,     0,     0,     0,    81,     0,   604,     0,
+     193,   194,     0,     0,     0,   197,     0,     0,     0,     0,
+       0,   198,     0,     0,     0,     0,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,   597,     0,   195,   196,     0,     0,     0,    81,   205,
+     206,   207,   208,     0,     0,   209,   210,   197,     0,     0,
+       0,     0,     0,   198,   612,     0,   193,   194,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,     0,     0,     0,   605,     0,
+       0,   205,   206,   207,   208,     0,     0,   209,   210,   195,
+     196,     0,     0,     0,    81,     0,   619,     0,   193,   194,
+       0,     0,     0,   197,     0,     0,     0,     0,     0,   198,
+       0,     0,     0,     0,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,   195,   196,   147,     0,     0,    81,   205,   206,   207,
+     208,     0,     0,   209,   210,   197,     0,     0,     0,     0,
+       0,   198,   596,     0,   193,   194,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,   620,     0,     0,     0,     0,     0,     0,     0,   205,
+     206,   207,   208,     0,     0,   209,   210,   195,   196,     0,
+       0,     0,    81,     0,   721,     0,   193,   194,     0,     0,
+       0,   197,     0,     0,     0,     0,     0,   198,     0,     0,
+       0,     0,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,   704,     0,   195,
+     196,     0,     0,     0,    81,   205,   206,   207,   208,     0,
+       0,   209,   210,   197,     0,     0,     0,     0,     0,   198,
+     721,     0,   193,   194,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,   722,
+       0,     0,     0,     0,     0,     0,     0,   205,   206,   207,
+     208,     0,     0,   209,   210,   195,   196,     0,     0,     0,
+      81,     0,   604,     0,   193,   194,     0,     0,     0,   197,
+       0,     0,     0,     0,     0,   198,     0,     0,     0,     0,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,   767,     0,   195,   196,     0,
+       0,     0,    81,   205,   206,   207,   208,     0,     0,   209,
+     210,   197,     0,     0,     0,     0,     0,   198,   340,     0,
+     193,   194,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,     0,
+       0,     0,   772,     0,     0,   205,   206,   207,   208,     0,
+       0,   209,   210,   195,   196,     0,     0,     0,    81,     0,
+     347,     0,   193,   194,     0,     0,     0,   197,     0,     0,
+       0,     0,     0,   198,     0,     0,     0,     0,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,   195,   196,     0,     0,     0,
+      81,   205,   206,   207,   208,     0,     0,   209,   210,   197,
+       0,     0,     0,     0,     0,   198,   349,     0,   193,   194,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
        0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
      201,   202,     0,     0,   203,     0,     0,     0,     0,     0,
-       0,     0,     0,   205,   206,   207,   208,     0,   341,   209,
-     210,     0,     0,   341,     0,     0,     0,     2,   195,   196,
-     661,   269,   270,    81,   271,     0,     0,   272,     0,   342,
-       0,   273,   197,     0,   342,   662,     0,     0,   274,   275,
-       5,   276,     0,   277,   278,   199,   279,     0,     0,   280,
-     281,     0,   268,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,     0,     0,     0,     0,   282,     0,   156,
-     727,     0,     0,     7,     0,     0,   205,   206,   207,   208,
-       0,     0,   209,   210,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     2,   195,   196,   661,
-     269,   270,    81,   271,     0,     0,   272,     0,     0,     0,
-     273,   197,     0,     0,   662,     0,     0,   274,   275,     5,
-     276,     0,   277,   278,   199,   279,   268,     0,   280,   281,
+       0,     0,     0,   205,   206,   207,   208,     0,     0,   209,
+     210,   195,   196,     0,     0,     0,    81,     0,   358,     0,
+     193,   194,     0,     0,     0,   197,     0,     0,     0,     0,
+       0,   198,     0,     0,     0,     0,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,   195,   196,     0,     0,     0,    81,   205,
+     206,   207,   208,     0,     0,   209,   210,   197,     0,     0,
+       0,     0,     0,   198,   360,     0,   193,   194,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,     0,     0,     0,     0,     0,
+       0,   205,   206,   207,   208,     0,     0,   209,   210,   195,
+     196,     0,     0,     0,    81,     0,   362,     0,   193,   194,
+       0,     0,     0,   197,     0,     0,     0,     0,     0,   198,
+       0,     0,     0,     0,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,   195,   196,     0,     0,     0,    81,   205,   206,   207,
+     208,     0,     0,   209,   210,   197,     0,     0,     0,     0,
+       0,   198,   420,     0,   193,   194,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,     0,     0,     0,     0,     0,     0,   205,
+     206,   207,   208,     0,     0,   209,   210,   195,   196,     0,
+       0,     0,    81,     0,   439,     0,   193,   194,     0,     0,
+       0,   197,     0,     0,     0,     0,     0,   198,     0,     0,
+       0,     0,     0,     0,   199,     0,     0,     0,   200,     0,
        0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
-       0,     0,     0,     0,   341,   341,   282,     0,   156,   756,
-       0,     0,     7,     0,     0,   205,   206,   207,   208,     0,
-     341,   209,   210,     0,     0,   342,   342,     0,     0,     0,
-       2,   195,   196,  -264,   269,   270,    81,   271,     0,     0,
-     272,   342,     0,     0,   273,   197,     0,     0,  -264,     0,
-       0,   274,   275,     5,   276,   268,   277,   278,   199,   279,
-       0,     0,   280,   281,     0,     0,     0,     0,     0,    83,
-       0,     0,    84,    22,     0,     0,     0,     0,     0,     0,
-     282,     0,   156,  -264,     0,     0,     7,     0,     0,   205,
-     206,   207,   208,     0,     0,   209,   210,     0,     0,     2,
-     195,   196,     0,   269,   270,    81,   271,     0,     0,   272,
-       0,     0,     0,   273,   197,     0,     0,     0,     0,     0,
-     274,   275,     5,   276,   268,   277,   278,   199,   279,     0,
-       0,   280,   281,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,     0,     0,     0,     0,   282,
-       0,   156,   283,     0,     0,     7,     0,     0,   205,   206,
-     207,   208,     0,     0,   209,   210,     0,     0,     2,   195,
-     196,     0,   269,   270,    81,   271,     0,     0,   272,     0,
-       0,     0,   273,   197,     0,     0,     0,     0,     0,   274,
-     275,   268,   276,     0,   277,   278,   199,   279,     0,     0,
-     280,   281,     0,     0,     0,     0,     0,    83,     0,     0,
-      84,    22,     0,     0,     0,     0,     0,     0,   282,     0,
-     156,     0,     0,     0,     7,     0,     0,   205,   206,   207,
-     208,     0,     0,   209,   210,     2,   195,   196,     0,   700,
-     270,    81,   271,     0,     0,   272,     0,     0,     0,   273,
-     197,     0,     0,     0,     0,     0,   274,   275,     0,   276,
-       0,   277,   278,   199,   279,     0,     0,   280,   281,   624,
-       0,   193,   194,     0,    83,     0,     0,    84,    22,     0,
-       0,     0,     0,     0,     0,   282,     0,   156,     0,     0,
-       0,     7,     0,     0,   205,   206,   207,   208,     0,     0,
-     209,   210,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,   195,   196,     0,     0,     0,    81,
-       0,     0,     0,     0,     0,     0,     0,     0,   197,     0,
-       0,     0,     0,     0,   198,   192,     0,   193,   194,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,   204,   625,     0,     0,     0,
-       0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
-     195,   196,     0,     0,     0,    81,     0,   423,     0,   193,
-     194,     0,     0,     0,   197,     0,     0,     0,     0,     0,
-     198,     0,     0,     0,     0,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,   204,   195,   196,     0,     0,     0,    81,   205,   206,
-     207,   208,     0,     0,   209,   210,   197,     0,     0,     0,
-       0,     0,   198,   500,     0,   193,   194,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,     0,     0,     0,   424,     0,     0,
-     205,   206,   207,   208,     0,     0,   209,   210,   195,   196,
-       0,     0,     0,    81,     0,   553,     0,   193,   194,     0,
-       0,     0,   197,     0,     0,     0,     0,     0,   198,     0,
-       0,     0,     0,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-     195,   196,   147,     0,     0,    81,   205,   206,   207,   208,
-       0,     0,   209,   210,   197,     0,     0,     0,     0,     0,
-     198,   592,     0,   193,   194,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,   554,   201,   202,     0,     0,   203,
-       0,     0,     0,     0,     0,     0,     0,     0,   205,   206,
-     207,   208,     0,     0,   209,   210,   195,   196,     0,     0,
-       0,    81,     0,   600,     0,   193,   194,     0,     0,     0,
-     197,     0,     0,     0,     0,     0,   198,     0,     0,     0,
-       0,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,   593,     0,   195,   196,
-       0,     0,     0,    81,   205,   206,   207,   208,     0,     0,
-     209,   210,   197,     0,     0,     0,     0,     0,   198,   608,
-       0,   193,   194,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-       0,     0,     0,   601,     0,     0,   205,   206,   207,   208,
-       0,     0,   209,   210,   195,   196,     0,     0,     0,    81,
-       0,   615,     0,   193,   194,     0,     0,     0,   197,     0,
-       0,     0,     0,     0,   198,     0,     0,     0,     0,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,   195,   196,   147,     0,
-       0,    81,   205,   206,   207,   208,     0,     0,   209,   210,
-     197,     0,     0,     0,     0,     0,   198,   592,     0,   193,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,   195,
+     196,     0,     0,     0,    81,   205,   206,   207,   208,     0,
+       0,   209,   210,   197,     0,     0,     0,     0,     0,   198,
+     510,     0,   193,   194,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,     0,     0,     0,     0,     0,     0,   205,   206,   207,
+     208,     0,     0,   209,   210,   195,   196,     0,     0,     0,
+      81,     0,   514,     0,   193,   194,     0,     0,     0,   197,
+       0,     0,     0,     0,     0,   198,     0,     0,     0,     0,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,     0,   195,   196,     0,
+       0,     0,    81,   205,   206,   207,   208,     0,     0,   209,
+     210,   197,     0,     0,     0,     0,     0,   198,   516,     0,
+     193,   194,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,     0,
+       0,     0,     0,     0,     0,   205,   206,   207,   208,     0,
+       0,   209,   210,   195,   196,     0,     0,     0,    81,     0,
+     518,     0,   193,   194,     0,     0,     0,   197,     0,     0,
+       0,     0,     0,   198,     0,     0,     0,     0,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,   195,   196,     0,     0,     0,
+      81,   205,   206,   207,   208,     0,     0,   209,   210,   197,
+       0,     0,     0,     0,     0,   198,   520,     0,   193,   194,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,     0,     0,     0,     0,
+       0,     0,     0,   205,   206,   207,   208,     0,     0,   209,
+     210,   195,   196,     0,     0,     0,    81,     0,   522,     0,
+     193,   194,     0,     0,     0,   197,     0,     0,     0,     0,
+       0,   198,     0,     0,     0,     0,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,   195,   196,     0,     0,     0,    81,   205,
+     206,   207,   208,     0,     0,   209,   210,   197,     0,     0,
+       0,     0,     0,   198,   524,     0,   193,   194,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,     0,     0,     0,     0,     0,
+       0,   205,   206,   207,   208,     0,     0,   209,   210,   195,
+     196,     0,     0,     0,    81,     0,   526,     0,   193,   194,
+       0,     0,     0,   197,     0,     0,     0,     0,     0,   198,
+       0,     0,     0,     0,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,   195,   196,     0,     0,     0,    81,   205,   206,   207,
+     208,     0,     0,   209,   210,   197,     0,     0,     0,     0,
+       0,   198,   528,     0,   193,   194,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,     0,     0,     0,     0,     0,     0,   205,
+     206,   207,   208,     0,     0,   209,   210,   195,   196,     0,
+       0,     0,    81,     0,   530,     0,   193,   194,     0,     0,
+       0,   197,     0,     0,     0,     0,     0,   198,     0,     0,
+       0,     0,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,   195,
+     196,     0,     0,     0,    81,   205,   206,   207,   208,     0,
+       0,   209,   210,   197,     0,     0,     0,     0,     0,   198,
+     532,     0,   193,   194,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,     0,     0,     0,     0,     0,     0,   205,   206,   207,
+     208,     0,     0,   209,   210,   195,   196,     0,     0,     0,
+      81,     0,   534,     0,   193,   194,     0,     0,     0,   197,
+       0,     0,     0,     0,     0,   198,     0,     0,     0,     0,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,     0,   195,   196,     0,
+       0,     0,    81,   205,   206,   207,   208,     0,     0,   209,
+     210,   197,     0,     0,     0,     0,     0,   198,   536,     0,
+     193,   194,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,     0,
+       0,     0,     0,     0,     0,   205,   206,   207,   208,     0,
+       0,   209,   210,   195,   196,     0,     0,     0,    81,     0,
+     538,     0,   193,   194,     0,     0,     0,   197,     0,     0,
+       0,     0,     0,   198,     0,     0,     0,     0,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,   195,   196,     0,     0,     0,
+      81,   205,   206,   207,   208,     0,     0,   209,   210,   197,
+       0,     0,     0,     0,     0,   198,   543,     0,   193,   194,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,     0,     0,     0,     0,
+       0,     0,     0,   205,   206,   207,   208,     0,     0,   209,
+     210,   195,   196,     0,     0,     0,    81,     0,   545,     0,
+     193,   194,     0,     0,     0,   197,     0,     0,     0,     0,
+       0,   198,     0,     0,     0,     0,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,   195,   196,     0,     0,     0,    81,   205,
+     206,   207,   208,     0,     0,   209,   210,   197,     0,     0,
+       0,     0,     0,   198,   547,     0,   193,   194,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,     0,     0,     0,     0,     0,
+       0,   205,   206,   207,   208,     0,     0,   209,   210,   195,
+     196,     0,     0,     0,    81,     0,   549,     0,   193,   194,
+       0,     0,     0,   197,     0,     0,     0,     0,     0,   198,
+       0,     0,     0,     0,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,   195,   196,     0,     0,     0,    81,   205,   206,   207,
+     208,     0,     0,   209,   210,   197,     0,     0,     0,     0,
+       0,   198,   551,     0,   193,   194,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,     0,     0,     0,     0,     0,     0,   205,
+     206,   207,   208,     0,     0,   209,   210,   195,   196,     0,
+       0,     0,    81,     0,   553,     0,   193,   194,     0,     0,
+       0,   197,     0,     0,     0,     0,     0,   198,     0,     0,
+       0,     0,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,   195,
+     196,     0,     0,     0,    81,   205,   206,   207,   208,     0,
+       0,   209,   210,   197,     0,     0,     0,     0,     0,   198,
+     555,     0,   193,   194,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,     0,     0,     0,     0,     0,     0,   205,   206,   207,
+     208,     0,     0,   209,   210,   195,   196,     0,     0,     0,
+      81,     0,   560,     0,   193,   194,     0,     0,     0,   197,
+       0,     0,     0,     0,     0,   198,     0,     0,     0,     0,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,     0,   195,   196,     0,
+       0,     0,    81,   205,   206,   207,   208,     0,     0,   209,
+     210,   197,     0,     0,     0,     0,     0,   198,   569,     0,
+     193,   194,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,     0,
+       0,     0,     0,     0,     0,   205,   206,   207,   208,     0,
+       0,   209,   210,   195,   196,     0,     0,     0,    81,     0,
+     577,     0,   193,   194,     0,     0,     0,   197,     0,     0,
+       0,     0,     0,   198,     0,     0,     0,     0,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,   195,   196,     0,     0,     0,
+      81,   205,   206,   207,   208,     0,     0,   209,   210,   197,
+       0,     0,     0,     0,     0,   198,   579,     0,   193,   194,
+       0,     0,   199,     0,     0,     0,   200,     0,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,     0,     0,     0,     0,
+       0,     0,     0,   205,   206,   207,   208,     0,     0,   209,
+     210,   195,   196,     0,     0,     0,    81,     0,   607,     0,
+     193,   194,     0,     0,     0,   197,     0,     0,     0,     0,
+       0,   198,     0,     0,     0,     0,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,   195,   196,     0,     0,     0,    81,   205,
+     206,   207,   208,     0,     0,   209,   210,   197,     0,     0,
+       0,     0,     0,   198,   622,     0,   193,   194,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,     0,     0,   201,   202,
+       0,     0,   203,     0,     0,     0,     0,     0,     0,     0,
+       0,   205,   206,   207,   208,     0,     0,   209,   210,   195,
+     196,     0,     0,     0,    81,     0,   690,     0,   193,   194,
+       0,     0,     0,   197,     0,     0,     0,     0,     0,   198,
+       0,     0,     0,     0,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,   195,   196,     0,     0,     0,    81,   205,   206,   207,
+     208,     0,     0,   209,   210,   197,     0,     0,     0,     0,
+       0,   198,   694,     0,   193,   194,     0,     0,   199,     0,
+       0,     0,   200,     0,     0,     0,     0,     0,     0,    83,
+       0,     0,    84,    22,     0,     0,   201,   202,     0,     0,
+     203,     0,     0,     0,     0,     0,     0,     0,     0,   205,
+     206,   207,   208,     0,     0,   209,   210,   195,   196,     0,
+       0,     0,    81,     0,   700,     0,   193,   194,     0,     0,
+       0,   197,     0,     0,     0,     0,     0,   198,     0,     0,
+       0,     0,     0,     0,   199,     0,     0,     0,   200,     0,
+       0,     0,     0,     0,     0,    83,     0,     0,    84,    22,
+       0,     0,   201,   202,     0,     0,   203,     0,     0,   195,
+     196,     0,     0,     0,    81,   205,   206,   207,   208,     0,
+       0,   209,   210,   197,     0,     0,     0,     0,     0,   198,
+     727,     0,   193,   194,     0,     0,   199,     0,     0,     0,
+     200,     0,     0,     0,     0,     0,     0,    83,     0,     0,
+      84,    22,     0,     0,   201,   202,     0,     0,   203,     0,
+       0,     0,     0,     0,     0,     0,     0,   205,   206,   207,
+     208,     0,     0,   209,   210,   195,   196,     0,     0,     0,
+      81,     0,   587,     0,     0,     0,     0,     0,     0,   197,
+       0,     0,     0,     0,     0,   198,     0,     0,     0,     0,
+       0,     0,   199,     0,     0,     0,   200,   677,     0,     0,
+       0,     0,     0,    83,     0,     0,    84,    22,     0,     0,
+     201,   202,     0,     0,   203,     0,  -287,  -287,  -287,     0,
+       0,     0,  -287,   205,   206,   207,   208,     0,     0,   209,
+     210,  -287,     0,     0,     0,     0,     0,  -287,     0,     0,
+     738,     0,   195,   196,  -287,     0,     0,    81,  -287,     0,
+       0,     0,     0,     0,     0,  -287,   197,     0,  -287,  -287,
+       0,     0,   198,     0,     0,   675,  -287,     0,     0,   199,
+       0,     0,  -287,   200,     0,  -287,  -287,  -287,  -287,     0,
+      83,  -287,  -287,    84,    22,   195,   196,     0,     0,     0,
+      81,   283,  -295,     0,     0,     0,     0,     0,     0,   197,
+     205,   206,   207,   208,     0,   198,   209,   210,   692,     0,
+     195,   196,   199,     0,     0,    81,   200,     0,     0,     0,
+       0,     0,     0,    83,   197,     0,    84,    22,     0,     0,
+     198,     0,     0,     0,   283,  -295,     0,   199,     0,     0,
+       0,   200,     0,   205,   206,   207,   208,     0,    83,   209,
+     210,    84,    22,   193,   194,     0,     0,     0,    81,   283,
+       0,     0,     0,     0,     0,     0,     0,   197,   205,   206,
+     207,   208,     0,   198,   209,   210,     0,     0,     0,     0,
+     199,     0,     0,     0,   200,     0,     0,     0,     0,     0,
+       0,    83,     0,     0,    84,    22,   195,   196,   201,   202,
+       0,    81,   203,     0,     0,     0,     0,     0,     0,     0,
+     197,   205,   206,   207,   208,     0,   198,   209,   210,   193,
      194,     0,     0,   199,     0,     0,     0,   200,     0,     0,
        0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,   616,     0,     0,     0,
-       0,     0,     0,     0,   205,   206,   207,   208,     0,     0,
-     209,   210,   195,   196,     0,     0,     0,    81,     0,   715,
-       0,   193,   194,     0,     0,     0,   197,     0,     0,     0,
-       0,     0,   198,     0,     0,     0,     0,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,   698,     0,   195,   196,     0,     0,     0,    81,
-     205,   206,   207,   208,     0,     0,   209,   210,   197,     0,
-       0,     0,     0,     0,   198,   715,     0,   193,   194,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,   716,     0,     0,     0,     0,     0,
-       0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
-     195,   196,     0,     0,     0,    81,     0,   600,     0,   193,
-     194,     0,     0,     0,   197,     0,     0,     0,     0,     0,
-     198,     0,     0,     0,     0,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-     761,     0,   195,   196,     0,     0,     0,    81,   205,   206,
-     207,   208,     0,     0,   209,   210,   197,     0,     0,     0,
-       0,     0,   198,   339,     0,   193,   194,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,     0,     0,     0,   766,     0,     0,
-     205,   206,   207,   208,     0,     0,   209,   210,   195,   196,
-       0,     0,     0,    81,     0,   346,     0,   193,   194,     0,
-       0,     0,   197,     0,     0,     0,     0,     0,   198,     0,
-       0,     0,     0,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-     195,   196,     0,     0,     0,    81,   205,   206,   207,   208,
-       0,     0,   209,   210,   197,     0,     0,     0,     0,     0,
-     198,   348,     0,   193,   194,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,     0,     0,     0,     0,     0,     0,     0,   205,   206,
-     207,   208,     0,     0,   209,   210,   195,   196,     0,     0,
-       0,    81,     0,   357,     0,   193,   194,     0,     0,     0,
-     197,     0,     0,     0,     0,     0,   198,     0,     0,     0,
-       0,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,   195,   196,
-       0,     0,     0,    81,   205,   206,   207,   208,     0,     0,
-     209,   210,   197,     0,     0,     0,     0,     0,   198,   359,
-       0,   193,   194,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-       0,     0,     0,     0,     0,     0,   205,   206,   207,   208,
-       0,     0,   209,   210,   195,   196,     0,     0,     0,    81,
-       0,   361,     0,   193,   194,     0,     0,     0,   197,     0,
-       0,     0,     0,     0,   198,     0,     0,     0,     0,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,   195,   196,     0,     0,
-       0,    81,   205,   206,   207,   208,     0,     0,   209,   210,
-     197,     0,     0,     0,     0,     0,   198,   418,     0,   193,
-     194,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,     0,     0,
-       0,     0,     0,     0,   205,   206,   207,   208,     0,     0,
-     209,   210,   195,   196,     0,     0,     0,    81,     0,   437,
-       0,   193,   194,     0,     0,     0,   197,     0,     0,     0,
-       0,     0,   198,     0,     0,     0,     0,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,   195,   196,     0,     0,     0,    81,
-     205,   206,   207,   208,     0,     0,   209,   210,   197,     0,
-       0,     0,     0,     0,   198,   508,     0,   193,   194,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,     0,     0,     0,     0,
-       0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
-     195,   196,     0,     0,     0,    81,     0,   512,     0,   193,
-     194,     0,     0,     0,   197,     0,     0,     0,     0,     0,
-     198,     0,     0,     0,     0,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,     0,   195,   196,     0,     0,     0,    81,   205,   206,
-     207,   208,     0,     0,   209,   210,   197,     0,     0,     0,
-       0,     0,   198,   514,     0,   193,   194,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,     0,     0,     0,     0,     0,     0,
-     205,   206,   207,   208,     0,     0,   209,   210,   195,   196,
-       0,     0,     0,    81,     0,   516,     0,   193,   194,     0,
-       0,     0,   197,     0,     0,     0,     0,     0,   198,     0,
-       0,     0,     0,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-     195,   196,     0,     0,     0,    81,   205,   206,   207,   208,
-       0,     0,   209,   210,   197,     0,     0,     0,     0,     0,
-     198,   518,     0,   193,   194,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,     0,     0,     0,     0,     0,     0,     0,   205,   206,
-     207,   208,     0,     0,   209,   210,   195,   196,     0,     0,
-       0,    81,     0,   520,     0,   193,   194,     0,     0,     0,
-     197,     0,     0,     0,     0,     0,   198,     0,     0,     0,
-       0,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,   195,   196,
-       0,     0,     0,    81,   205,   206,   207,   208,     0,     0,
-     209,   210,   197,     0,     0,     0,     0,     0,   198,   522,
-       0,   193,   194,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-       0,     0,     0,     0,     0,     0,   205,   206,   207,   208,
-       0,     0,   209,   210,   195,   196,     0,     0,     0,    81,
-       0,   524,     0,   193,   194,     0,     0,     0,   197,     0,
-       0,     0,     0,     0,   198,     0,     0,     0,     0,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,   195,   196,     0,     0,
-       0,    81,   205,   206,   207,   208,     0,     0,   209,   210,
-     197,     0,     0,     0,     0,     0,   198,   526,     0,   193,
-     194,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,     0,     0,
-       0,     0,     0,     0,   205,   206,   207,   208,     0,     0,
-     209,   210,   195,   196,     0,     0,     0,    81,     0,   528,
-       0,   193,   194,     0,     0,     0,   197,     0,     0,     0,
-       0,     0,   198,     0,     0,     0,     0,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,   195,   196,     0,     0,     0,    81,
-     205,   206,   207,   208,     0,     0,   209,   210,   197,     0,
-       0,     0,     0,     0,   198,   530,     0,   193,   194,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,     0,     0,     0,     0,
-       0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
-     195,   196,     0,     0,     0,    81,     0,   532,     0,   193,
-     194,     0,     0,     0,   197,     0,     0,     0,     0,     0,
-     198,     0,     0,     0,     0,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,     0,   195,   196,     0,     0,     0,    81,   205,   206,
-     207,   208,     0,     0,   209,   210,   197,     0,     0,     0,
-       0,     0,   198,   534,     0,   193,   194,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,     0,     0,     0,     0,     0,     0,
-     205,   206,   207,   208,     0,     0,   209,   210,   195,   196,
-       0,     0,     0,    81,     0,   539,     0,   193,   194,     0,
-       0,     0,   197,     0,     0,     0,     0,     0,   198,     0,
-       0,     0,     0,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-     195,   196,     0,     0,     0,    81,   205,   206,   207,   208,
-       0,     0,   209,   210,   197,     0,     0,     0,     0,     0,
-     198,   541,     0,   193,   194,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,     0,     0,     0,     0,     0,     0,     0,   205,   206,
-     207,   208,     0,     0,   209,   210,   195,   196,     0,     0,
-       0,    81,     0,   543,     0,   193,   194,     0,     0,     0,
-     197,     0,     0,     0,     0,     0,   198,     0,     0,     0,
-       0,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,   195,   196,
-       0,     0,     0,    81,   205,   206,   207,   208,     0,     0,
-     209,   210,   197,     0,     0,     0,     0,     0,   198,   545,
-       0,   193,   194,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-       0,     0,     0,     0,     0,     0,   205,   206,   207,   208,
-       0,     0,   209,   210,   195,   196,     0,     0,     0,    81,
-       0,   547,     0,   193,   194,     0,     0,     0,   197,     0,
-       0,     0,     0,     0,   198,     0,     0,     0,     0,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,   195,   196,     0,     0,
-       0,    81,   205,   206,   207,   208,     0,     0,   209,   210,
-     197,     0,     0,     0,     0,     0,   198,   549,     0,   193,
-     194,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,     0,     0,
-       0,     0,     0,     0,   205,   206,   207,   208,     0,     0,
-     209,   210,   195,   196,     0,     0,     0,    81,     0,   551,
-       0,   193,   194,     0,     0,     0,   197,     0,     0,     0,
-       0,     0,   198,     0,     0,     0,     0,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,   195,   196,     0,     0,     0,    81,
-     205,   206,   207,   208,     0,     0,   209,   210,   197,     0,
-       0,     0,     0,     0,   198,   556,     0,   193,   194,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,     0,     0,     0,     0,
-       0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
-     195,   196,     0,     0,     0,    81,     0,   565,     0,   193,
-     194,     0,     0,     0,   197,     0,     0,     0,     0,     0,
-     198,     0,     0,     0,     0,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,     0,   195,   196,     0,     0,     0,    81,   205,   206,
-     207,   208,     0,     0,   209,   210,   197,     0,     0,     0,
-       0,     0,   198,   573,     0,   193,   194,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,     0,     0,     0,     0,     0,     0,
-     205,   206,   207,   208,     0,     0,   209,   210,   195,   196,
-       0,     0,     0,    81,     0,   575,     0,   193,   194,     0,
-       0,     0,   197,     0,     0,     0,     0,     0,   198,     0,
-       0,     0,     0,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-     195,   196,     0,     0,     0,    81,   205,   206,   207,   208,
-       0,     0,   209,   210,   197,     0,     0,     0,     0,     0,
-     198,   603,     0,   193,   194,     0,     0,   199,     0,     0,
-       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
-       0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-       0,     0,     0,     0,     0,     0,     0,     0,   205,   206,
-     207,   208,     0,     0,   209,   210,   195,   196,     0,     0,
-       0,    81,     0,   618,     0,   193,   194,     0,     0,     0,
-     197,     0,     0,     0,     0,     0,   198,     0,     0,     0,
-       0,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,   195,   196,
-       0,     0,     0,    81,   205,   206,   207,   208,     0,     0,
-     209,   210,   197,     0,     0,     0,     0,     0,   198,   684,
-       0,   193,   194,     0,     0,   199,     0,     0,     0,   200,
-       0,     0,     0,     0,     0,     0,    83,     0,     0,    84,
-      22,     0,     0,   201,   202,     0,     0,   203,     0,     0,
-       0,     0,     0,     0,     0,     0,   205,   206,   207,   208,
-       0,     0,   209,   210,   195,   196,     0,     0,     0,    81,
-       0,   688,     0,   193,   194,     0,     0,     0,   197,     0,
-       0,     0,     0,     0,   198,     0,     0,     0,     0,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,     0,     0,   195,   196,     0,     0,
-       0,    81,   205,   206,   207,   208,     0,     0,   209,   210,
-     197,     0,     0,     0,     0,     0,   198,   694,     0,   193,
-     194,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,     0,     0,     0,
-       0,     0,     0,     0,   205,   206,   207,   208,     0,     0,
-     209,   210,   195,   196,     0,     0,     0,    81,     0,   721,
-       0,   193,   194,     0,     0,     0,   197,     0,     0,     0,
-       0,     0,   198,     0,     0,     0,     0,     0,     0,   199,
-       0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
-      83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,     0,     0,   195,   196,     0,     0,     0,    81,
-     205,   206,   207,   208,     0,     0,   209,   210,   197,     0,
-       0,     0,     0,     0,   198,     0,   583,     0,     0,     0,
-       0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
-       0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,   671,     0,   203,     0,     0,     0,     0,     0,     0,
-       0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
-    -287,  -287,  -287,     0,     0,     0,  -287,     0,     0,     0,
-       0,     0,     0,     0,     0,  -287,     0,     0,     0,     0,
-       0,  -287,     0,     0,   732,     0,   195,   196,  -287,     0,
-       0,    81,  -287,     0,     0,     0,     0,     0,     0,  -287,
-     197,     0,  -287,  -287,     0,     0,   198,     0,     0,   669,
-    -287,     0,     0,   199,     0,     0,  -287,   200,     0,  -287,
-    -287,  -287,  -287,     0,    83,  -287,  -287,    84,    22,   195,
-     196,     0,     0,     0,    81,   282,  -295,     0,     0,     0,
-       0,     0,     0,   197,   205,   206,   207,   208,     0,   198,
-     209,   210,     0,     0,   195,   196,   199,     0,     0,    81,
-     200,     0,     0,   193,   194,     0,     0,    83,   197,     0,
-      84,    22,     0,     0,   198,     0,     0,     0,   282,  -295,
-       0,   199,     0,     0,     0,   200,     0,   205,   206,   207,
-     208,     0,    83,   209,   210,    84,    22,     0,     0,     0,
-       0,     0,     0,   282,     0,     0,   195,   196,     0,     0,
-       0,    81,   205,   206,   207,   208,     0,     0,   209,   210,
-     197,     0,     0,     0,     0,     0,   198,     0,     0,   193,
-     194,     0,     0,   199,     0,     0,     0,   200,     0,     0,
-       0,     0,     0,     0,    83,     0,     0,    84,    22,     0,
-       0,   201,   202,     0,     0,   203,     0,   204,   365,     0,
-       0,     0,   366,     0,   205,   206,   207,   208,     0,     0,
+       0,   201,   202,     0,     0,   203,     0,   204,   366,     0,
+       0,     0,   367,     0,   205,   206,   207,   208,     0,     0,
      209,   210,   195,   196,     0,     0,     0,    81,     0,     0,
        0,   193,   194,     0,     0,     0,   197,     0,     0,     0,
        0,     0,   198,     0,     0,     0,     0,     0,     0,   199,
        0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
       83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,   497,     0,   195,   196,     0,     0,     0,    81,
+       0,   203,   499,     0,   195,   196,     0,     0,     0,    81,
      205,   206,   207,   208,     0,     0,   209,   210,   197,     0,
        0,     0,     0,     0,   198,     0,     0,   193,   194,     0,
        0,   199,     0,     0,     0,   200,     0,     0,     0,     0,
        0,     0,    83,     0,     0,    84,    22,     0,     0,   201,
-     202,     0,     0,   203,   634,     0,     0,     0,     0,     0,
+     202,     0,     0,   203,   638,     0,     0,     0,     0,     0,
        0,     0,   205,   206,   207,   208,     0,     0,   209,   210,
      195,   196,     0,     0,     0,    81,     0,     0,     0,   193,
      194,     0,     0,     0,   197,     0,     0,     0,     0,     0,
      198,     0,     0,     0,     0,     0,     0,   199,     0,     0,
        0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
        0,    84,    22,     0,     0,   201,   202,     0,     0,   203,
-     677,     0,   195,   196,     0,     0,     0,    81,   205,   206,
+     683,     0,   195,   196,     0,     0,     0,    81,   205,   206,
      207,   208,     0,     0,   209,   210,   197,     0,     0,     0,
        0,     0,   198,     0,     0,   193,   194,     0,     0,   199,
        0,     0,     0,   200,     0,     0,     0,     0,     0,     0,
       83,     0,     0,    84,    22,     0,     0,   201,   202,     0,
-       0,   203,   690,     0,     0,     0,     0,     0,     0,     0,
+       0,   203,   696,     0,     0,     0,     0,     0,     0,     0,
      205,   206,   207,   208,     0,     0,   209,   210,   195,   196,
        0,     0,     0,    81,     0,     0,     0,     0,     0,     0,
        0,     0,   197,     0,     0,     0,     0,     0,   198,     0,
@@ -2169,534 +2211,545 @@ static const short yytable[] =
      195,   196,     0,     0,     0,    81,   205,   206,   207,   208,
        0,     0,   209,   210,   197,     0,     0,     0,     0,     0,
      198,     0,     0,     0,     0,     0,     0,   199,     0,     0,
-      81,   200,     0,     0,     0,     0,     0,     0,    83,   197,
-       0,    84,    22,     0,     0,   198,     0,     0,     0,   282,
-       0,     0,   199,     0,     0,     0,   200,     0,   205,   206,
-     207,   208,     0,    83,   209,   210,    84,    22,     0,     0,
-     201,   202,     0,     0,   203,     0,     0,     0,     0,     0,
-       0,     0,     0,   205,   206,   207,   208,     0,     0,   209,
-     210
+       0,   200,     0,     0,     0,     0,     0,     0,    83,     0,
+       0,    84,    22,     0,     0,     0,     0,     0,     0,   283,
+       0,     0,     0,     0,     0,     0,     0,     0,   205,   206,
+     207,   208,     0,     0,   209,   210
 };
 
 static const short yycheck[] =
 {
-       3,   315,   295,     6,   136,   135,   336,     1,   490,   126,
-     179,   174,    65,    65,   174,   204,   137,     1,     1,     1,
-     132,     0,   445,     1,   132,     1,     1,     1,    88,     1,
-      87,    10,    11,    12,     1,     1,    54,     1,   132,    92,
-      92,   120,    45,     1,    97,    97,    49,     1,    96,   161,
-       1,    48,     0,   161,    33,   103,   168,    36,    37,    53,
-      86,   484,    65,     1,    67,     1,    63,   161,    45,    72,
-      65,   150,    49,   174,   153,    54,     1,     1,   199,   132,
-     132,    99,    97,   136,   136,    96,    65,     1,   511,    92,
-      67,   102,   171,   102,    97,    72,    68,    92,     1,   125,
-     126,    98,    97,    97,    68,     1,   159,   159,   161,   161,
-      53,   674,    95,    88,    96,     1,    90,   101,    97,   103,
-     103,   174,    88,   101,   100,   103,     1,   259,   131,   132,
-     183,   183,   295,   136,   137,   101,   103,   132,     4,     5,
-     622,   136,     1,   101,   102,    96,   199,   101,   102,     1,
-     203,   102,   264,   132,   131,   212,   159,   136,   161,    97,
-     137,    97,     1,   101,   159,   277,   161,   284,   337,     1,
-       1,   174,    96,    39,    40,     1,   101,    43,   102,   174,
-     183,   260,   161,    97,   607,     0,     1,    53,   183,     1,
-     193,   194,   195,   196,   295,   174,   199,   100,   201,   202,
-     203,   302,    88,   766,   336,   101,   259,   259,   631,   310,
-     644,   312,   775,     0,   315,   101,    82,   338,   641,     1,
-      86,    96,   199,    10,    11,    12,     1,   102,   285,     1,
-      45,     1,     1,    64,   657,     1,     1,    96,   291,   291,
-     103,    56,   295,   102,     1,    99,    33,    62,   100,    36,
-      37,     1,   412,    68,     1,     1,   259,    96,     1,   125,
-     126,    76,   315,   102,   259,    10,    97,    54,   100,     1,
-     704,   564,     1,   707,     1,   101,   142,     1,    65,     1,
-     259,    46,    47,   336,   336,   599,   101,   601,   291,   101,
-       1,    36,   295,   102,     5,    96,   291,   354,   355,   302,
-     295,   102,    97,   644,   493,   362,   363,   310,   174,   312,
-      97,   412,   315,   179,    96,    90,   295,     1,   741,   649,
-     315,   174,    88,    88,    96,    90,   101,   444,    93,    94,
-      95,   101,   101,   336,    99,   338,   315,     1,   103,   773,
-     393,   336,    64,   100,   778,   132,   780,   640,   782,     1,
-      99,   101,     1,    15,   101,   101,   222,   336,   101,   412,
-     674,   338,    94,   704,    96,   644,   707,    99,   100,   101,
-     102,   100,    96,   100,   161,    97,     1,    88,   381,   382,
+       3,   296,   135,     6,   126,   204,   136,    65,    65,   132,
+     316,     0,   174,   337,    87,   179,   492,   447,   174,     1,
+       1,    10,    11,    12,    15,   137,    65,     1,   193,     1,
+     195,   196,   672,     1,    92,    92,   201,   202,   161,    97,
+      97,    11,    45,    54,    33,   168,    49,    36,    37,     1,
+      88,     1,   132,    92,    67,    96,   486,     1,    97,    72,
+      97,   102,    65,    33,    67,    54,     1,    37,    45,    72,
+      10,    73,    49,     1,   132,   132,    65,     1,   136,   136,
+       1,   161,     1,   513,    54,     0,    88,   199,    99,    92,
+      67,    53,   732,   132,    97,    72,    36,   136,    89,     0,
+      68,   159,   159,   161,   161,     1,   101,   102,    97,    10,
+      11,    12,     1,   650,     1,    96,   174,   174,   131,   101,
+     159,   103,   161,    95,   102,   183,   183,   101,   131,   132,
+     260,   103,    33,   136,   137,    36,    37,   120,     1,   212,
+     296,   199,   265,   132,   183,   203,    96,   136,     4,     5,
+     626,   103,   102,    54,   131,   278,   159,   101,   161,   103,
+     137,     0,     1,   285,   680,     1,   101,   150,    96,    88,
+     153,   174,   161,   710,   338,     1,   713,   101,   102,   100,
+     183,   611,   101,    39,    40,   174,     1,    43,   171,     1,
+     193,   194,   195,   196,     1,     1,   199,    53,   201,   202,
+     203,    90,   260,   260,   100,   635,    45,   337,     1,     1,
+     174,     1,   101,   286,   101,   102,     1,   647,   383,   384,
+     385,   260,   199,    62,     1,   650,    82,   339,     1,    68,
+      86,   132,   103,   663,   292,   292,     1,   100,   296,   296,
+      99,   650,   779,     1,     1,     1,     1,   784,    96,   786,
+       1,   788,   414,   292,     1,   103,   772,   260,   316,   316,
+     161,     1,   101,   132,   100,   781,     1,     0,     1,   125,
+     126,   260,     1,   568,     1,   101,     1,     1,   261,   337,
+     337,    96,   355,   356,    96,   710,   142,   102,   713,   292,
+     363,   364,   161,   296,   101,   101,   495,   603,   337,   605,
+     303,   710,   102,    96,   713,    97,   174,   296,   311,   102,
+     313,   101,    45,   316,     1,    88,   101,   747,   174,    96,
+       1,     1,   487,   179,   446,   102,     1,   316,   101,    62,
+      95,   655,   296,     1,   337,    68,   339,   395,   395,   303,
+      96,     1,     1,   101,   101,   100,   102,   311,   337,   313,
+     101,   646,   316,   100,   779,    90,   414,   414,   650,   784,
+     100,   786,   339,   788,     0,     1,   222,     1,   101,    96,
+     779,   100,    97,    97,   680,   784,   101,   786,     1,   788,
      383,   384,   385,   386,   387,   388,   389,   390,   391,   392,
-     393,   394,   395,   396,   397,   398,   399,   400,   393,    73,
-      95,   561,   193,     1,   195,   196,   272,   100,     1,   412,
-     201,   202,    96,   279,    88,   666,   644,   412,   284,   174,
-       1,   478,     0,     1,   481,   704,    65,    89,   707,   295,
-       1,    95,   773,   412,     1,   728,   302,   778,     1,   780,
-       1,   782,   295,     1,   310,    97,   312,    45,    97,   302,
-       1,    95,   766,    96,     1,     1,    99,   310,    97,   312,
-     561,   775,   315,   564,    97,    90,   578,    45,     1,   581,
-      68,   337,    53,     0,     1,   726,   704,   143,    56,   707,
-     537,     1,   485,    64,    62,     1,   352,   490,   561,     1,
-      68,   564,    96,   132,   773,    99,    45,    95,   599,   778,
-     601,   780,    95,   782,   634,     1,     1,   373,   561,   375,
-      10,   564,    12,    62,   174,   174,    97,   649,    45,    68,
-       1,   302,   161,   101,    95,    88,    54,     0,     1,   310,
-      88,   312,     0,     1,    95,    62,    36,   203,   204,   640,
-     295,    68,     1,   644,    95,   773,   412,   302,    95,    95,
-     778,   681,   780,     1,   782,   310,    45,   312,   561,   412,
-     315,   564,    95,   693,   676,   666,   561,   640,    88,   564,
-     101,   102,    45,   674,   101,   441,    88,    45,   444,    95,
-       1,   478,   561,    56,   481,   564,     1,   640,    56,    62,
-     381,   382,   383,    88,    62,    68,   649,   649,    99,    95,
-      68,     1,   103,   704,   270,     1,   707,   273,   738,     1,
-       1,    96,   102,   666,    95,   281,   282,   102,   621,   622,
-       1,     0,     1,     0,     1,   726,   103,   728,   101,    88,
-     731,     0,     1,   101,   637,   295,   295,   640,    53,     1,
-      88,   644,   302,   302,   745,   640,   649,     1,   103,    64,
-     310,   310,   312,   312,   649,   315,   315,   412,   759,    46,
-      47,   640,    97,   666,    99,   766,    45,    88,    45,   103,
-     649,   666,   773,   726,   775,   728,    45,   778,    12,   780,
-       1,   782,    97,    62,     1,    62,     1,   666,    88,    68,
-      99,    68,    88,    62,   485,   561,    88,    88,   564,    68,
-      67,   704,    68,     1,   707,    72,   372,   174,   561,    75,
-     376,   564,    99,    94,    95,    11,   103,     1,    99,   100,
-     101,   102,   101,   726,   101,   728,    88,     1,   731,     0,
-      13,   726,   101,   728,    88,   401,     1,    96,    14,    10,
-      11,    12,   745,   102,   110,    95,   599,   726,   601,   728,
-      95,   417,   412,   412,    99,   480,   759,   482,   103,    46,
-      47,   427,    33,   429,   131,    36,    37,    88,   101,   102,
-     773,    88,   638,    88,   640,   778,    95,   780,   644,   782,
-      45,    99,    66,    54,    68,   103,    51,   640,   132,    73,
-      88,   644,    66,    77,    68,   461,   174,   463,   704,    73,
-     666,   707,   101,    77,    88,    48,   561,    11,     1,   564,
-       1,   477,    99,   666,    88,   159,   103,   161,    96,    84,
-      63,   674,    87,    88,   102,   174,    96,   493,   295,    33,
-     621,    96,   102,    37,    94,   302,    93,    94,   704,    99,
-     100,   707,   101,   310,   599,   312,   601,   101,   315,    97,
-      54,   704,    45,   101,   707,    98,    93,    94,    51,    99,
-     726,   132,   728,   644,    98,   731,    98,   773,     1,    68,
-     102,   102,   778,   726,   780,   728,   782,    68,   731,   745,
-      96,    67,    73,    99,    61,   640,    77,   103,    65,   644,
-     161,    84,   745,   759,    87,    88,    97,    88,    95,    97,
-      98,   561,   561,   101,   564,   564,   759,   773,     1,    46,
-      47,   666,   778,   766,   780,    95,   782,   295,    51,   674,
-     773,   587,   775,   704,   302,   778,   707,   780,    90,   782,
-       3,     4,   310,     1,   312,    16,    17,   315,    95,   599,
-     599,   601,   601,     1,    96,   412,   295,    93,    94,   704,
-     731,    84,   707,   302,    87,    88,    46,    47,    51,    46,
-      47,   310,   628,   312,   745,     1,   315,   389,   390,   391,
-     392,   726,     1,   728,    99,   100,   731,    95,   759,   101,
-     640,   640,   384,   385,   644,   644,    96,    45,   394,   395,
-     745,    84,   773,    51,    87,    88,   662,   778,    96,   780,
-      97,   782,   668,     1,   759,    51,   666,   666,     5,     6,
-       7,   766,   101,    96,   674,   674,    45,   102,   773,    97,
-     775,   101,    51,   778,    57,   780,    84,   782,     1,    87,
-      88,    60,    57,    62,   412,    96,    96,    45,    84,    68,
-      96,    87,    88,    51,   704,   704,    96,   707,   707,     8,
-       9,    10,     1,     1,   101,    84,   101,    57,    87,    88,
-      99,   100,   101,   412,    96,    96,   726,   726,   728,   728,
-     393,   731,   731,   386,   387,   388,    84,    12,   744,    87,
-      88,    57,   748,    78,   161,   745,   745,   142,    96,    18,
-      19,    20,    21,   259,   561,   159,   412,   564,    55,   759,
-     759,    97,    51,   266,     1,   315,   766,   766,   664,   664,
-     315,    60,   194,   773,   773,   775,   775,    66,   778,   778,
-     780,   780,   782,   782,    73,   579,   579,   355,    77,    58,
-     396,   398,   599,   397,   601,    84,   399,    -1,    87,    88,
-     637,    -1,    91,    92,   400,    -1,    95,    -1,    45,   404,
-      -1,    -1,    -1,    45,    51,   104,   105,   106,   107,    51,
-      -1,   110,   111,    60,    -1,    62,    -1,    -1,    60,    -1,
-      62,    68,    -1,   640,    88,    -1,    68,   644,    -1,    93,
-      94,    95,    -1,   561,    -1,    99,   564,    84,    -1,   103,
-      87,    88,    84,    -1,    -1,    87,    88,    -1,    -1,   666,
-      97,    -1,    -1,    -1,    -1,    97,    98,   674,    -1,   101,
-      -1,    88,   561,    -1,    -1,   564,    93,    94,    95,    -1,
-      -1,   599,    99,   601,    88,    -1,   103,    -1,    -1,    93,
-      94,    95,    93,    94,    95,    99,    -1,   704,    99,   103,
-     707,    -1,   103,    -1,    -1,    -1,   193,   194,   195,   196,
-     599,    -1,   601,    -1,   201,   202,    -1,    -1,    -1,   726,
-      -1,   728,   640,    -1,   731,    -1,   644,   193,   194,   195,
-     196,    93,    94,    95,    -1,   201,   202,    99,   745,    -1,
-      -1,   103,    -1,    -1,    -1,    -1,    -1,    -1,   666,    -1,
-      -1,   640,   759,    -1,    -1,   644,   674,    -1,    -1,   766,
-      -1,    -1,    -1,    -1,    45,    -1,   773,    -1,   775,    -1,
-      51,   778,    -1,   780,    -1,   782,    -1,   666,    -1,    60,
-      -1,    62,    45,    -1,    -1,   674,   704,    68,    51,   707,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    60,    -1,    62,
-      -1,    -1,    -1,    84,    -1,    68,    87,    88,   726,    -1,
-     728,    -1,    -1,   731,    -1,   704,    97,    98,   707,    -1,
-     101,    84,    -1,    -1,    87,    88,    -1,   745,    -1,    -1,
-      45,    -1,    -1,    -1,    -1,    98,    51,   726,    -1,   728,
-      -1,   759,   731,    -1,    -1,    60,    -1,    62,   766,    -1,
-      -1,    -1,    -1,    68,    -1,   773,   745,   775,    -1,    -1,
-     778,    -1,   780,    -1,   782,    -1,    -1,    -1,    -1,    84,
-     759,    -1,    87,    88,    -1,    -1,    -1,   766,    -1,    -1,
-      -1,    -1,    -1,    98,   773,    -1,   775,    -1,    -1,   778,
-       1,   780,     3,   782,   381,   382,   383,   384,   385,   386,
-     387,   388,   389,   390,   391,   392,    -1,   394,   395,   396,
-     397,   398,   399,   400,    -1,   381,   382,   383,   384,   385,
-     386,   387,   388,   389,   390,   391,   392,    -1,   394,   395,
-     396,   397,   398,   399,   400,    46,    47,    -1,    -1,    -1,
-      51,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    60,
+     393,   394,   395,   396,   397,   398,   399,   400,   401,   402,
+       1,    88,     1,   565,    64,    64,     1,   480,   174,    45,
+     483,   414,     1,    97,     1,    95,    97,   273,   710,    65,
+      56,   713,    97,     1,   280,   414,    62,    95,   296,   285,
+      53,   565,    68,     1,   568,   303,     1,    97,    97,   734,
+     296,    64,     1,   311,     1,   313,     1,   303,   316,     1,
+     414,    97,     1,   303,    53,   311,    90,   313,    53,   582,
+     625,   311,   585,   313,     1,   101,   772,     0,   541,    64,
+     101,   102,     0,     1,    97,   781,     1,    10,    11,    12,
+       1,     1,   338,     1,   487,     1,   132,   779,   174,   492,
+      68,    95,   784,    45,   786,    96,   788,   353,    97,    99,
+      33,    88,    97,    36,    37,   638,    95,   565,   565,     1,
+     568,   568,   646,     5,   100,   161,    68,    45,   374,     1,
+     376,    54,     1,    88,     1,   655,     1,    95,    56,    96,
+     296,    95,    65,    88,    62,   102,    95,   303,    95,    88,
+      68,    48,    86,    95,     1,   311,   414,   313,    76,     1,
+     316,    88,    97,    68,   687,     1,    63,     1,   414,   682,
+      75,    97,   565,    99,    97,   568,   699,     0,     1,     1,
+      95,    93,    94,   101,    95,    95,   565,    95,    94,   568,
+      96,   125,   126,    99,   100,   101,   102,   443,   646,   646,
+     446,    98,     0,     1,     1,   110,    88,   655,   655,   132,
+       1,   565,    46,    47,   568,     1,    88,    54,     1,    88,
+     296,   744,    45,    88,   672,   672,   655,   303,   174,    10,
+      45,    12,   625,   626,     1,   311,     1,   313,   161,    62,
+     316,    88,    93,    94,     1,    68,    88,    45,     1,   603,
+     643,   605,    88,   646,    88,    36,    90,   650,   414,    93,
+      94,    95,   655,   102,    62,    99,    88,   646,    51,   103,
+      68,   103,    45,   132,     1,     1,   655,    94,   101,   672,
+       0,     1,    99,   100,   732,   732,   734,   734,    45,    62,
+       1,    88,   646,   672,    51,    68,   650,    88,     0,     1,
+     159,    84,   161,   101,    87,    88,    96,   565,    94,    95,
+     568,   103,   102,    99,   100,   101,   102,   710,   672,   565,
+     713,    88,   568,    88,   174,    45,   680,    84,    99,     1,
+      87,    88,   103,    99,    45,    88,    56,   103,   414,   732,
+      51,   734,    62,    45,   737,   603,    96,   605,    68,    99,
+     296,   103,     1,   732,    56,   734,   710,   303,   751,   713,
+      62,    88,    88,    96,     1,   311,    68,   313,    96,   102,
+     316,     1,   765,    84,   102,    97,    87,    88,   732,   101,
+     734,   101,    99,   737,    96,    96,   779,    48,   646,    99,
+     102,   784,   650,   786,    66,   788,    68,   751,   644,   101,
+     646,    73,    63,    98,   650,    77,    11,   102,    51,   565,
+     650,   765,   568,    13,   672,    45,    88,    66,   772,    68,
+      96,    51,   680,    99,    73,   779,   672,   781,    77,    61,
+     784,    68,   786,    65,   788,   480,    73,    98,   483,    88,
+      77,    84,    46,    47,    87,    88,   296,   603,     1,   605,
+      12,    88,   710,   303,    84,   713,    14,    87,    88,    46,
+      47,   311,    96,   313,   710,    99,   316,   713,   414,   103,
+     710,   174,    95,   713,   732,   482,   734,   484,    95,   737,
+      18,    19,    20,    21,     3,     4,   732,   101,   734,   565,
+     646,   737,   568,   751,   650,    99,    95,   737,    51,   103,
+      99,     1,    46,    47,   103,   751,   101,   765,    97,    98,
+     101,   751,   101,    99,   772,    98,   672,    16,    17,   765,
+      58,   779,    68,   781,   680,   765,   784,   603,   786,   605,
+     788,    84,   102,   779,    87,    88,    93,    94,   784,   779,
+     786,   174,   788,    97,   784,    45,   786,    67,   788,    46,
+      47,    51,    46,    47,   710,    99,    95,   713,    99,   103,
+      60,    95,    62,    45,   414,    93,    94,    95,    68,    51,
+     646,    99,    99,   100,   650,   103,   732,    99,   734,   386,
+     387,   737,   396,   397,    84,     1,   710,    87,    88,   713,
+       5,     6,     7,   296,     1,   751,   672,    97,    90,    95,
+     303,    96,    84,     1,   680,    87,    88,    95,   311,   765,
+     313,   101,    96,   316,    96,    96,   772,    97,   101,   565,
+       1,    96,   568,   779,   102,   781,    97,    57,   784,    45,
+     786,    57,   788,   101,   710,    51,    88,   713,   143,    96,
+      96,    93,    94,    95,    60,     1,    62,    99,     8,     9,
+      10,   103,    68,    96,    96,   779,   732,   603,   734,   605,
+     784,   737,   786,   296,   788,    99,   100,   101,    84,     1,
+     303,    87,    88,   101,   101,   751,    96,    57,   311,    88,
+     313,   395,    96,   316,    93,    94,    95,    12,    57,   765,
+      99,    93,    94,    95,   103,    78,   772,    99,   203,   204,
+     646,   103,   161,   779,   650,   781,   142,    45,   784,   260,
+     786,   414,   788,    51,    88,   565,   414,   267,   568,    93,
+      94,    95,    60,   316,    62,    99,   672,   159,    55,   103,
+      68,   388,   389,   390,   680,   391,   392,   393,   394,    51,
+      97,   670,   670,   316,   356,   583,    84,   194,    60,    87,
+      88,   398,   583,   603,    66,   605,   400,   399,   643,    97,
+      98,    73,   401,   101,   710,    77,   271,   713,   406,   274,
+      -1,   402,    84,    -1,    -1,    87,    88,   282,   283,    91,
+      92,   414,    -1,    95,    -1,    -1,   732,    -1,   734,    -1,
+      -1,   737,   104,   105,   106,   107,   646,    -1,   110,   111,
+     650,    -1,     1,    -1,     3,   751,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   765,
+      -1,    -1,   672,    -1,    -1,    -1,   772,    -1,    -1,    -1,
+     680,    -1,    -1,   779,    -1,   781,    -1,    -1,   784,    -1,
+     786,    -1,   788,    -1,    -1,    -1,    -1,    46,    47,    -1,
+      -1,    -1,    51,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+     710,    60,   565,   713,    -1,   568,    -1,    66,   373,    -1,
+      -1,    -1,   377,    -1,    73,   380,    -1,    -1,    77,    -1,
+      -1,    -1,   732,    -1,   734,    84,    -1,   737,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,   403,    -1,
+     603,   751,   605,    -1,    -1,   104,   105,   106,   107,    -1,
+      45,   110,   111,    -1,   419,   765,    51,    -1,    -1,    -1,
+      -1,    -1,   772,    -1,   429,    60,   431,    62,    -1,   779,
+      -1,   781,   565,    68,   784,   568,   786,    -1,   788,    -1,
+      -1,    -1,    -1,   646,    -1,    -1,    -1,   650,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    -1,    -1,   463,    -1,
+     465,    -1,    97,    98,    -1,    -1,   101,    -1,    -1,   672,
+     603,    -1,   605,    -1,   479,    -1,    -1,   680,    -1,    -1,
+     193,   194,   195,   196,    -1,    -1,    -1,    -1,   201,   202,
+     495,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    45,
+     193,   194,   195,   196,    -1,    51,    -1,   710,   201,   202,
+     713,    -1,    -1,   646,    60,    -1,    62,   650,    -1,    -1,
+      -1,    -1,    68,    -1,    -1,    -1,    -1,    -1,    -1,   732,
+      -1,   734,    -1,    -1,   737,    -1,    -1,    -1,    84,   672,
+      -1,    87,    88,    -1,    -1,    -1,    -1,   680,   751,    45,
+      -1,    -1,    98,    -1,    -1,    51,    -1,    -1,    -1,    -1,
+      -1,    -1,   765,    -1,    60,    -1,    62,    -1,    -1,   772,
+      -1,    -1,    68,    -1,    -1,    -1,   779,   710,   781,    -1,
+     713,   784,    -1,   786,    -1,   788,   591,    -1,    84,    -1,
+      -1,    87,    88,    -1,    -1,    -1,    -1,    -1,    -1,   732,
+      -1,   734,    98,    -1,   737,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   751,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,   632,    -1,    -1,
+      -1,    -1,   765,    -1,    -1,    -1,    -1,    -1,    -1,   772,
+      -1,    -1,    -1,    -1,    -1,    -1,   779,    -1,   781,    -1,
+      -1,   784,    -1,   786,    -1,   788,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,   668,    -1,    -1,    -1,     1,    -1,   674,
+     383,   384,   385,   386,   387,   388,   389,   390,   391,   392,
+     393,   394,    -1,   396,   397,   398,   399,   400,   401,   402,
+     383,   384,   385,   386,   387,   388,   389,   390,   391,   392,
+     393,   394,    -1,   396,   397,   398,   399,   400,   401,   402,
+      -1,    45,    46,    47,    48,    49,    50,    51,    52,    -1,
+      -1,    55,    -1,    -1,    -1,    59,    60,    -1,    -1,    63,
+      -1,    -1,    66,    67,    68,    69,    -1,    71,    72,    73,
+      74,    -1,     1,    77,    78,   750,    -1,    -1,    -1,   754,
+      84,    -1,    -1,    87,    88,    -1,    -1,    -1,    -1,    -1,
+      -1,    95,    -1,    97,    98,    -1,    -1,   101,    -1,    -1,
+     104,   105,   106,   107,   487,    -1,   110,   111,    -1,   492,
+      -1,    -1,    -1,    -1,    -1,    -1,    45,    46,    47,    48,
+      49,    50,    51,    52,   487,    -1,    55,    -1,    -1,   492,
+      59,    60,    -1,    -1,    63,    -1,    -1,    66,    67,    68,
+      69,     1,    71,    72,    73,    74,    -1,    -1,    77,    78,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    -1,    -1,    -1,    -1,    95,    -1,    97,    98,
+      -1,    -1,   101,    -1,    -1,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    -1,    -1,    45,    46,    47,    48,    49,
+      50,    51,    52,    -1,    -1,    55,    -1,    -1,    -1,    59,
+      60,    -1,    -1,    63,    -1,    -1,    66,    67,    68,    69,
+      -1,    71,    72,    73,    74,    -1,    -1,    77,    78,    -1,
+       1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
+      -1,    -1,    -1,    -1,    -1,    95,    -1,    97,    98,    -1,
+      -1,   101,   625,   626,   104,   105,   106,   107,    -1,    -1,
+     110,   111,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+     643,    -1,   625,   626,    45,    46,    47,    -1,    49,    50,
+      51,    52,    -1,    -1,    55,    -1,    -1,    -1,    59,    60,
+     643,    -1,    -1,    -1,    -1,    66,    67,    68,    69,     1,
+      71,    72,    73,    74,    -1,    -1,    77,    78,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      -1,    -1,    -1,    -1,    95,    -1,    97,    98,    -1,    -1,
+     101,    -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    -1,    -1,    45,    46,    47,    -1,    49,    50,    51,
+      52,    -1,    -1,    55,    -1,    -1,    -1,    59,    60,    -1,
+      -1,    -1,    -1,    -1,    66,    67,     1,    69,    -1,    71,
+      72,    73,    74,    -1,    -1,    77,    78,    -1,    -1,    -1,
+      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    -1,
+      -1,    -1,    -1,    95,    -1,    97,    -1,    -1,    -1,   101,
+      -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,   111,
+      45,    46,    47,    -1,    49,    50,    51,    52,    -1,    -1,
+      55,    -1,    -1,    -1,    59,    60,    -1,    -1,    -1,    -1,
+      -1,    66,    67,    -1,    69,    -1,    71,    72,    73,    74,
+      -1,    -1,    77,    78,     1,    -1,     3,     4,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    -1,    -1,    -1,    -1,
+      95,    -1,    97,    -1,    -1,    -1,   101,    -1,    -1,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    46,
+      47,    -1,    -1,    -1,    51,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,
+       1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      97,    98,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,
+      51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,
       -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,
-      -1,    -1,    73,     1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    97,    46,    47,    -1,
+      -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,
+       3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,
+      -1,    -1,   101,    -1,    -1,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,
+       1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,
+      -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    46,    47,   100,    -1,    -1,
+      51,   104,   105,   106,   107,    -1,    -1,   110,   111,    60,
+      -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    90,
+      91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,
+       3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,
+      -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    96,    -1,    46,    47,    -1,    -1,    -1,    51,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,
+      -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,   101,    -1,
+      -1,   104,   105,   106,   107,    -1,    -1,   110,   111,    46,
+      47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,
+      -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,
+      -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    46,    47,   100,    -1,    -1,    51,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,
+      -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    96,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    46,    47,    -1,
+      -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,
+      -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,
+      -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    96,    -1,    46,
+      47,    -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,
+       1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    96,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,
+      51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,
+      -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    96,    -1,    46,    47,    -1,
+      -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,
+       3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,
+      -1,    -1,   101,    -1,    -1,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,
+       1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,
+      -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,
+      51,   104,   105,   106,   107,    -1,    -1,   110,   111,    60,
+      -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
       -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
       91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,   104,   105,   106,   107,    -1,   485,   110,
-     111,    -1,    -1,   490,    -1,    -1,    -1,    45,    46,    47,
-      48,    49,    50,    51,    52,    -1,    -1,    55,    -1,   485,
-      -1,    59,    60,    -1,   490,    63,    -1,    -1,    66,    67,
-      68,    69,    -1,    71,    72,    73,    74,    -1,    -1,    77,
-      78,    -1,     1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    -1,    -1,    -1,    -1,    95,    -1,    97,
-      98,    -1,    -1,   101,    -1,    -1,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    45,    46,    47,    48,
-      49,    50,    51,    52,    -1,    -1,    55,    -1,    -1,    -1,
-      59,    60,    -1,    -1,    63,    -1,    -1,    66,    67,    68,
-      69,    -1,    71,    72,    73,    74,     1,    -1,    77,    78,
+      -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,
+       3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,
+      -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,
+      -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,   104,   105,   106,   107,    -1,    -1,   110,   111,    46,
+      47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,
+      -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,
+      -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,
+      -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    46,    47,    -1,
+      -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,
+      -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,
+      -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
       -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
-      -1,    -1,    -1,    -1,   621,   622,    95,    -1,    97,    98,
-      -1,    -1,   101,    -1,    -1,   104,   105,   106,   107,    -1,
-     637,   110,   111,    -1,    -1,   621,   622,    -1,    -1,    -1,
-      45,    46,    47,    48,    49,    50,    51,    52,    -1,    -1,
-      55,   637,    -1,    -1,    59,    60,    -1,    -1,    63,    -1,
-      -1,    66,    67,    68,    69,     1,    71,    72,    73,    74,
-      -1,    -1,    77,    78,    -1,    -1,    -1,    -1,    -1,    84,
-      -1,    -1,    87,    88,    -1,    -1,    -1,    -1,    -1,    -1,
-      95,    -1,    97,    98,    -1,    -1,   101,    -1,    -1,   104,
-     105,   106,   107,    -1,    -1,   110,   111,    -1,    -1,    45,
-      46,    47,    -1,    49,    50,    51,    52,    -1,    -1,    55,
-      -1,    -1,    -1,    59,    60,    -1,    -1,    -1,    -1,    -1,
-      66,    67,    68,    69,     1,    71,    72,    73,    74,    -1,
-      -1,    77,    78,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    -1,    -1,    -1,    -1,    95,
-      -1,    97,    98,    -1,    -1,   101,    -1,    -1,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    -1,    -1,    45,    46,
-      47,    -1,    49,    50,    51,    52,    -1,    -1,    55,    -1,
-      -1,    -1,    59,    60,    -1,    -1,    -1,    -1,    -1,    66,
-      67,     1,    69,    -1,    71,    72,    73,    74,    -1,    -1,
-      77,    78,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
-      87,    88,    -1,    -1,    -1,    -1,    -1,    -1,    95,    -1,
-      97,    -1,    -1,    -1,   101,    -1,    -1,   104,   105,   106,
-     107,    -1,    -1,   110,   111,    45,    46,    47,    -1,    49,
-      50,    51,    52,    -1,    -1,    55,    -1,    -1,    -1,    59,
-      60,    -1,    -1,    -1,    -1,    -1,    66,    67,    -1,    69,
-      -1,    71,    72,    73,    74,    -1,    -1,    77,    78,     1,
-      -1,     3,     4,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    -1,    -1,    -1,    -1,    95,    -1,    97,    -1,    -1,
-      -1,   101,    -1,    -1,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    60,    -1,
-      -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    97,    98,    -1,    -1,    -1,
-      -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,
-       4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,
-      66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    97,    46,    47,    -1,    -1,    -1,    51,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,
-      -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    -1,    -1,    -1,   101,    -1,    -1,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    46,    47,
-      -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,
-      -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,
-      -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      46,    47,   100,    -1,    -1,    51,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,
-      66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    90,    91,    92,    -1,    -1,    95,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,
-      -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,
-      60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,
-      -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    96,    -1,    46,    47,
-      -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,
-      -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      -1,    -1,    -1,   101,    -1,    -1,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,
-      -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,
-      -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    46,    47,   100,    -1,
-      -1,    51,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,
-       4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    96,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,
-      -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,
-      -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    96,    -1,    46,    47,    -1,    -1,    -1,    51,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    60,    -1,
-      -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    96,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,
-       4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,
-      66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      96,    -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,
-      -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    -1,    -1,    -1,   101,    -1,    -1,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    46,    47,
-      -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,
-      -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,
-      -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      46,    47,    -1,    -1,    -1,    51,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,
-      66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,
-      -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,
-      60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,
-      -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,    47,
-      -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,
-      -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,
-      -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,
-      -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,
-      -1,    51,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,
-       4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,
-      -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,
-      -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    60,    -1,
-      -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,
-       4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,
-      66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,
-      -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    46,    47,
-      -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,
-      -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,
-      -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      46,    47,    -1,    -1,    -1,    51,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,
-      66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,
-      -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,
-      60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,
-      -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,    47,
-      -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,
-      -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,
-      -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,
-      -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,
-      -1,    51,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,
-       4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,
-      -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,
-      -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    60,    -1,
-      -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,
-       4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,
-      66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,
-      -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    46,    47,
-      -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,
-      -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,
-      -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      46,    47,    -1,    -1,    -1,    51,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,
-      66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,
-      -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,
-      60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,
-      -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,    47,
-      -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,
-      -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,
-      -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,
-      -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,
-      -1,    51,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,
-       4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,
-      -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,
-      -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    60,    -1,
-      -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,
-       4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,
-      66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,
-      -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    46,    47,
-      -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,
-      -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,
-      -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      46,    47,    -1,    -1,    -1,    51,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,
-      66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,
-      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
-      -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,
-     106,   107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,
-      -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,
-      60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,
-      -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,    47,
-      -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,
-      -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,
-      -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,
-      88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,   107,
-      -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,
-      -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,
-      -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,
-      -1,    51,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,
-       4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
-      -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
-      -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,
-     110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,
-      -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,
-      -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,
-      -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,
-      84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,
-      -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,
-     104,   105,   106,   107,    -1,    -1,   110,   111,    60,    -1,
-      -1,    -1,    -1,    -1,    66,    -1,     1,    -1,    -1,    -1,
-      -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,
-      -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,
-      92,     1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      45,    46,    47,    -1,    -1,    -1,    51,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,
-      -1,    66,    -1,    -1,     1,    -1,    46,    47,    73,    -1,
-      -1,    51,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
-      60,    -1,    87,    88,    -1,    -1,    66,    -1,    -1,     1,
-      95,    -1,    -1,    73,    -1,    -1,   101,    77,    -1,   104,
-     105,   106,   107,    -1,    84,   110,   111,    87,    88,    46,
-      47,    -1,    -1,    -1,    51,    95,    96,    -1,    -1,    -1,
-      -1,    -1,    -1,    60,   104,   105,   106,   107,    -1,    66,
-     110,   111,    -1,    -1,    46,    47,    73,    -1,    -1,    51,
-      77,    -1,    -1,     3,     4,    -1,    -1,    84,    60,    -1,
-      87,    88,    -1,    -1,    66,    -1,    -1,    -1,    95,    96,
-      -1,    73,    -1,    -1,    -1,    77,    -1,   104,   105,   106,
-     107,    -1,    84,   110,   111,    87,    88,    -1,    -1,    -1,
-      -1,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,
-      -1,    51,   104,   105,   106,   107,    -1,    -1,   110,   111,
-      60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,     3,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,
+      47,    -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,
+       1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,
+      51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,
+      -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,
+      -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,
+       3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,
+       1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,
+      -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,
+      51,   104,   105,   106,   107,    -1,    -1,   110,   111,    60,
+      -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,
+       3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,
+      -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,
+      -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,   104,   105,   106,   107,    -1,    -1,   110,   111,    46,
+      47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,
+      -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,
+      -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,
+      -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    46,    47,    -1,
+      -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,
+      -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,
+      -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,
+      47,    -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,
+       1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,
+      51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,
+      -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,
+      -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,
+       3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,
+       1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,
+      -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,
+      51,   104,   105,   106,   107,    -1,    -1,   110,   111,    60,
+      -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,
+       3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,
+      -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,
+      -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,   104,   105,   106,   107,    -1,    -1,   110,   111,    46,
+      47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,
+      -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,
+      -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,
+      -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    46,    47,    -1,
+      -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,
+      -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,
+      -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,
+      47,    -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,
+       1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,
+      51,    -1,     1,    -1,     3,     4,    -1,    -1,    -1,    60,
+      -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    -1,    46,    47,    -1,
+      -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    60,    -1,    -1,    -1,    -1,    -1,    66,     1,    -1,
+       3,     4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    46,    47,    -1,    -1,    -1,    51,    -1,
+       1,    -1,     3,     4,    -1,    -1,    -1,    60,    -1,    -1,
+      -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    46,    47,    -1,    -1,    -1,
+      51,   104,   105,   106,   107,    -1,    -1,   110,   111,    60,
+      -1,    -1,    -1,    -1,    -1,    66,     1,    -1,     3,     4,
+      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    46,    47,    -1,    -1,    -1,    51,    -1,     1,    -1,
+       3,     4,    -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,
+      -1,    66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    46,    47,    -1,    -1,    -1,    51,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    60,    -1,    -1,
+      -1,    -1,    -1,    66,     1,    -1,     3,     4,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    -1,    -1,    91,    92,
+      -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,   104,   105,   106,   107,    -1,    -1,   110,   111,    46,
+      47,    -1,    -1,    -1,    51,    -1,     1,    -1,     3,     4,
+      -1,    -1,    -1,    60,    -1,    -1,    -1,    -1,    -1,    66,
+      -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    46,    47,    -1,    -1,    -1,    51,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,
+      -1,    66,     1,    -1,     3,     4,    -1,    -1,    73,    -1,
+      -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,
+      -1,    -1,    87,    88,    -1,    -1,    91,    92,    -1,    -1,
+      95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,
+     105,   106,   107,    -1,    -1,   110,   111,    46,    47,    -1,
+      -1,    -1,    51,    -1,     1,    -1,     3,     4,    -1,    -1,
+      -1,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,
+      -1,    -1,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,
+      -1,    -1,    91,    92,    -1,    -1,    95,    -1,    -1,    46,
+      47,    -1,    -1,    -1,    51,   104,   105,   106,   107,    -1,
+      -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,    66,
+       1,    -1,     3,     4,    -1,    -1,    73,    -1,    -1,    -1,
+      77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,    -1,
+      87,    88,    -1,    -1,    91,    92,    -1,    -1,    95,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,   106,
+     107,    -1,    -1,   110,   111,    46,    47,    -1,    -1,    -1,
+      51,    -1,     1,    -1,    -1,    -1,    -1,    -1,    -1,    60,
+      -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,    -1,    -1,
+      -1,    -1,    73,    -1,    -1,    -1,    77,     1,    -1,    -1,
+      -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,    -1,
+      91,    92,    -1,    -1,    95,    -1,    45,    46,    47,    -1,
+      -1,    -1,    51,   104,   105,   106,   107,    -1,    -1,   110,
+     111,    60,    -1,    -1,    -1,    -1,    -1,    66,    -1,    -1,
+       1,    -1,    46,    47,    73,    -1,    -1,    51,    77,    -1,
+      -1,    -1,    -1,    -1,    -1,    84,    60,    -1,    87,    88,
+      -1,    -1,    66,    -1,    -1,     1,    95,    -1,    -1,    73,
+      -1,    -1,   101,    77,    -1,   104,   105,   106,   107,    -1,
+      84,   110,   111,    87,    88,    46,    47,    -1,    -1,    -1,
+      51,    95,    96,    -1,    -1,    -1,    -1,    -1,    -1,    60,
+     104,   105,   106,   107,    -1,    66,   110,   111,     1,    -1,
+      46,    47,    73,    -1,    -1,    51,    77,    -1,    -1,    -1,
+      -1,    -1,    -1,    84,    60,    -1,    87,    88,    -1,    -1,
+      66,    -1,    -1,    -1,    95,    96,    -1,    73,    -1,    -1,
+      -1,    77,    -1,   104,   105,   106,   107,    -1,    84,   110,
+     111,    87,    88,     3,     4,    -1,    -1,    -1,    51,    95,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    60,   104,   105,
+     106,   107,    -1,    66,   110,   111,    -1,    -1,    -1,    -1,
+      73,    -1,    -1,    -1,    77,    -1,    -1,    -1,    -1,    -1,
+      -1,    84,    -1,    -1,    87,    88,    46,    47,    91,    92,
+      -1,    51,    95,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      60,   104,   105,   106,   107,    -1,    66,   110,   111,     3,
        4,    -1,    -1,    73,    -1,    -1,    -1,    77,    -1,    -1,
       -1,    -1,    -1,    -1,    84,    -1,    -1,    87,    88,    -1,
       -1,    91,    92,    -1,    -1,    95,    -1,    97,    98,    -1,
@@ -2733,13 +2786,10 @@ static const short yycheck[] =
       46,    47,    -1,    -1,    -1,    51,   104,   105,   106,   107,
       -1,    -1,   110,   111,    60,    -1,    -1,    -1,    -1,    -1,
       66,    -1,    -1,    -1,    -1,    -1,    -1,    73,    -1,    -1,
-      51,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    60,
-      -1,    87,    88,    -1,    -1,    66,    -1,    -1,    -1,    95,
-      -1,    -1,    73,    -1,    -1,    -1,    77,    -1,   104,   105,
-     106,   107,    -1,    84,   110,   111,    87,    88,    -1,    -1,
-      91,    92,    -1,    -1,    95,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,   104,   105,   106,   107,    -1,    -1,   110,
-     111
+      -1,    77,    -1,    -1,    -1,    -1,    -1,    -1,    84,    -1,
+      -1,    87,    88,    -1,    -1,    -1,    -1,    -1,    -1,    95,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   104,   105,
+     106,   107,    -1,    -1,   110,   111
 };
 
 /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
@@ -2758,7 +2808,7 @@ static const unsigned short yystos[] =
      121,   122,   134,   135,   145,   152,   170,   177,   178,   179,
      180,     1,   120,   176,     1,     1,   120,   140,   137,   176,
      174,   139,     1,   125,   153,     1,   125,   146,   147,   148,
-     153,    99,   246,   246,     1,    60,   115,     1,   101,    98,
+     153,    99,   247,   247,     1,    60,   115,     1,   101,    98,
      178,   102,    97,   141,   176,   136,    95,    54,    99,   157,
        1,   101,   102,    94,    99,   100,   157,   100,    99,     1,
      153,     1,   146,   153,     1,   120,    97,    98,   123,   134,
@@ -2768,63 +2818,64 @@ static const unsigned short yystos[] =
      125,   147,     1,     3,     4,    46,    47,    60,    66,    73,
       77,    91,    92,    95,    97,   104,   105,   106,   107,   110,
      111,   114,   116,   121,   122,   149,   181,   234,   235,   236,
-     237,   238,   241,   243,   247,   248,   249,   250,   251,   252,
+     237,   238,   241,   243,   244,   248,   249,   250,   251,   252,
      253,   254,   255,   256,   257,   258,   259,   260,   261,   262,
      263,   264,   265,   266,   267,   268,   269,   270,   271,   272,
-     274,     1,   100,     1,     1,   100,   157,   101,   157,    95,
-     165,    98,   143,     1,   151,   183,   163,   157,     1,    49,
-      50,    52,    55,    59,    66,    67,    69,    71,    72,    74,
-      77,    78,    95,    98,   115,   116,   121,   122,   125,   134,
-     135,   156,   169,   183,   185,   186,   187,   188,   189,   190,
-     192,   193,   194,   195,   197,   198,   199,   200,   202,   204,
-     210,   211,   213,   214,   215,   217,   218,   222,   223,   224,
-     225,   226,   227,   228,   229,   237,   248,   250,   251,   252,
-     255,   256,   271,     1,   148,    96,   102,   115,   102,     1,
-     122,   247,   249,   254,     1,   253,     1,   254,     1,   254,
-     103,     1,   103,     1,   116,   118,   119,     1,   254,     1,
-     254,     1,   116,   122,   274,    98,   102,   149,   182,   103,
-     103,    95,    99,   103,     1,   103,    99,     1,   125,    46,
-      47,     5,     6,     7,     3,     4,     8,     9,    10,    18,
-      19,    20,    21,    58,    16,    17,    11,    12,    13,    14,
-      15,    89,    93,    94,   273,    96,   154,   157,   101,   159,
-     183,   166,   184,    97,    98,   101,     1,    95,     1,   274,
-       1,   101,   125,     1,   101,   274,     1,    95,     1,    95,
-       1,   183,     1,    95,     1,   101,   125,     1,   274,   274,
-     146,   103,     1,    90,   115,    95,   185,   187,   101,   122,
-     134,   190,   101,   203,   190,   190,   122,   189,   198,   219,
-     221,   101,     1,    95,     1,   155,     1,   148,     1,   119,
-       1,    68,     1,   125,    99,   100,   101,    99,   244,   245,
-     246,   244,   246,     1,    95,    96,    99,   246,   246,     1,
-      96,    98,    98,   102,     1,    68,    68,    96,   242,   274,
-       1,   274,     1,    68,    73,    77,    73,   125,     1,   274,
-       1,    95,     1,   254,     1,   254,     1,   254,     1,   259,
-       1,   259,     1,   260,     1,   260,     1,   260,     1,   261,
-       1,   261,     1,   261,     1,   261,     1,   116,   117,     1,
-     262,     1,   262,     1,   263,     1,   264,     1,   265,     1,
-     266,     1,   267,     1,    90,   274,     1,   270,    96,   122,
-     167,   168,   169,   185,   186,     1,   274,     1,   101,     1,
-     101,     1,   101,     1,   274,     1,   274,    61,    65,   230,
-     231,   232,   233,     1,     1,   101,     1,    90,   101,    96,
-      66,   146,     1,    96,   242,    97,   205,    67,     1,   102,
-       1,   101,   274,     1,   274,    96,   103,    95,     1,   274,
-     245,   246,   181,   246,   181,     1,    96,   242,     1,   254,
-       1,    96,    96,   257,     1,    98,   149,    96,   102,     1,
-     100,    95,     1,   100,    96,   242,     1,    90,   103,   167,
-     186,    95,   167,     1,    96,     1,    96,    96,     1,    95,
-       1,   183,   231,   233,   183,   274,     1,    95,     1,     1,
-      96,    48,    63,    98,   206,   207,   208,   209,    95,     1,
-     198,     1,   220,   221,   101,    96,    96,    96,   242,     1,
-     100,   240,     1,    96,     1,   254,     1,   257,     1,   274,
-      96,   242,   141,    96,     1,   269,    66,   167,    96,   242,
-      49,   190,   191,   192,   194,   196,   201,   210,   212,   216,
-     218,     1,     1,   155,   101,     1,    96,   242,     1,     1,
-      90,     1,   274,   275,    98,   207,   208,    98,   186,   209,
-     274,    96,     1,   220,     1,   183,    96,   141,   239,    96,
-     141,    95,   101,    96,    95,    57,   191,   191,   101,    96,
-      96,     1,     1,    96,     1,    90,    98,    96,   190,    96,
-     141,    96,   242,   101,   274,   190,   101,   274,     1,   101,
-     190,   101,    96,    96,   220,   101,   101,   191,    96,   220,
-      57,   191,    96,   191,   191
+     273,   275,     1,   100,     1,     1,   100,   157,   101,   157,
+      95,   165,    98,   143,     1,   151,   183,   163,   157,     1,
+      49,    50,    52,    55,    59,    66,    67,    69,    71,    72,
+      74,    77,    78,    95,    98,   115,   116,   121,   122,   125,
+     134,   135,   156,   169,   183,   185,   186,   187,   188,   189,
+     190,   192,   193,   194,   195,   197,   198,   199,   200,   202,
+     204,   210,   211,   213,   214,   215,   217,   218,   222,   223,
+     224,   225,   226,   227,   228,   229,   237,   249,   251,   252,
+     253,   256,   257,   272,     1,   148,    96,   102,   115,   102,
+       1,   122,   248,   250,   255,     1,   254,     1,   255,     1,
+     255,   103,     1,   103,     1,   116,   118,   119,     1,   255,
+       1,   255,     1,   116,   122,   275,    98,   102,   149,   182,
+     103,   103,    95,    99,   103,     1,   103,    99,     1,   125,
+      99,    46,    47,     5,     6,     7,     3,     4,     8,     9,
+      10,    18,    19,    20,    21,    58,    16,    17,    11,    12,
+      13,    14,    15,    89,    93,    94,   274,    96,   154,   157,
+     101,   159,   183,   166,   184,    97,    98,   101,     1,    95,
+       1,   275,     1,   101,   125,     1,   101,   275,     1,    95,
+       1,    95,     1,   183,     1,    95,     1,   101,   125,     1,
+     275,   275,   146,   103,     1,    90,   115,    95,   185,   187,
+     101,   122,   134,   190,   101,   203,   190,   190,   122,   189,
+     198,   219,   221,   101,     1,    95,     1,   155,     1,   148,
+       1,   119,     1,    68,     1,   125,    99,   100,   101,    99,
+     245,   246,   247,   245,   247,     1,    95,    96,    99,   247,
+     247,     1,    96,    98,    98,   102,     1,    68,    68,    96,
+     242,   275,     1,   275,     1,    68,    73,    77,    73,   125,
+       1,   275,     1,    95,     1,   275,     1,   255,     1,   255,
+       1,   255,     1,   260,     1,   260,     1,   261,     1,   261,
+       1,   261,     1,   262,     1,   262,     1,   262,     1,   262,
+       1,   116,   117,     1,   263,     1,   263,     1,   264,     1,
+     265,     1,   266,     1,   267,     1,   268,     1,    90,   275,
+       1,   271,    96,   122,   167,   168,   169,   185,   186,     1,
+     275,     1,   101,     1,   101,     1,   101,     1,   275,     1,
+     275,    61,    65,   230,   231,   232,   233,     1,     1,   101,
+       1,    90,   101,    96,    66,   146,     1,    96,   242,    97,
+     205,    67,     1,   102,     1,   101,   275,     1,   275,    96,
+     103,    95,     1,   275,   246,   247,   181,   247,   181,     1,
+      96,   242,     1,   255,     1,    96,    96,   258,     1,    98,
+     149,    96,   102,     1,   100,    95,     1,   100,    96,   242,
+       1,   100,     1,    90,   103,   167,   186,    95,   167,     1,
+      96,     1,    96,    96,     1,    95,     1,   183,   231,   233,
+     183,   275,     1,    95,     1,     1,    96,    48,    63,    98,
+     206,   207,   208,   209,    95,     1,   198,     1,   220,   221,
+     101,    96,    96,    96,   242,     1,   100,   240,     1,    96,
+       1,   255,     1,   258,     1,   275,    96,   242,   141,    96,
+       1,   270,    66,   167,    96,   242,    49,   190,   191,   192,
+     194,   196,   201,   210,   212,   216,   218,     1,     1,   155,
+     101,     1,    96,   242,     1,     1,    90,     1,   275,   276,
+      98,   207,   208,    98,   186,   209,   275,    96,     1,   220,
+       1,   183,    96,   141,   239,    96,   141,    95,   101,    96,
+      95,    57,   191,   191,   101,    96,    96,     1,     1,    96,
+       1,    90,    98,    96,   190,    96,   141,    96,   242,   101,
+     275,   190,   101,   275,     1,   101,   190,   101,    96,    96,
+     220,   101,   101,   191,    96,   220,    57,   191,    96,   191,
+     191
 };
 
 #if ! defined (YYSIZE_T) && defined (__SIZE_TYPE__)
@@ -3434,12 +3485,12 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 603 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 626 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {;}
     break;
 
   case 19:
-#line 647 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 670 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  int osb = pop_current_osb (ctxp);
 		  tree t = build_java_array_type ((yyvsp[-1].node), -1);
@@ -3450,7 +3501,7 @@ yyreduce:
     break;
 
   case 20:
-#line 655 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 678 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  int osb = pop_current_osb (ctxp);
 		  tree t = yyvsp[-1].node;
@@ -3461,49 +3512,48 @@ yyreduce:
     break;
 
   case 24:
-#line 676 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 699 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = make_qualified_name (yyvsp[-2].node, yyvsp[0].node, yyvsp[-1].operator.location); ;}
     break;
 
   case 26:
-#line 685 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 708 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyval.node = NULL;;}
     break;
 
   case 34:
-#line 697 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 720 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = NULL;
 		;}
     break;
 
   case 35:
-#line 701 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 724 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = NULL;
 		;}
     break;
 
   case 38:
-#line 713 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 736 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->package = EXPR_WFL_NODE (yyvsp[-1].node);
-		  register_package (ctxp->package);
 		;}
     break;
 
   case 39:
-#line 718 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 740 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing name"); RECOVER;;}
     break;
 
   case 40:
-#line 720 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 742 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 43:
-#line 730 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 752 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree name = EXPR_WFL_NODE (yyvsp[-1].node), last_name;
 		  int   i = IDENTIFIER_LENGTH (name)-1;
@@ -3520,7 +3570,7 @@ yyreduce:
 		      tree err = find_name_in_single_imports (last_name);
 		      if (err && err != name)
 			parse_error_context
-			  (yyvsp[-1].node, "Ambiguous class: `%s' and `%s'",
+			  (yyvsp[-1].node, "Ambiguous class: %qs and %qs",
 			   IDENTIFIER_POINTER (name),
 			   IDENTIFIER_POINTER (err));
 		      else
@@ -3532,17 +3582,17 @@ yyreduce:
     break;
 
   case 44:
-#line 756 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 778 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing name"); RECOVER;;}
     break;
 
   case 45:
-#line 758 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 780 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 46:
-#line 763 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 785 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree name = EXPR_WFL_NODE (yyvsp[-3].node);
 		  tree it;
@@ -3563,27 +3613,27 @@ yyreduce:
     break;
 
   case 47:
-#line 781 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 803 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'*' expected"); RECOVER;;}
     break;
 
   case 48:
-#line 783 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 805 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 49:
-#line 788 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 810 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { end_class_declaration (0); ;}
     break;
 
   case 50:
-#line 790 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 812 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { end_class_declaration (0); ;}
     break;
 
   case 52:
-#line 793 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 815 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  YYERROR_NOW;
 		  yyerror ("Class or interface declaration expected");
@@ -3591,19 +3641,19 @@ yyreduce:
     break;
 
   case 53:
-#line 804 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 826 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.value = (1 << yyvsp[0].value);
 		;}
     break;
 
   case 54:
-#line 808 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 830 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  int acc = (1 << yyvsp[0].value);
 		  if (yyval.value & acc)
 		    parse_error_context
-		      (ctxp->modifier_ctx [yyvsp[0].value], "Modifier `%s' declared twice",
+		      (ctxp->modifier_ctx [yyvsp[0].value], "Modifier %qs declared twice",
 		       java_accstring_lookup (acc));
 		  else
 		    {
@@ -3613,37 +3663,37 @@ yyreduce:
     break;
 
   case 55:
-#line 824 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 846 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { create_class (yyvsp[-4].value, yyvsp[-2].node, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 56:
-#line 826 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 848 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {;;}
     break;
 
   case 57:
-#line 828 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 850 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { create_class (0, yyvsp[-2].node, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 58:
-#line 830 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 852 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {;;}
     break;
 
   case 59:
-#line 832 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 854 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyerror ("Missing class name"); RECOVER; ;}
     break;
 
   case 60:
-#line 834 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 856 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyerror ("Missing class name"); RECOVER; ;}
     break;
 
   case 61:
-#line 836 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 858 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  if (!ctxp->class_err) yyerror ("'{' expected");
 		  DRECOVER(class1);
@@ -3651,42 +3701,42 @@ yyreduce:
     break;
 
   case 62:
-#line 841 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 863 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { if (!ctxp->class_err) yyerror ("'{' expected"); RECOVER; ;}
     break;
 
   case 63:
-#line 845 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 867 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL; ;}
     break;
 
   case 64:
-#line 847 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 869 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 65:
-#line 849 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 871 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'{' expected"); ctxp->class_err=1;;}
     break;
 
   case 66:
-#line 851 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 873 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing super class name"); ctxp->class_err=1;;}
     break;
 
   case 67:
-#line 855 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 877 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 68:
-#line 857 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 879 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 69:
-#line 859 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 881 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->class_err=1;
 		  yyerror ("Missing interface name");
@@ -3694,7 +3744,7 @@ yyreduce:
     break;
 
   case 70:
-#line 867 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 889 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->interface_number = 1;
 		  yyval.node = build_tree_list (yyvsp[0].node, NULL_TREE);
@@ -3702,7 +3752,7 @@ yyreduce:
     break;
 
   case 71:
-#line 872 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 894 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->interface_number++;
 		  yyval.node = chainon (yyvsp[-2].node, build_tree_list (yyvsp[0].node, NULL_TREE));
@@ -3710,36 +3760,34 @@ yyreduce:
     break;
 
   case 72:
-#line 877 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 899 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing interface name"); RECOVER;;}
     break;
 
   case 73:
-#line 882 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 904 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* Store the location of the `}' when doing xrefs */
 		  if (flag_emit_xref)
-		    DECL_END_SOURCE_LINE (GET_CPC ()) =
-		      EXPR_WFL_ADD_COL (yyvsp[0].operator.location, 1);
+		    DECL_END_SOURCE_LINE (GET_CPC ()) = yyvsp[0].operator.location;
 		  yyval.node = GET_CPC ();
 		;}
     break;
 
   case 74:
-#line 890 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 911 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* Store the location of the `}' when doing xrefs */
 		  if (flag_emit_xref)
-		    DECL_END_SOURCE_LINE (GET_CPC ()) =
-		      EXPR_WFL_ADD_COL (yyvsp[0].operator.location, 1);
+		    DECL_END_SOURCE_LINE (GET_CPC ()) = yyvsp[0].operator.location;
 		  yyval.node = GET_CPC ();
 		;}
     break;
 
   case 80:
-#line 909 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 929 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  if (yyvsp[0].node != empty_stmt_node)
+		  if (!IS_EMPTY_STMT (yyvsp[0].node))
 		    {
 		      TREE_CHAIN (yyvsp[0].node) = CPC_INSTANCE_INITIALIZER_STMT (ctxp);
 		      SET_CPC_INSTANCE_INITIALIZER_STMT (ctxp, yyvsp[0].node);
@@ -3748,25 +3796,25 @@ yyreduce:
     break;
 
   case 83:
-#line 922 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 942 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { end_class_declaration (1); ;}
     break;
 
   case 84:
-#line 924 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 944 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { end_class_declaration (1); ;}
     break;
 
   case 86:
-#line 931 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 951 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { register_fields (0, yyvsp[-2].node, yyvsp[-1].node); ;}
     break;
 
   case 87:
-#line 933 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 953 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  check_modifiers
-		    ("Illegal modifier `%s' for field declaration",
+		    ("Illegal modifier %qs for field declaration",
 		     yyvsp[-3].value, FIELD_MODIFIERS);
 		  check_modifiers_consistency (yyvsp[-3].value);
 		  register_fields (yyvsp[-3].value, yyvsp[-2].node, yyvsp[-1].node);
@@ -3774,22 +3822,22 @@ yyreduce:
     break;
 
   case 89:
-#line 946 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 966 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = chainon (yyvsp[-2].node, yyvsp[0].node); ;}
     break;
 
   case 90:
-#line 948 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 968 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 91:
-#line 953 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 973 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_tree_list (yyvsp[0].node, NULL_TREE); ;}
     break;
 
   case 92:
-#line 955 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 975 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  if (java_error_count)
 		    yyvsp[0].node = NULL_TREE;
@@ -3799,7 +3847,7 @@ yyreduce:
     break;
 
   case 93:
-#line 962 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 982 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Missing variable initializer");
 		  yyval.node = build_tree_list (yyvsp[-2].node, NULL_TREE);
@@ -3808,7 +3856,7 @@ yyreduce:
     break;
 
   case 94:
-#line 968 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 988 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("';' expected");
 		  yyval.node = build_tree_list (yyvsp[-3].node, NULL_TREE);
@@ -3817,17 +3865,17 @@ yyreduce:
     break;
 
   case 96:
-#line 978 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 998 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_unresolved_array_type (yyvsp[-2].node); ;}
     break;
 
   case 97:
-#line 980 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1000 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Invalid declaration"); DRECOVER(vdi);;}
     break;
 
   case 98:
-#line 982 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1002 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("']' expected");
 		  DRECOVER(vdi);
@@ -3835,12 +3883,12 @@ yyreduce:
     break;
 
   case 99:
-#line 987 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1007 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Unbalanced ']'"); DRECOVER(vdi);;}
     break;
 
   case 102:
-#line 998 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1018 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  current_function_decl = yyvsp[0].node;
 		  if (current_function_decl
@@ -3852,37 +3900,37 @@ yyreduce:
     break;
 
   case 103:
-#line 1007 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1027 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { finish_method_declaration (yyvsp[0].node); ;}
     break;
 
   case 104:
-#line 1009 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1029 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {YYNOT_TWICE yyerror ("'{' expected"); RECOVER;;}
     break;
 
   case 105:
-#line 1014 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1034 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_header (0, yyvsp[-2].node, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 106:
-#line 1016 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1036 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_header (0, void_type_node, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 107:
-#line 1018 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1038 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_header (yyvsp[-3].value, yyvsp[-2].node, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 108:
-#line 1020 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1040 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_header (yyvsp[-3].value, void_type_node, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 109:
-#line 1022 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1042 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Invalid method declaration, method name required");
 		  RECOVER;
@@ -3890,7 +3938,7 @@ yyreduce:
     break;
 
   case 110:
-#line 1027 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1047 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Identifier expected");
 		  RECOVER;
@@ -3898,7 +3946,7 @@ yyreduce:
     break;
 
   case 111:
-#line 1032 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1052 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Identifier expected");
 		  RECOVER;
@@ -3906,7 +3954,7 @@ yyreduce:
     break;
 
   case 112:
-#line 1037 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1057 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Identifier expected");
 		  RECOVER;
@@ -3914,7 +3962,7 @@ yyreduce:
     break;
 
   case 113:
-#line 1042 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1062 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Invalid method declaration, return type required");
 		  RECOVER;
@@ -3922,7 +3970,7 @@ yyreduce:
     break;
 
   case 114:
-#line 1050 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1070 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->formal_parameter_number = 0;
 		  yyval.node = method_declarator (yyvsp[-2].node, NULL_TREE);
@@ -3930,14 +3978,14 @@ yyreduce:
     break;
 
   case 115:
-#line 1055 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1075 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_declarator (yyvsp[-3].node, yyvsp[-1].node); ;}
     break;
 
   case 116:
-#line 1057 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1077 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  EXPR_WFL_LINECOL (wfl_operator) = yyvsp[-1].operator.location;
+		  SET_EXPR_LOCATION_FROM_TOKEN (wfl_operator, yyvsp[-1].operator);
 		  TREE_PURPOSE (yyvsp[-2].node) =
 		    build_unresolved_array_type (TREE_PURPOSE (yyvsp[-2].node));
 		  parse_warning_context
@@ -3947,24 +3995,24 @@ yyreduce:
     break;
 
   case 117:
-#line 1066 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1086 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); DRECOVER(method_declarator);;}
     break;
 
   case 118:
-#line 1068 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1088 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("']' expected"); RECOVER;;}
     break;
 
   case 119:
-#line 1073 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1093 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->formal_parameter_number = 1;
 		;}
     break;
 
   case 120:
-#line 1077 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1097 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->formal_parameter_number += 1;
 		  yyval.node = chainon (yyvsp[-2].node, yyvsp[0].node);
@@ -3972,19 +4020,19 @@ yyreduce:
     break;
 
   case 121:
-#line 1082 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1102 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyerror ("Missing formal parameter term"); RECOVER; ;}
     break;
 
   case 122:
-#line 1087 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1107 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_tree_list (yyvsp[0].node, yyvsp[-1].node);
 		;}
     break;
 
   case 123:
-#line 1091 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1111 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_tree_list (yyvsp[0].node, yyvsp[-1].node);
 		  ARG_FINAL_P (yyval.node) = 1;
@@ -3992,7 +4040,7 @@ yyreduce:
     break;
 
   case 124:
-#line 1096 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1116 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Missing identifier"); RECOVER;
 		  yyval.node = NULL_TREE;
@@ -4000,7 +4048,7 @@ yyreduce:
     break;
 
   case 125:
-#line 1101 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1121 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Missing identifier"); RECOVER;
 		  yyval.node = NULL_TREE;
@@ -4008,9 +4056,9 @@ yyreduce:
     break;
 
   case 126:
-#line 1109 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1129 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  check_modifiers ("Illegal modifier `%s'. Only `final' was expected here",
+		  check_modifiers ("Illegal modifier %qs. Only %<final%> was expected here",
 				   yyvsp[0].value, ACC_FINAL);
 		  if (yyvsp[0].value != ACC_FINAL)
 		    MODIFIER_WFL (FINAL_TK) = build_wfl_node (NULL_TREE);
@@ -4018,42 +4066,42 @@ yyreduce:
     break;
 
   case 127:
-#line 1118 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1138 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 128:
-#line 1120 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1140 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 129:
-#line 1122 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1142 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing class type term"); RECOVER;;}
     break;
 
   case 130:
-#line 1127 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1147 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_tree_list (yyvsp[0].node, yyvsp[0].node); ;}
     break;
 
   case 131:
-#line 1129 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1149 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = tree_cons (yyvsp[0].node, yyvsp[0].node, yyvsp[-2].node); ;}
     break;
 
   case 132:
-#line 1131 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1151 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing class type term"); RECOVER;;}
     break;
 
   case 134:
-#line 1136 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1156 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 135:
-#line 1142 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1162 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  TREE_CHAIN (yyvsp[0].node) = CPC_STATIC_INITIALIZER_STMT (ctxp);
 		  SET_CPC_STATIC_INITIALIZER_STMT (ctxp, yyvsp[0].node);
@@ -4062,22 +4110,22 @@ yyreduce:
     break;
 
   case 136:
-#line 1151 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1171 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  check_modifiers ("Illegal modifier `%s' for static initializer", yyvsp[0].value, ACC_STATIC);
+		  check_modifiers ("Illegal modifier %qs for static initializer", yyvsp[0].value, ACC_STATIC);
 		  /* Can't have a static initializer in an innerclass */
 		  if (yyvsp[0].value | ACC_STATIC &&
 		      GET_CPC_LIST () && !TOPLEVEL_CLASS_DECL_P (GET_CPC ()))
 		    parse_error_context
 		      (MODIFIER_WFL (STATIC_TK),
-		       "Can't define static initializer in class `%s'. Static initializer can only be defined in top-level classes",
+		       "Can't define static initializer in class %qs. Static initializer can only be defined in top-level classes",
 		       IDENTIFIER_POINTER (DECL_NAME (GET_CPC ())));
 		  SOURCE_FRONTEND_DEBUG (("Modifiers: %d", yyvsp[0].value));
 		;}
     break;
 
   case 137:
-#line 1167 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1187 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  current_function_decl = yyvsp[0].node;
 		  source_start_java_method (current_function_decl);
@@ -4085,22 +4133,22 @@ yyreduce:
     break;
 
   case 138:
-#line 1172 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1192 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { finish_method_declaration (yyvsp[0].node); ;}
     break;
 
   case 139:
-#line 1177 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1197 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_header (0, NULL_TREE, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 140:
-#line 1179 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1199 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_header (yyvsp[-2].value, NULL_TREE, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 141:
-#line 1184 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1204 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->formal_parameter_number = 0;
 		  yyval.node = method_declarator (yyvsp[-2].node, NULL_TREE);
@@ -4108,35 +4156,35 @@ yyreduce:
     break;
 
   case 142:
-#line 1189 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1209 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = method_declarator (yyvsp[-3].node, yyvsp[-1].node); ;}
     break;
 
   case 143:
-#line 1197 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1217 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  BLOCK_EXPR_BODY (yyvsp[0].node) = empty_stmt_node;
+		  BLOCK_EXPR_BODY (yyvsp[0].node) = build_java_empty_stmt ();
 		  yyval.node = yyvsp[0].node;
 		;}
     break;
 
   case 144:
-#line 1202 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1222 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 145:
-#line 1204 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1224 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 146:
-#line 1206 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1226 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 148:
-#line 1216 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1236 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_method_invocation (yyvsp[-3].node, NULL_TREE);
 		  yyval.node = build_debugable_stmt (EXPR_WFL_LINECOL (yyvsp[-3].node), yyval.node);
@@ -4145,7 +4193,7 @@ yyreduce:
     break;
 
   case 149:
-#line 1222 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1242 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_method_invocation (yyvsp[-4].node, yyvsp[-2].node);
 		  yyval.node = build_debugable_stmt (EXPR_WFL_LINECOL (yyvsp[-4].node), yyval.node);
@@ -4154,85 +4202,85 @@ yyreduce:
     break;
 
   case 150:
-#line 1230 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1250 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyval.node = parse_jdk1_1_error ("explicit constructor invocation"); ;}
     break;
 
   case 151:
-#line 1232 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1252 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyval.node = parse_jdk1_1_error ("explicit constructor invocation"); ;}
     break;
 
   case 152:
-#line 1237 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1257 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree wfl = build_wfl_node (this_identifier_node);
-		  EXPR_WFL_LINECOL (wfl) = yyvsp[0].operator.location;
+		  SET_EXPR_LOCATION_FROM_TOKEN (wfl, yyvsp[0].operator);
 		  yyval.node = wfl;
 		;}
     break;
 
   case 153:
-#line 1243 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1263 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree wfl = build_wfl_node (super_identifier_node);
-		  EXPR_WFL_LINECOL (wfl) = yyvsp[0].operator.location;
+		  SET_EXPR_LOCATION_FROM_TOKEN (wfl, yyvsp[0].operator);
 		  yyval.node = wfl;
 		;}
     break;
 
   case 154:
-#line 1254 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1274 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { create_interface (0, yyvsp[0].node, NULL_TREE); ;}
     break;
 
   case 155:
-#line 1256 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1276 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { ; ;}
     break;
 
   case 156:
-#line 1258 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1278 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { create_interface (yyvsp[-2].value, yyvsp[0].node, NULL_TREE); ;}
     break;
 
   case 157:
-#line 1260 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1280 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { ; ;}
     break;
 
   case 158:
-#line 1262 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1282 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { create_interface (0, yyvsp[-1].node, yyvsp[0].node);	;}
     break;
 
   case 159:
-#line 1264 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1284 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { ; ;}
     break;
 
   case 160:
-#line 1266 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1286 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { create_interface (yyvsp[-3].value, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 161:
-#line 1268 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1288 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { ; ;}
     break;
 
   case 162:
-#line 1270 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1290 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyerror ("'{' expected"); RECOVER; ;}
     break;
 
   case 163:
-#line 1272 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1292 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyerror ("'{' expected"); RECOVER; ;}
     break;
 
   case 164:
-#line 1277 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1297 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->interface_number = 1;
 		  yyval.node = build_tree_list (yyvsp[0].node, NULL_TREE);
@@ -4240,7 +4288,7 @@ yyreduce:
     break;
 
   case 165:
-#line 1282 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1302 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->interface_number++;
 		  yyval.node = chainon (yyvsp[-2].node, build_tree_list (yyvsp[0].node, NULL_TREE));
@@ -4248,37 +4296,37 @@ yyreduce:
     break;
 
   case 166:
-#line 1287 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1307 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Invalid interface type"); RECOVER;;}
     break;
 
   case 167:
-#line 1289 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1309 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 168:
-#line 1294 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1314 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 169:
-#line 1296 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1316 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 174:
-#line 1308 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1328 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { end_class_declaration (1); ;}
     break;
 
   case 175:
-#line 1310 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1330 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { end_class_declaration (1); ;}
     break;
 
   case 177:
-#line 1319 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1339 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  check_abstract_method_header (yyvsp[-1].node);
 		  current_function_decl = NULL_TREE; /* FIXME ? */
@@ -4286,32 +4334,32 @@ yyreduce:
     break;
 
   case 178:
-#line 1324 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1344 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 179:
-#line 1330 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1350 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_new_array_init (yyvsp[-1].operator.location, NULL_TREE); ;}
     break;
 
   case 180:
-#line 1332 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1352 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_new_array_init (yyvsp[-2].operator.location, NULL_TREE); ;}
     break;
 
   case 181:
-#line 1334 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1354 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_new_array_init (yyvsp[-2].operator.location, yyvsp[-1].node); ;}
     break;
 
   case 182:
-#line 1336 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1356 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_new_array_init (yyvsp[-3].operator.location, yyvsp[-2].node); ;}
     break;
 
   case 183:
-#line 1341 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1361 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = tree_cons (maybe_build_array_element_wfl (yyvsp[0].node),
 				  yyvsp[0].node, NULL_TREE);
@@ -4319,53 +4367,52 @@ yyreduce:
     break;
 
   case 184:
-#line 1346 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1366 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = tree_cons (maybe_build_array_element_wfl (yyvsp[0].node), yyvsp[0].node, yyvsp[-2].node);
 		;}
     break;
 
   case 185:
-#line 1350 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1370 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 186:
-#line 1356 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1376 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 187:
-#line 1358 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1378 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 188:
-#line 1363 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1383 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { enter_block (); ;}
     break;
 
   case 189:
-#line 1368 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1388 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  maybe_absorb_scoping_blocks ();
 		  /* Store the location of the `}' when doing xrefs */
 		  if (current_function_decl && flag_emit_xref)
-		    DECL_END_SOURCE_LINE (current_function_decl) =
-		      EXPR_WFL_ADD_COL (yyvsp[0].operator.location, 1);
+		    DECL_END_SOURCE_LINE (current_function_decl) = yyvsp[0].operator.location;
 		  yyval.node = exit_block ();
 		  if (!BLOCK_SUBBLOCKS (yyval.node))
-		    BLOCK_SUBBLOCKS (yyval.node) = empty_stmt_node;
+		    BLOCK_SUBBLOCKS (yyval.node) = build_java_empty_stmt ();
 		;}
     break;
 
   case 193:
-#line 1388 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1407 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { java_method_add_stmt (current_function_decl, yyvsp[0].node); ;}
     break;
 
   case 194:
-#line 1390 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1409 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  LOCAL_CLASS_P (TREE_TYPE (GET_CPC ())) = 1;
 		  end_class_declaration (1);
@@ -4373,27 +4420,27 @@ yyreduce:
     break;
 
   case 196:
-#line 1402 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1421 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { declare_local_variables (0, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 197:
-#line 1404 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1423 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { declare_local_variables (yyvsp[-2].value, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 203:
-#line 1414 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1433 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = exit_block (); ;}
     break;
 
   case 208:
-#line 1423 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1442 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = exit_block (); ;}
     break;
 
   case 221:
-#line 1443 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1462 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  if (flag_extraneous_semicolon
 		      && ! current_static_block
@@ -4403,15 +4450,19 @@ yyreduce:
 			   (DECL_CONTEXT (current_function_decl)))))
 
 		    {
+#ifdef USE_MAPPED_LOCATION
+		      SET_EXPR_LOCATION (wfl_operator, input_location);
+#else
 		      EXPR_WFL_SET_LINECOL (wfl_operator, input_line, -1);
+#endif
 		      parse_warning_context (wfl_operator, "An empty declaration is a deprecated feature that should not be used");
 		    }
-		  yyval.node = empty_stmt_node;
+		  yyval.node = build_java_empty_stmt ();
 		;}
     break;
 
   case 222:
-#line 1461 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1484 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_labeled_block (EXPR_WFL_LINECOL (yyvsp[-1].node),
 					    EXPR_WFL_NODE (yyvsp[-1].node));
@@ -4422,34 +4473,38 @@ yyreduce:
     break;
 
   case 223:
-#line 1472 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1495 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = finish_labeled_statement (yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 224:
-#line 1474 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1497 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("':' expected"); RECOVER;;}
     break;
 
   case 225:
-#line 1479 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1502 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = finish_labeled_statement (yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 226:
-#line 1486 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1509 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* We have a statement. Generate a WFL around it so
 		     we can debug it */
+#ifdef USE_MAPPED_LOCATION
+		  yyval.node = expr_add_location (yyvsp[-1].node, input_location, 1);
+#else
 		  yyval.node = build_expr_wfl (yyvsp[-1].node, input_filename, input_line, 0);
+		  JAVA_MAYBE_GENERATE_DEBUG_INFO (yyval.node);
+#endif
 		  /* We know we have a statement, so set the debug
                      info to be eventually generate here. */
-		  yyval.node = JAVA_MAYBE_GENERATE_DEBUG_INFO (yyval.node);
 		;}
     break;
 
   case 227:
-#line 1495 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1522 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  YYNOT_TWICE yyerror ("Invalid expression statement");
 		  DRECOVER (expr_stmt);
@@ -4457,7 +4512,7 @@ yyreduce:
     break;
 
   case 228:
-#line 1500 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1527 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  YYNOT_TWICE yyerror ("Invalid expression statement");
 		  DRECOVER (expr_stmt);
@@ -4465,7 +4520,7 @@ yyreduce:
     break;
 
   case 229:
-#line 1505 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1532 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  YYNOT_TWICE yyerror ("Invalid expression statement");
 		  DRECOVER (expr_stmt);
@@ -4473,12 +4528,12 @@ yyreduce:
     break;
 
   case 230:
-#line 1510 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1537 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); RECOVER;;}
     break;
 
   case 231:
-#line 1512 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1539 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  parse_ctor_invocation_error ();
 		  RECOVER;
@@ -4486,12 +4541,12 @@ yyreduce:
     break;
 
   case 232:
-#line 1517 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1544 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); RECOVER;;}
     break;
 
   case 233:
-#line 1519 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1546 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  parse_ctor_invocation_error ();
 		  RECOVER;
@@ -4499,32 +4554,32 @@ yyreduce:
     break;
 
   case 234:
-#line 1524 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1551 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'(' expected"); RECOVER;;}
     break;
 
   case 235:
-#line 1526 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1553 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); RECOVER;;}
     break;
 
   case 236:
-#line 1528 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1555 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); RECOVER;;}
     break;
 
   case 237:
-#line 1530 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1557 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 238:
-#line 1532 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1559 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 246:
-#line 1547 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1574 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_if_else_statement (yyvsp[-3].operator.location, yyvsp[-2].node,
 						yyvsp[0].node, NULL_TREE);
@@ -4532,39 +4587,39 @@ yyreduce:
     break;
 
   case 247:
-#line 1552 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1579 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'(' expected"); RECOVER;;}
     break;
 
   case 248:
-#line 1554 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1581 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 249:
-#line 1556 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1583 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); RECOVER;;}
     break;
 
   case 250:
-#line 1561 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1588 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_if_else_statement (yyvsp[-5].operator.location, yyvsp[-4].node, yyvsp[-2].node, yyvsp[0].node); ;}
     break;
 
   case 251:
-#line 1566 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1593 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_if_else_statement (yyvsp[-5].operator.location, yyvsp[-4].node, yyvsp[-2].node, yyvsp[0].node); ;}
     break;
 
   case 252:
-#line 1571 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1598 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  enter_block ();
 		;}
     break;
 
   case 253:
-#line 1575 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1602 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* Make into "proper list" of COMPOUND_EXPRs.
 		     I.e. make the last statement also have its own
@@ -4576,83 +4631,84 @@ yyreduce:
     break;
 
   case 254:
-#line 1587 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1614 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  yyval.node = build (SWITCH_EXPR, NULL_TREE, yyvsp[-1].node, NULL_TREE);
-		  EXPR_WFL_LINECOL (yyval.node) = yyvsp[-2].operator.location;
+		  yyval.node = build3 (SWITCH_EXPR, NULL_TREE, yyvsp[-1].node,
+			       NULL_TREE, NULL_TREE);
+		  SET_EXPR_LOCATION_FROM_TOKEN (yyval.node, yyvsp[-2].operator);
 		;}
     break;
 
   case 255:
-#line 1592 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1620 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'(' expected"); RECOVER;;}
     break;
 
   case 256:
-#line 1594 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1622 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term or ')'"); DRECOVER(switch_statement);;}
     break;
 
   case 257:
-#line 1596 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1624 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'{' expected"); RECOVER;;}
     break;
 
   case 258:
-#line 1604 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1632 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 259:
-#line 1606 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1634 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 260:
-#line 1608 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1636 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 261:
-#line 1610 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1638 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = NULL_TREE; ;}
     break;
 
   case 267:
-#line 1629 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1657 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree lab = build1 (CASE_EXPR, NULL_TREE, yyvsp[-1].node);
-		  EXPR_WFL_LINECOL (lab) = yyvsp[-2].operator.location;
+		  SET_EXPR_LOCATION_FROM_TOKEN (lab, yyvsp[-2].operator);
 		  java_method_add_stmt (current_function_decl, lab);
 		;}
     break;
 
   case 268:
-#line 1635 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1663 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  tree lab = build (DEFAULT_EXPR, NULL_TREE, NULL_TREE);
-		  EXPR_WFL_LINECOL (lab) = yyvsp[-1].operator.location;
+		  tree lab = make_node (DEFAULT_EXPR);
+		  SET_EXPR_LOCATION_FROM_TOKEN (lab, yyvsp[-1].operator);
 		  java_method_add_stmt (current_function_decl, lab);
 		;}
     break;
 
   case 269:
-#line 1641 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1669 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing or invalid constant expression"); RECOVER;;}
     break;
 
   case 270:
-#line 1643 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1671 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("':' expected"); RECOVER;;}
     break;
 
   case 271:
-#line 1645 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1673 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("':' expected"); RECOVER;;}
     break;
 
   case 272:
-#line 1650 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1678 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree body = build_loop_body (yyvsp[-2].operator.location, yyvsp[-1].node, 0);
 		  yyval.node = build_new_loop (body);
@@ -4660,32 +4716,32 @@ yyreduce:
     break;
 
   case 273:
-#line 1658 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1686 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = finish_loop_body (0, NULL_TREE, yyvsp[0].node, 0); ;}
     break;
 
   case 274:
-#line 1660 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1688 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {YYERROR_NOW; yyerror ("'(' expected"); RECOVER;;}
     break;
 
   case 275:
-#line 1662 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1690 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term and ')' expected"); RECOVER;;}
     break;
 
   case 276:
-#line 1664 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1692 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); RECOVER;;}
     break;
 
   case 277:
-#line 1669 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1697 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = finish_loop_body (0, NULL_TREE, yyvsp[0].node, 0); ;}
     break;
 
   case 278:
-#line 1674 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1702 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree body = build_loop_body (0, NULL_TREE, 1);
 		  yyval.node = build_new_loop (body);
@@ -4693,61 +4749,61 @@ yyreduce:
     break;
 
   case 279:
-#line 1683 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1711 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = finish_loop_body (yyvsp[-3].operator.location, yyvsp[-2].node, yyvsp[-5].node, 1); ;}
     break;
 
   case 280:
-#line 1688 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1716 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  if (TREE_CODE_CLASS (TREE_CODE (yyvsp[-4].node)) == 'c')
+		  if (CONSTANT_CLASS_P (yyvsp[-4].node))
 		    yyvsp[-4].node = build_wfl_node (yyvsp[-4].node);
 		  yyval.node = finish_for_loop (EXPR_WFL_LINECOL (yyvsp[-4].node), yyvsp[-4].node, yyvsp[-2].node, yyvsp[0].node);
 		;}
     break;
 
   case 281:
-#line 1694 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1722 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = finish_for_loop (0, NULL_TREE, yyvsp[-2].node, yyvsp[0].node);
 		  /* We have not condition, so we get rid of the EXIT_EXPR */
 		  LOOP_EXPR_BODY_CONDITION_EXPR (LOOP_EXPR_BODY (yyval.node), 0) =
-		    empty_stmt_node;
+		    build_java_empty_stmt ();
 		;}
     break;
 
   case 282:
-#line 1701 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1729 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Invalid control expression"); RECOVER;;}
     break;
 
   case 283:
-#line 1703 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1731 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Invalid update expression"); RECOVER;;}
     break;
 
   case 284:
-#line 1705 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1733 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Invalid update expression"); RECOVER;;}
     break;
 
   case 285:
-#line 1710 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1738 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = finish_for_loop (EXPR_WFL_LINECOL (yyvsp[-4].node), yyvsp[-4].node, yyvsp[-2].node, yyvsp[0].node);;}
     break;
 
   case 286:
-#line 1712 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1740 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = finish_for_loop (0, NULL_TREE, yyvsp[-2].node, yyvsp[0].node);
 		  /* We have not condition, so we get rid of the EXIT_EXPR */
 		  LOOP_EXPR_BODY_CONDITION_EXPR (LOOP_EXPR_BODY (yyval.node), 0) =
-		    empty_stmt_node;
+		    build_java_empty_stmt ();
 		;}
     break;
 
   case 287:
-#line 1722 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1750 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* This scope defined for local variable that may be
                      defined within the scope of the for loop */
@@ -4756,17 +4812,17 @@ yyreduce:
     break;
 
   case 288:
-#line 1728 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1756 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'(' expected"); DRECOVER(for_1);;}
     break;
 
   case 289:
-#line 1730 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1758 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Invalid init statement"); RECOVER;;}
     break;
 
   case 290:
-#line 1735 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1763 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* We now declare the loop body. The loop is
                      declared as a for loop. */
@@ -4780,12 +4836,12 @@ yyreduce:
     break;
 
   case 291:
-#line 1747 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = empty_stmt_node; ;}
+#line 1775 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_java_empty_stmt (); ;}
     break;
 
   case 292:
-#line 1749 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1777 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* Init statement recorded within the previously
                      defined block scope */
@@ -4794,7 +4850,7 @@ yyreduce:
     break;
 
   case 293:
-#line 1755 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1783 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* Local variable are recorded within the previously
 		     defined block scope */
@@ -4803,171 +4859,171 @@ yyreduce:
     break;
 
   case 294:
-#line 1761 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1789 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); DRECOVER(for_init_1);;}
     break;
 
   case 295:
-#line 1765 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyval.node = empty_stmt_node;;}
+#line 1793 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = build_java_empty_stmt ();;}
     break;
 
   case 296:
-#line 1767 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1795 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_debugable_stmt (BUILD_LOCATION (), yyvsp[0].node); ;}
     break;
 
   case 297:
-#line 1772 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1800 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = add_stmt_to_compound (NULL_TREE, NULL_TREE, yyvsp[0].node); ;}
     break;
 
   case 298:
-#line 1774 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1802 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = add_stmt_to_compound (yyvsp[-2].node, NULL_TREE, yyvsp[0].node); ;}
     break;
 
   case 299:
-#line 1776 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1804 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 300:
-#line 1781 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1809 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_bc_statement (yyvsp[-1].operator.location, 1, NULL_TREE); ;}
     break;
 
   case 301:
-#line 1783 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1811 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_bc_statement (yyvsp[-2].operator.location, 1, yyvsp[-1].node); ;}
     break;
 
   case 302:
-#line 1785 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1813 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 303:
-#line 1787 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1815 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 304:
-#line 1792 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1820 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_bc_statement (yyvsp[-1].operator.location, 0, NULL_TREE); ;}
     break;
 
   case 305:
-#line 1794 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1822 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_bc_statement (yyvsp[-2].operator.location, 0, yyvsp[-1].node); ;}
     break;
 
   case 306:
-#line 1796 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1824 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 307:
-#line 1798 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1826 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 308:
-#line 1803 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1831 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_return (yyvsp[-1].operator.location, NULL_TREE); ;}
     break;
 
   case 309:
-#line 1805 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1833 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_return (yyvsp[-2].operator.location, yyvsp[-1].node); ;}
     break;
 
   case 310:
-#line 1807 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1835 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 311:
-#line 1809 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1837 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 312:
-#line 1814 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1842 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build1 (THROW_EXPR, NULL_TREE, yyvsp[-1].node);
-		  EXPR_WFL_LINECOL (yyval.node) = yyvsp[-2].operator.location;
+		  SET_EXPR_LOCATION_FROM_TOKEN (yyval.node, yyvsp[-2].operator);
 		;}
     break;
 
   case 313:
-#line 1819 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1847 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 314:
-#line 1821 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1849 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 315:
-#line 1826 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1854 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_assertion (yyvsp[-4].operator.location, yyvsp[-3].node, yyvsp[-1].node);
 		;}
     break;
 
   case 316:
-#line 1830 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1858 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_assertion (yyvsp[-2].operator.location, yyvsp[-1].node, NULL_TREE);
 		;}
     break;
 
   case 317:
-#line 1834 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1862 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 318:
-#line 1836 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1864 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("';' expected"); RECOVER;;}
     break;
 
   case 319:
-#line 1841 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1869 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  yyval.node = build (SYNCHRONIZED_EXPR, NULL_TREE, yyvsp[-2].node, yyvsp[0].node);
+		  yyval.node = build2 (SYNCHRONIZED_EXPR, NULL_TREE, yyvsp[-2].node, yyvsp[0].node);
 		  EXPR_WFL_LINECOL (yyval.node) =
 		    EXPR_WFL_LINECOL (MODIFIER_WFL (SYNCHRONIZED_TK));
 		;}
     break;
 
   case 320:
-#line 1847 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1875 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'{' expected"); RECOVER;;}
     break;
 
   case 321:
-#line 1849 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1877 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'(' expected"); RECOVER;;}
     break;
 
   case 322:
-#line 1851 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1879 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 323:
-#line 1853 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1881 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 324:
-#line 1858 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1886 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  check_modifiers (
-             "Illegal modifier `%s'. Only `synchronized' was expected here",
+             "Illegal modifier %qs. Only %<synchronized%> was expected here",
 				   yyvsp[0].value, ACC_SYNCHRONIZED);
 		  if (yyvsp[0].value != ACC_SYNCHRONIZED)
 		    MODIFIER_WFL (SYNCHRONIZED_TK) =
@@ -4976,17 +5032,17 @@ yyreduce:
     break;
 
   case 325:
-#line 1870 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1898 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_try_statement (yyvsp[-2].operator.location, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 326:
-#line 1872 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1900 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_try_finally_statement (yyvsp[-2].operator.location, yyvsp[-1].node, yyvsp[0].node); ;}
     break;
 
   case 327:
-#line 1874 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1902 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_try_finally_statement
 		    (yyvsp[-3].operator.location, build_try_statement (yyvsp[-3].operator.location,
 						       yyvsp[-2].node, yyvsp[-1].node), yyvsp[0].node);
@@ -4994,12 +5050,12 @@ yyreduce:
     break;
 
   case 328:
-#line 1879 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1907 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'{' expected"); DRECOVER (try_statement);;}
     break;
 
   case 330:
-#line 1885 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1913 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  TREE_CHAIN (yyvsp[0].node) = yyvsp[-1].node;
 		  yyval.node = yyvsp[0].node;
@@ -5007,7 +5063,7 @@ yyreduce:
     break;
 
   case 331:
-#line 1893 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1921 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  java_method_add_stmt (current_function_decl, yyvsp[0].node);
 		  exit_block ();
@@ -5016,7 +5072,7 @@ yyreduce:
     break;
 
   case 332:
-#line 1902 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1930 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  /* We add a block to define a scope for
 		     formal_parameter (CCBP). The formal parameter is
@@ -5029,12 +5085,12 @@ yyreduce:
                       ccpb = enter_block ();
                       init = build_assignment
                         (ASSIGN_TK, yyvsp[-2].operator.location, TREE_PURPOSE (yyvsp[-1].node),
-                         build (JAVA_EXC_OBJ_EXPR, ptr_type_node));
+                         build0 (JAVA_EXC_OBJ_EXPR, ptr_type_node));
                       declare_local_variables (0, TREE_VALUE (yyvsp[-1].node),
                                                build_tree_list 
 					       (TREE_PURPOSE (yyvsp[-1].node), init));
-                      yyval.node = build1 (CATCH_EXPR, NULL_TREE, ccpb);
-                      EXPR_WFL_LINECOL (yyval.node) = yyvsp[-3].operator.location;
+                      yyval.node = build1 (JAVA_CATCH_EXPR, NULL_TREE, ccpb);
+                      SET_EXPR_LOCATION_FROM_TOKEN (yyval.node, yyvsp[-3].operator);
                     }
                   else
                     {
@@ -5044,12 +5100,12 @@ yyreduce:
     break;
 
   case 333:
-#line 1927 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1955 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'(' expected"); RECOVER; yyval.node = NULL_TREE;;}
     break;
 
   case 334:
-#line 1929 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1957 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Missing term or ')' expected");
 		  RECOVER; yyval.node = NULL_TREE;
@@ -5057,93 +5113,93 @@ yyreduce:
     break;
 
   case 335:
-#line 1934 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1962 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER; yyval.node = NULL_TREE;;}
     break;
 
   case 336:
-#line 1939 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1967 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[0].node; ;}
     break;
 
   case 337:
-#line 1941 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 1969 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'{' expected"); RECOVER; ;}
     break;
 
-  case 341:
-#line 1953 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 342:
+#line 1982 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_this (yyvsp[0].operator.location); ;}
     break;
 
-  case 342:
-#line 1955 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 343:
+#line 1984 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyval.node = yyvsp[-1].node;;}
     break;
 
-  case 348:
-#line 1965 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 349:
+#line 1994 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree wfl = build_wfl_node (this_identifier_node);
 		  yyval.node = make_qualified_primary (yyvsp[-2].node, wfl, EXPR_WFL_LINECOL (yyvsp[-2].node));
 		;}
     break;
 
-  case 349:
-#line 1970 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 350:
+#line 1999 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("')' expected"); RECOVER;;}
     break;
 
-  case 350:
-#line 1972 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 351:
+#line 2001 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'class' or 'this' expected" ); RECOVER;;}
     break;
 
-  case 351:
-#line 1974 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("'class' expected" ); RECOVER;;}
-    break;
-
   case 352:
-#line 1976 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2003 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'class' expected" ); RECOVER;;}
     break;
 
   case 353:
-#line 1981 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_incomplete_class_ref (yyvsp[-1].operator.location, yyvsp[-2].node); ;}
+#line 2005 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("'class' expected" ); RECOVER;;}
     break;
 
   case 354:
-#line 1983 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2010 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_incomplete_class_ref (yyvsp[-1].operator.location, yyvsp[-2].node); ;}
     break;
 
   case 355:
-#line 1985 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2012 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_incomplete_class_ref (yyvsp[-1].operator.location, yyvsp[-2].node); ;}
     break;
 
   case 356:
-#line 1987 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2014 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_incomplete_class_ref (yyvsp[-1].operator.location, yyvsp[-2].node); ;}
+    break;
+
+  case 357:
+#line 2016 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
                    yyval.node = build_incomplete_class_ref (yyvsp[-1].operator.location,
                                                    void_type_node);
                 ;}
     break;
 
-  case 357:
-#line 1995 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 358:
+#line 2024 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_new_invocation (yyvsp[-3].node, yyvsp[-1].node); ;}
     break;
 
-  case 358:
-#line 1997 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 359:
+#line 2026 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_new_invocation (yyvsp[-2].node, NULL_TREE); ;}
     break;
 
-  case 360:
-#line 2003 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 361:
+#line 2032 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree ctor = build_new_invocation (yyvsp[-2].node, NULL_TREE);
 		  yyval.node = make_qualified_primary (yyvsp[-3].node, ctor,
@@ -5151,8 +5207,8 @@ yyreduce:
 		;}
     break;
 
-  case 362:
-#line 2010 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 363:
+#line 2039 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree ctor = build_new_invocation (yyvsp[-3].node, yyvsp[-1].node);
 		  yyval.node = make_qualified_primary (yyvsp[-4].node, ctor,
@@ -5160,43 +5216,48 @@ yyreduce:
 		;}
     break;
 
-  case 364:
-#line 2017 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("'(' expected"); DRECOVER(new_1);;}
-    break;
-
   case 365:
-#line 2019 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("'(' expected"); RECOVER;;}
+#line 2046 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = NULL_TREE; yyerror ("'(' expected"); DRECOVER(new_1);;}
     break;
 
   case 366:
-#line 2021 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("')' or term expected"); RECOVER;;}
+#line 2048 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = NULL_TREE; yyerror ("'(' expected"); RECOVER;;}
     break;
 
   case 367:
-#line 2023 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("')' expected"); RECOVER;;}
+#line 2050 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = NULL_TREE; yyerror ("')' or term expected"); RECOVER;;}
     break;
 
   case 368:
-#line 2025 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {YYERROR_NOW; yyerror ("Identifier expected"); RECOVER;;}
+#line 2052 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = NULL_TREE; yyerror ("')' expected"); RECOVER;;}
     break;
 
   case 369:
-#line 2027 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("'(' expected"); RECOVER;;}
+#line 2054 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = NULL_TREE;
+		  YYERROR_NOW;
+		  yyerror ("Identifier expected");
+		  RECOVER;
+		;}
     break;
 
   case 370:
-#line 2037 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { create_anonymous_class (yyvsp[-4].operator.location, yyvsp[-3].node); ;}
+#line 2061 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = NULL_TREE; yyerror ("'(' expected"); RECOVER;;}
     break;
 
   case 371:
-#line 2039 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2071 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { create_anonymous_class (yyvsp[-3].node); ;}
+    break;
+
+  case 372:
+#line 2073 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree id = build_wfl_node (DECL_NAME (GET_CPC ()));
 		  EXPR_WFL_LINECOL (id) = EXPR_WFL_LINECOL (yyvsp[-5].node);
@@ -5222,20 +5283,20 @@ yyreduce:
 		     later on in verify_constructor_super.
 
 		     It's during the expansion of a `new' statement
-		     refering to an anonymous class that a ctor will
+		     referring to an anonymous class that a ctor will
 		     be generated for the anonymous class, with the
 		     right arguments. */
 
 		;}
     break;
 
-  case 372:
-#line 2070 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { create_anonymous_class (yyvsp[-3].operator.location, yyvsp[-2].node); ;}
+  case 373:
+#line 2104 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { create_anonymous_class (yyvsp[-2].node); ;}
     break;
 
-  case 373:
-#line 2072 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 374:
+#line 2106 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree id = build_wfl_node (DECL_NAME (GET_CPC ()));
 		  EXPR_WFL_LINECOL (id) = EXPR_WFL_LINECOL (yyvsp[-4].node);
@@ -5250,59 +5311,69 @@ yyreduce:
 		;}
     break;
 
-  case 374:
-#line 2088 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = yyvsp[-2].node; ;}
-    break;
-
   case 375:
-#line 2090 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2122 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = yyvsp[-2].node; ;}
     break;
 
   case 376:
-#line 2095 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2124 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = yyvsp[-2].node; ;}
+    break;
+
+  case 377:
+#line 2129 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = tree_cons (NULL_TREE, yyvsp[0].node, NULL_TREE);
 		  ctxp->formal_parameter_number = 1;
 		;}
     break;
 
-  case 377:
-#line 2100 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 378:
+#line 2134 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  ctxp->formal_parameter_number += 1;
 		  yyval.node = tree_cons (NULL_TREE, yyvsp[0].node, yyvsp[-2].node);
 		;}
     break;
 
-  case 378:
-#line 2105 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 379:
+#line 2139 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
-  case 379:
-#line 2110 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_newarray_node (yyvsp[-1].node, yyvsp[0].node, 0); ;}
-    break;
-
   case 380:
-#line 2112 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2144 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_newarray_node (yyvsp[-1].node, yyvsp[0].node, 0); ;}
     break;
 
   case 381:
-#line 2114 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_newarray_node (yyvsp[-2].node, yyvsp[-1].node, pop_current_osb (ctxp));;}
+#line 2146 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_newarray_node (yyvsp[-1].node, yyvsp[0].node, 0); ;}
     break;
 
   case 382:
-#line 2116 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2148 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_newarray_node (yyvsp[-2].node, yyvsp[-1].node, pop_current_osb (ctxp));;}
     break;
 
   case 383:
-#line 2120 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2150 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_newarray_node (yyvsp[-2].node, yyvsp[-1].node, pop_current_osb (ctxp));;}
+    break;
+
+  case 384:
+#line 2152 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("'[' expected"); DRECOVER ("]");;}
+    break;
+
+  case 385:
+#line 2154 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("']' expected"); RECOVER;;}
+    break;
+
+  case 386:
+#line 2161 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  char *sig;
 		  int osb = pop_current_osb (ctxp);
@@ -5310,45 +5381,45 @@ yyreduce:
 		    obstack_grow (&temporary_obstack, "[]", 2);
 		  obstack_1grow (&temporary_obstack, '\0');
 		  sig = obstack_finish (&temporary_obstack);
-		  yyval.node = build (NEW_ANONYMOUS_ARRAY_EXPR, NULL_TREE,
-			      yyvsp[-2].node, get_identifier (sig), yyvsp[0].node);
+		  yyval.node = build3 (NEW_ANONYMOUS_ARRAY_EXPR, NULL_TREE,
+			       yyvsp[-2].node, get_identifier (sig), yyvsp[0].node);
 		;}
     break;
 
-  case 384:
-#line 2131 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 387:
+#line 2172 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  int osb = pop_current_osb (ctxp);
 		  tree type = yyvsp[-2].node;
 		  while (osb--)
 		    type = build_java_array_type (type, -1);
-		  yyval.node = build (NEW_ANONYMOUS_ARRAY_EXPR, NULL_TREE,
-			      build_pointer_type (type), NULL_TREE, yyvsp[0].node);
+		  yyval.node = build3 (NEW_ANONYMOUS_ARRAY_EXPR, NULL_TREE,
+			       build_pointer_type (type), NULL_TREE, yyvsp[0].node);
 		;}
     break;
 
-  case 385:
-#line 2140 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 388:
+#line 2181 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("'[' expected"); DRECOVER ("]");;}
     break;
 
-  case 386:
-#line 2142 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 389:
+#line 2183 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("']' expected"); RECOVER;;}
     break;
 
-  case 387:
-#line 2147 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 390:
+#line 2188 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_tree_list (NULL_TREE, yyvsp[0].node); ;}
     break;
 
-  case 388:
-#line 2149 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 391:
+#line 2190 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = tree_cons (NULL_TREE, yyvsp[0].node, yyval.node); ;}
     break;
 
-  case 389:
-#line 2154 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 392:
+#line 2195 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  if (JNUMERIC_TYPE_P (TREE_TYPE (yyvsp[-1].node)))
 		    {
@@ -5360,13 +5431,13 @@ yyreduce:
 		;}
     break;
 
-  case 390:
-#line 2164 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 393:
+#line 2205 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("']' expected"); RECOVER;;}
     break;
 
-  case 391:
-#line 2166 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 394:
+#line 2207 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Missing term");
 		  yyerror ("']' expected");
@@ -5374,8 +5445,8 @@ yyreduce:
 		;}
     break;
 
-  case 392:
-#line 2175 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 395:
+#line 2216 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  int allocate = 0;
 		  /* If not initialized, allocate memory for the osb
@@ -5403,47 +5474,47 @@ yyreduce:
 		;}
     break;
 
-  case 393:
-#line 2201 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 396:
+#line 2242 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { CURRENT_OSB (ctxp)++; ;}
     break;
 
-  case 394:
-#line 2203 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 397:
+#line 2244 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyerror ("']' expected"); RECOVER;;}
     break;
 
-  case 395:
-#line 2208 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 398:
+#line 2249 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = make_qualified_primary (yyvsp[-2].node, yyvsp[0].node, yyvsp[-1].operator.location); ;}
     break;
 
-  case 396:
-#line 2212 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 399:
+#line 2253 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree super_wfl = build_wfl_node (super_identifier_node);
-		  EXPR_WFL_LINECOL (super_wfl) = yyvsp[-2].operator.location;
+		  SET_EXPR_LOCATION_FROM_TOKEN (super_wfl, yyvsp[-2].operator);
 		  yyval.node = make_qualified_name (super_wfl, yyvsp[0].node, yyvsp[-1].operator.location);
 		;}
     break;
 
-  case 397:
-#line 2218 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 400:
+#line 2259 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Field expected"); DRECOVER (super_field_acces);;}
     break;
 
-  case 398:
-#line 2223 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 401:
+#line 2264 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_method_invocation (yyvsp[-2].node, NULL_TREE); ;}
     break;
 
-  case 399:
-#line 2225 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 402:
+#line 2266 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_method_invocation (yyvsp[-3].node, yyvsp[-1].node); ;}
     break;
 
-  case 400:
-#line 2227 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 403:
+#line 2268 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  if (TREE_CODE (yyvsp[-4].node) == THIS_EXPR)
 		    yyval.node = build_this_super_qualified_invocation
@@ -5456,8 +5527,8 @@ yyreduce:
 		;}
     break;
 
-  case 401:
-#line 2238 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 404:
+#line 2279 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  if (TREE_CODE (yyvsp[-5].node) == THIS_EXPR)
 		    yyval.node = build_this_super_qualified_invocation
@@ -5470,68 +5541,73 @@ yyreduce:
 		;}
     break;
 
-  case 402:
-#line 2249 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 405:
+#line 2290 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_this_super_qualified_invocation
 		    (0, yyvsp[-2].node, NULL_TREE, yyvsp[-4].operator.location, yyvsp[-3].operator.location);
 		;}
     break;
 
-  case 403:
-#line 2254 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 406:
+#line 2295 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_this_super_qualified_invocation
 		    (0, yyvsp[-3].node, yyvsp[-1].node, yyvsp[-5].operator.location, yyvsp[-4].operator.location);
 		;}
     break;
 
-  case 404:
-#line 2263 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyerror ("'(' expected"); DRECOVER (method_invocation); ;}
-    break;
-
-  case 405:
-#line 2265 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyerror ("'(' expected"); DRECOVER (method_invocation); ;}
-    break;
-
-  case 406:
-#line 2270 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_array_ref (yyvsp[-2].operator.location, yyvsp[-3].node, yyvsp[-1].node); ;}
-    break;
-
   case 407:
-#line 2272 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_array_ref (yyvsp[-2].operator.location, yyvsp[-3].node, yyvsp[-1].node); ;}
+#line 2304 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyerror ("'(' expected"); DRECOVER (method_invocation); ;}
     break;
 
   case 408:
-#line 2274 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2306 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyerror ("'(' expected"); DRECOVER (method_invocation); ;}
+    break;
+
+  case 409:
+#line 2311 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_array_ref (yyvsp[-2].operator.location, yyvsp[-3].node, yyvsp[-1].node); ;}
+    break;
+
+  case 410:
+#line 2313 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_array_ref (yyvsp[-2].operator.location, yyvsp[-3].node, yyvsp[-1].node); ;}
+    break;
+
+  case 411:
+#line 2315 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_array_ref (yyvsp[-2].operator.location, yyvsp[-3].node, yyvsp[-1].node); ;}
+    break;
+
+  case 412:
+#line 2317 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Missing term and ']' expected");
 		  DRECOVER(array_access);
 		;}
     break;
 
-  case 409:
-#line 2279 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 413:
+#line 2322 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("']' expected");
 		  DRECOVER(array_access);
 		;}
     break;
 
-  case 410:
-#line 2284 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 414:
+#line 2327 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("Missing term and ']' expected");
 		  DRECOVER(array_access);
 		;}
     break;
 
-  case 411:
-#line 2289 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 415:
+#line 2332 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyerror ("']' expected");
 		  DRECOVER(array_access);
@@ -5539,85 +5615,102 @@ yyreduce:
     break;
 
   case 416:
-#line 2304 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_incdec (yyvsp[0].operator.token, yyvsp[0].operator.location, yyvsp[-1].node, 1); ;}
+#line 2337 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyerror ("Missing term and ']' expected");
+		  DRECOVER(array_access);
+		;}
     break;
 
   case 417:
-#line 2309 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_incdec (yyvsp[0].operator.token, yyvsp[0].operator.location, yyvsp[-1].node, 1); ;}
-    break;
-
-  case 420:
-#line 2316 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyval.node = build_unaryop (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node); ;}
+#line 2342 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyerror ("']' expected");
+		  DRECOVER(array_access);
+		;}
     break;
 
   case 422:
-#line 2319 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;}
+#line 2357 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_incdec (yyvsp[0].operator.token, yyvsp[0].operator.location, yyvsp[-1].node, 1); ;}
     break;
 
   case 423:
-#line 2324 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2362 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_incdec (yyvsp[0].operator.token, yyvsp[0].operator.location, yyvsp[-1].node, 1); ;}
+    break;
+
+  case 426:
+#line 2369 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = build_unaryop (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node); ;}
+    break;
+
+  case 428:
+#line 2372 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;}
+    break;
+
+  case 429:
+#line 2377 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  error_if_numeric_overflow (yyvsp[0].node);
+		  if (yyvsp[0].node)
+		    error_if_numeric_overflow (yyvsp[0].node);
 		  yyval.node = yyvsp[0].node;
 		;}
     break;
 
-  case 424:
-#line 2329 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 430:
+#line 2383 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyval.node = build_unaryop (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node); ;}
-    break;
-
-  case 425:
-#line 2331 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;}
-    break;
-
-  case 426:
-#line 2336 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyval.node = build_incdec (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node, 0); ;}
-    break;
-
-  case 427:
-#line 2338 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;}
-    break;
-
-  case 428:
-#line 2343 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyval.node = build_incdec (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node, 0); ;}
-    break;
-
-  case 429:
-#line 2345 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;}
     break;
 
   case 431:
-#line 2351 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyval.node = build_unaryop (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node); ;}
+#line 2385 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;}
     break;
 
   case 432:
-#line 2353 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyval.node = build_unaryop (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node); ;}
+#line 2390 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = build_incdec (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node, 0); ;}
+    break;
+
+  case 433:
+#line 2392 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;}
     break;
 
   case 434:
-#line 2356 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;}
+#line 2397 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = build_incdec (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node, 0); ;}
     break;
 
   case 435:
-#line 2358 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2399 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;}
     break;
 
-  case 436:
-#line 2363 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 437:
+#line 2405 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = build_unaryop (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node); ;}
+    break;
+
+  case 438:
+#line 2407 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyval.node = build_unaryop (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[0].node); ;}
+    break;
+
+  case 440:
+#line 2410 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;}
+    break;
+
+  case 441:
+#line 2412 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;}
+    break;
+
+  case 442:
+#line 2417 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  tree type = yyvsp[-3].node;
 		  int osb = pop_current_osb (ctxp);
@@ -5627,18 +5720,18 @@ yyreduce:
 		;}
     break;
 
-  case 437:
-#line 2371 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 443:
+#line 2425 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_cast (yyvsp[-3].operator.location, yyvsp[-2].node, yyvsp[0].node); ;}
     break;
 
-  case 438:
-#line 2373 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 444:
+#line 2427 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_cast (yyvsp[-3].operator.location, yyvsp[-2].node, yyvsp[0].node); ;}
     break;
 
-  case 439:
-#line 2375 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 445:
+#line 2429 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  const char *ptr;
 		  int osb = pop_current_osb (ctxp);
@@ -5654,75 +5747,44 @@ yyreduce:
 		;}
     break;
 
-  case 440:
-#line 2389 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 446:
+#line 2443 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("']' expected, invalid type expression");;}
     break;
 
-  case 441:
-#line 2391 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 447:
+#line 2445 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 	          YYNOT_TWICE yyerror ("Invalid type expression"); RECOVER;
 		  RECOVER;
 		;}
     break;
 
-  case 442:
-#line 2396 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 448:
+#line 2450 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
-  case 443:
-#line 2398 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 449:
+#line 2452 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
-  case 444:
-#line 2400 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 450:
+#line 2454 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
-  case 446:
-#line 2406 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 452:
+#line 2460 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token),
 				    yyvsp[-1].operator.location, yyvsp[-2].node, yyvsp[0].node);
 		;}
     break;
 
-  case 447:
-#line 2411 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
-    break;
-
-  case 448:
-#line 2416 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
-    break;
-
-  case 449:
-#line 2421 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
-    break;
-
-  case 450:
-#line 2423 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
-    break;
-
-  case 451:
-#line 2425 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
-    break;
-
   case 453:
-#line 2431 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2465 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5730,7 +5792,7 @@ yyreduce:
     break;
 
   case 454:
-#line 2436 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2470 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5738,25 +5800,22 @@ yyreduce:
     break;
 
   case 455:
-#line 2441 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2475 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 456:
-#line 2443 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2477 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
-  case 458:
-#line 2449 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
+  case 457:
+#line 2479 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 459:
-#line 2454 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2485 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5764,7 +5823,7 @@ yyreduce:
     break;
 
   case 460:
-#line 2459 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2490 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5772,22 +5831,25 @@ yyreduce:
     break;
 
   case 461:
-#line 2464 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2495 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 462:
-#line 2466 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2497 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
-  case 463:
-#line 2468 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
+  case 464:
+#line 2503 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
+		;}
     break;
 
   case 465:
-#line 2474 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2508 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5795,7 +5857,7 @@ yyreduce:
     break;
 
   case 466:
-#line 2479 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2513 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5803,105 +5865,110 @@ yyreduce:
     break;
 
   case 467:
-#line 2484 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
+#line 2518 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 468:
-#line 2489 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
+#line 2520 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 469:
-#line 2494 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    { yyval.node = build_binop (INSTANCEOF_EXPR, yyvsp[-1].operator.location, yyvsp[-2].node, yyvsp[0].node); ;}
-    break;
-
-  case 470:
-#line 2496 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2522 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 471:
-#line 2498 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
+#line 2528 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
+		;}
     break;
 
   case 472:
-#line 2500 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
+#line 2533 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
+		;}
     break;
 
   case 473:
-#line 2502 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
+#line 2538 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
+		;}
     break;
 
   case 474:
-#line 2504 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Invalid reference type"); RECOVER;;}
+#line 2543 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
+		;}
+    break;
+
+  case 475:
+#line 2548 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    { yyval.node = build_binop (INSTANCEOF_EXPR, yyvsp[-1].operator.location, yyvsp[-2].node, yyvsp[0].node); ;}
     break;
 
   case 476:
-#line 2510 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
+#line 2550 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 477:
-#line 2515 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
+#line 2552 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 478:
-#line 2520 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2554 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 479:
-#line 2522 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2556 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
-  case 481:
-#line 2528 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {
-		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
-				    yyvsp[-2].node, yyvsp[0].node);
-		;}
+  case 480:
+#line 2558 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Invalid reference type"); RECOVER;;}
     break;
 
   case 482:
-#line 2533 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
-    {yyerror ("Missing term"); RECOVER;;}
-    break;
-
-  case 484:
-#line 2539 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2564 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
 		;}
     break;
 
+  case 483:
+#line 2569 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
+		;}
+    break;
+
+  case 484:
+#line 2574 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
+    break;
+
   case 485:
-#line 2544 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2576 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 487:
-#line 2550 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2582 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5909,12 +5976,12 @@ yyreduce:
     break;
 
   case 488:
-#line 2555 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2587 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 490:
-#line 2561 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2593 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5922,12 +5989,12 @@ yyreduce:
     break;
 
   case 491:
-#line 2566 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2598 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 493:
-#line 2572 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2604 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
 				    yyvsp[-2].node, yyvsp[0].node);
@@ -5935,20 +6002,46 @@ yyreduce:
     break;
 
   case 494:
-#line 2577 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2609 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); RECOVER;;}
     break;
 
   case 496:
-#line 2583 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2615 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
-		  yyval.node = build (CONDITIONAL_EXPR, NULL_TREE, yyvsp[-4].node, yyvsp[-2].node, yyvsp[0].node);
-		  EXPR_WFL_LINECOL (yyval.node) = yyvsp[-3].operator.location;
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
 		;}
     break;
 
   case 497:
-#line 2588 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2620 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
+    break;
+
+  case 499:
+#line 2626 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build_binop (BINOP_LOOKUP (yyvsp[-1].operator.token), yyvsp[-1].operator.location,
+				    yyvsp[-2].node, yyvsp[0].node);
+		;}
+    break;
+
+  case 500:
+#line 2631 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {yyerror ("Missing term"); RECOVER;;}
+    break;
+
+  case 502:
+#line 2637 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
+    {
+		  yyval.node = build3 (CONDITIONAL_EXPR, NULL_TREE, yyvsp[-4].node, yyvsp[-2].node, yyvsp[0].node);
+		  SET_EXPR_LOCATION_FROM_TOKEN (yyval.node, yyvsp[-3].operator);
+		;}
+    break;
+
+  case 503:
+#line 2642 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  YYERROR_NOW;
 		  yyerror ("Missing term");
@@ -5956,23 +6049,23 @@ yyreduce:
 		;}
     break;
 
-  case 498:
-#line 2594 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 504:
+#line 2648 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); DRECOVER (2);;}
     break;
 
-  case 499:
-#line 2596 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 505:
+#line 2650 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {yyerror ("Missing term"); DRECOVER (3);;}
     break;
 
-  case 502:
-#line 2606 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 508:
+#line 2660 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     { yyval.node = build_assignment (yyvsp[-1].operator.token, yyvsp[-1].operator.location, yyvsp[-2].node, yyvsp[0].node); ;}
     break;
 
-  case 503:
-#line 2608 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+  case 509:
+#line 2662 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
     {
 		  YYNOT_TWICE yyerror ("Missing term");
 		  DRECOVER (assign);
@@ -5983,7 +6076,7 @@ yyreduce:
     }
 
 /* Line 991 of yacc.c.  */
-#line 5986 "java/parse.c"
+#line 6079 "java/parse.c"
 
   yyvsp -= yylen;
   yyssp -= yylen;
@@ -6193,7 +6286,7 @@ yyreturn:
 }
 
 
-#line 2633 "/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/parse.y"
+#line 2687 "/home/gdr/build/gcc-release/gcc-4.0.4/gcc-4.0.4/gcc/java/parse.y"
 
 
 /* Helper function to retrieve an OSB count. Should be used when the
@@ -6255,16 +6348,15 @@ void
 java_pop_parser_context (int generate)
 {
   tree current;
-  struct parser_ctxt *toFree, *next;
+  struct parser_ctxt *next;
 
   if (!ctxp)
     return;
 
-  toFree = ctxp;
   next = ctxp->next;
   if (next)
     {
-      input_line = ctxp->lineno;
+      input_location = ctxp->save_location;
       current_class = ctxp->class_type;
     }
 
@@ -6277,19 +6369,23 @@ java_pop_parser_context (int generate)
   for (current = ctxp->import_list; current; current = TREE_CHAIN (current))
     IS_A_SINGLE_IMPORT_CLASSFILE_NAME_P (TREE_VALUE (current)) = 0;
 
-  /* And restore those of the previous context */
-  if ((ctxp = next))		/* Assignment is really meant here */
-    for (current = ctxp->import_list; current; current = TREE_CHAIN (current))
-      IS_A_SINGLE_IMPORT_CLASSFILE_NAME_P (TREE_VALUE (current)) = 1;
-
   /* If we pushed a context to parse a class intended to be generated,
      we keep it so we can remember the class. What we could actually
      do is to just update a list of class names.  */
   if (generate)
     {
-      toFree->next = ctxp_for_generation;
-      ctxp_for_generation = toFree;
+      if (ctxp_for_generation_last == NULL)
+        ctxp_for_generation = ctxp;
+      else
+        ctxp_for_generation_last->next = ctxp;
+      ctxp->next = NULL;
+      ctxp_for_generation_last = ctxp;
     }
+
+  /* And restore those of the previous context */
+  if ((ctxp = next))		/* Assignment is really meant here */
+    for (current = ctxp->import_list; current; current = TREE_CHAIN (current))
+      IS_A_SINGLE_IMPORT_CLASSFILE_NAME_P (TREE_VALUE (current)) = 1;
 }
 
 /* Create a parser context for the use of saving some global
@@ -6312,9 +6408,8 @@ java_parser_context_save_global (void)
       ctxp->saved_data_ctx = 1;
     }
 
-  ctxp->lineno = input_line;
+  ctxp->save_location = input_location;
   ctxp->class_type = current_class;
-  ctxp->filename = input_filename;
   ctxp->function_decl = current_function_decl;
   ctxp->saved_data = 1;
 }
@@ -6325,15 +6420,14 @@ java_parser_context_save_global (void)
 void
 java_parser_context_restore_global (void)
 {
-  input_line = ctxp->lineno;
+  input_location = ctxp->save_location;
   current_class = ctxp->class_type;
-  input_filename = ctxp->filename;
   if (wfl_operator)
-    {
-      tree s;
-      BUILD_FILENAME_IDENTIFIER_NODE (s, input_filename);
-      EXPR_WFL_FILENAME_NODE (wfl_operator) = s;
-    }
+#ifdef USE_MAPPED_LOCATION
+    SET_EXPR_LOCATION (wfl_operator, ctxp->save_location);
+#else
+    EXPR_WFL_FILENAME_NODE (wfl_operator) = get_identifier (input_filename);
+#endif
   current_function_decl = ctxp->function_decl;
   ctxp->saved_data = 0;
   if (ctxp->saved_data_ctx)
@@ -6501,8 +6595,6 @@ java_debug_context_do (int tab)
       TAB_CONTEXT (tab);
       fprintf (stderr, "filename: %s\n", copy->filename);
       TAB_CONTEXT (tab);
-      fprintf (stderr, "lineno: %d\n", copy->lineno);
-      TAB_CONTEXT (tab);
       fprintf (stderr, "package: %s\n",
 	       (copy->package ?
 		IDENTIFIER_POINTER (copy->package) : "<none>"));
@@ -6547,42 +6639,56 @@ parse_ctor_invocation_error (void)
 static tree
 parse_jdk1_1_error (const char *msg)
 {
-  sorry (": `%s' JDK1.1(TM) feature", msg);
+  sorry (": %qs JDK1.1(TM) feature", msg);
   java_error_count++;
-  return empty_stmt_node;
+  return build_java_empty_stmt ();
 }
 
 static int do_warning = 0;
 
 void
-yyerror (const char *msg)
+yyerror (const char *msgid)
 {
+#ifdef USE_MAPPED_LOCATION
+  static source_location elc;
+  expanded_location xloc = expand_location (input_location);
+  int current_line = xloc.line;
+#else
   static java_lc elc;
-  static int  prev_lineno;
+  int save_lineno;
+  int current_line = input_line;
+#endif
+  static int prev_lineno;
   static const char *prev_msg;
 
-  int save_lineno;
   char *remainder, *code_from_source;
 
-  if (!force_error && prev_lineno == input_line)
+  if (!force_error && prev_lineno == current_line)
     return;
+#ifndef USE_MAPPED_LOCATION
+  current_line = ctxp->lexer->token_start.line;
+#endif
 
   /* Save current error location but report latter, when the context is
      richer.  */
   if (ctxp->java_error_flag == 0)
     {
       ctxp->java_error_flag = 1;
-      elc = ctxp->elc;
+#ifdef USE_MAPPED_LOCATION
+      elc = input_location;
+#else
+      elc = ctxp->lexer->token_start;
+#endif
       /* Do something to use the previous line if we're reaching the
 	 end of the file... */
 #ifdef VERBOSE_SKELETON
-      printf ("* Error detected (%s)\n", (msg ? msg : "(null)"));
+      printf ("* Error detected (%s)\n", (msgid ? msgid : "(null)"));
 #endif
       return;
     }
 
   /* Ignore duplicate message on the same line. BTW, this is dubious. FIXME */
-  if (!force_error && msg == prev_msg && prev_lineno == elc.line)
+  if (!force_error && msgid == prev_msg && prev_lineno == current_line)
     return;
 
   ctxp->java_error_flag = 0;
@@ -6591,80 +6697,134 @@ yyerror (const char *msg)
   else
     java_error_count++;
 
-  if (elc.col == 0 && msg && msg[1] == ';')
-    {
-      elc.col  = ctxp->p_line->char_col-1;
-      elc.line = ctxp->p_line->lineno;
-    }
+#if 0 /* FIXME */
+  if (elc.col == 0 && msgid && msgid[1] == ';')
+    elc = ctxp->prev_line_end;
+#endif
 
+  prev_msg = msgid;
+
+#ifdef USE_MAPPED_LOCATION
+  prev_lineno = current_line;
+  code_from_source = java_get_line_col (xloc.file, current_line, xloc.column);
+#else
   save_lineno = input_line;
-  prev_lineno = input_line = elc.line;
-  prev_msg = msg;
+  prev_lineno = input_line = current_line;
+  code_from_source = java_get_line_col (input_filename, current_line,
+					ctxp->lexer->token_start.col);
+#endif
 
-  code_from_source = java_get_line_col (ctxp->filename, elc.line, elc.col);
+
   obstack_grow0 (&temporary_obstack,
 		 code_from_source, strlen (code_from_source));
   remainder = obstack_finish (&temporary_obstack);
   if (do_warning)
-    warning ("%s.\n%s", msg, remainder);
+    warning ("%s.\n%s", msgid, remainder);
   else
-    error ("%s.\n%s", msg, remainder);
+    error ("%s.\n%s", msgid, remainder);
 
   /* This allow us to cheaply avoid an extra 'Invalid expression
      statement' error report when errors have been already reported on
      the same line. This occurs when we report an error but don't have
      a synchronization point other than ';', which
      expression_statement is the only one to take care of.  */
-  ctxp->prevent_ese = input_line = save_lineno;
+#ifndef USE_MAPPED_LOCATION
+  input_line = save_lineno;
+#endif
+  ctxp->prevent_ese = input_line;
 }
 
 static void
-issue_warning_error_from_context (tree cl, const char *msg, va_list ap)
+issue_warning_error_from_context (
+#ifdef USE_MAPPED_LOCATION
+				  source_location cl,
+#else
+				  tree cl,
+#endif
+				  const char *gmsgid, va_list *ap)
 {
-  const char *saved, *saved_input_filename;
+#ifdef USE_MAPPED_LOCATION
+  source_location saved_location = input_location;
+  expanded_location xloc = expand_location (cl);
+#else
+  java_lc save_lc = ctxp->lexer->token_start;
+  const char *saved = ctxp->filename, *saved_input_filename;
+#endif
   char buffer [4096];
-  vsprintf (buffer, msg, ap);
+  text_info text;
+
+  text.err_no = errno;
+  text.args_ptr = ap;
+  text.format_spec = gmsgid;
+  pp_format_text (global_dc->printer, &text);
+  strncpy (buffer, pp_formatted_text (global_dc->printer), sizeof (buffer) - 1);
+  buffer[sizeof (buffer) - 1] = '\0';
+  pp_clear_output_area (global_dc->printer);
+
   force_error = 1;
 
-  ctxp->elc.line = EXPR_WFL_LINENO (cl);
-  ctxp->elc.col  = (EXPR_WFL_COLNO (cl) == 0xfff ? -1 :
-		    (EXPR_WFL_COLNO (cl) == 0xffe ? -2 : EXPR_WFL_COLNO (cl)));
+#ifdef USE_MAPPED_LOCATION
+  if (xloc.file != NULL)
+    {
+      ctxp->filename = xloc.file;
+      input_location = cl;
+    }
+#else
+  ctxp->lexer->token_start.line = EXPR_WFL_LINENO (cl);
+  ctxp->lexer->token_start.col  = (EXPR_WFL_COLNO (cl) == 0xfff ? -1
+				   : EXPR_WFL_COLNO (cl) == 0xffe ? -2
+				   : EXPR_WFL_COLNO (cl));
 
   /* We have a CL, that's a good reason for using it if it contains data */
-  saved = ctxp->filename;
   if (TREE_CODE (cl) == EXPR_WITH_FILE_LOCATION && EXPR_WFL_FILENAME_NODE (cl))
     ctxp->filename = EXPR_WFL_FILENAME (cl);
   saved_input_filename = input_filename;
   input_filename = ctxp->filename;
+#endif
   java_error (NULL);
   java_error (buffer);
+#ifdef USE_MAPPED_LOCATION
+  input_location = saved_location;
+#else
   ctxp->filename = saved;
   input_filename = saved_input_filename;
+  ctxp->lexer->token_start = save_lc;
+#endif
   force_error = 0;
 }
 
-/* Issue an error message at a current source line CL */
+/* Issue an error message at a current source line CL.
+   FUTURE/FIXME:  change cl to be a source_location. */
 
 void
-parse_error_context (tree cl, const char *msg, ...)
+parse_error_context (tree cl, const char *gmsgid, ...)
 {
   va_list ap;
-  va_start (ap, msg);
-  issue_warning_error_from_context (cl, msg, ap);
+  va_start (ap, gmsgid);
+#ifdef USE_MAPPED_LOCATION
+  issue_warning_error_from_context (EXPR_LOCATION (cl), gmsgid, &ap);
+#else
+  issue_warning_error_from_context (cl, gmsgid, &ap);
+#endif
   va_end (ap);
 }
 
-/* Issue a warning at a current source line CL */
+/* Issue a warning at a current source line CL.
+   FUTURE/FIXME:  change cl to be a source_location. */
 
 static void
-parse_warning_context (tree cl, const char *msg, ...)
+parse_warning_context (tree cl, const char *gmsgid, ...)
 {
   va_list ap;
-  va_start (ap, msg);
+  va_start (ap, gmsgid);
 
-  force_error = do_warning = 1;
-  issue_warning_error_from_context (cl, msg, ap);
-  do_warning = force_error = 0;
+  do_warning = 1;
+#ifdef USE_MAPPED_LOCATION
+  issue_warning_error_from_context (EXPR_LOCATION (cl), gmsgid, &ap);
+#else
+  issue_warning_error_from_context (cl, gmsgid, &ap);
+#endif
+  do_warning = 0;
   va_end (ap);
 }
 
@@ -6673,7 +6833,7 @@ find_expr_with_wfl (tree node)
 {
   while (node)
     {
-      char code;
+      enum tree_code_class code;
       tree to_return;
 
       switch (TREE_CODE (node))
@@ -6694,12 +6854,13 @@ find_expr_with_wfl (tree node)
 	  continue;
 
 	case LABELED_BLOCK_EXPR:
-	  node = TREE_OPERAND (node, 1);
+	  node = LABELED_BLOCK_BODY (node);
 	  continue;
 
 	default:
 	  code = TREE_CODE_CLASS (TREE_CODE (node));
-	  if (((code == '1') || (code == '2') || (code == 'e'))
+	  if (((code == tcc_unary) || (code == tcc_binary)
+	       || (code == tcc_expression))
 	      && EXPR_WFL_LINECOL (node))
 	    return node;
 	  return NULL_TREE;
@@ -6714,7 +6875,11 @@ find_expr_with_wfl (tree node)
 static void
 missing_return_error (tree method)
 {
+#ifdef USE_MAPPED_LOCATION
+  SET_EXPR_LOCATION (wfl_operator, DECL_FUNCTION_LAST_LINE (method));
+#else
   EXPR_WFL_SET_LINECOL (wfl_operator, DECL_FUNCTION_LAST_LINE (method), -2);
+#endif
   parse_error_context (wfl_operator, "Missing return statement");
 }
 
@@ -6732,7 +6897,11 @@ unreachable_stmt_error (tree node)
 
   if (node)
     {
+#ifdef USE_MAPPED_LOCATION
+      SET_EXPR_LOCATION (wfl_operator, EXPR_LOCATION (node));
+#else
       EXPR_WFL_SET_LINECOL (wfl_operator, EXPR_WFL_LINENO (node), -2);
+#endif
       parse_error_context (wfl_operator, "Unreachable statement");
     }
   else
@@ -6743,8 +6912,8 @@ static int
 not_accessible_field_error (tree wfl, tree decl)
 {
   parse_error_context 
-    (wfl, "Can't access %s field `%s.%s' from `%s'",
-     java_accstring_lookup (get_access_flags_from_decl (decl)),
+    (wfl, "Can't access %s field %<%s.%s%> from %qs",
+     accessibility_string (get_access_flags_from_decl (decl)),
      GET_TYPE_NAME (DECL_CONTEXT (decl)),
      IDENTIFIER_POINTER (DECL_NAME (decl)),
      IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (current_class))));
@@ -6790,13 +6959,29 @@ java_accstring_lookup (int flags)
 #undef COPY_RETURN
 }
 
+/* Returns a string denoting the accessibility of a class or a member as
+   indicated by FLAGS.  We need a separate function from
+   java_accstring_lookup, as the latter can return spurious "static", etc.
+   if package-private access is defined (in which case none of the
+   relevant access control bits in FLAGS is set).  */
+
+static const char *
+accessibility_string (int flags)
+{
+  if (flags & ACC_PRIVATE) return "private";
+  if (flags & ACC_PROTECTED) return "protected";
+  if (flags & ACC_PUBLIC) return "public";
+
+  return "package-private";
+}
+
 /* Issuing error messages upon redefinition of classes, interfaces or
    variables. */
 
 static void
 classitf_redefinition_error (const char *context, tree id, tree decl, tree cl)
 {
-  parse_error_context (cl, "%s `%s' already defined in %s:%d",
+  parse_error_context (cl, "%s %qs already defined in %s:%d",
 		       context, IDENTIFIER_POINTER (id),
 		       DECL_SOURCE_FILE (decl), DECL_SOURCE_LINE (decl));
   /* Here we should point out where its redefined. It's a unicode. FIXME */
@@ -6814,7 +6999,7 @@ variable_redefinition_error (tree context, tree name, tree type, int line)
     type_name = lang_printable_name (type, 0);
 
   parse_error_context (context,
-		       "Variable `%s' is already defined in this method and was declared `%s %s' at line %d",
+		       "Variable %qs is already defined in this method and was declared %<%s %s%> at line %d",
 		       IDENTIFIER_POINTER (name),
 		       type_name, IDENTIFIER_POINTER (name), line);
 }
@@ -6907,10 +7092,14 @@ build_unresolved_array_type (tree type_or_wfl)
 		 IDENTIFIER_LENGTH (EXPR_WFL_NODE (type_or_wfl)));
   obstack_grow0 (&temporary_obstack, "[]", 2);
   ptr = obstack_finish (&temporary_obstack);
+#ifdef USE_MAPPED_LOCATION
+  wfl = build_expr_wfl (get_identifier (ptr), EXPR_LOCATION (type_or_wfl));
+#else
   wfl = build_expr_wfl (get_identifier (ptr),
 			EXPR_WFL_FILENAME (type_or_wfl),
 			EXPR_WFL_LINENO (type_or_wfl),
 			EXPR_WFL_COLNO (type_or_wfl));
+#endif
   /* Re-install the existing qualifications so that the type can be
      resolved properly. */
   EXPR_WFL_QUALIFICATION (wfl) = EXPR_WFL_QUALIFICATION (type_or_wfl);
@@ -6921,7 +7110,7 @@ static void
 parser_add_interface (tree class_decl, tree interface_decl, tree wfl)
 {
   if (maybe_add_interface (TREE_TYPE (class_decl), TREE_TYPE (interface_decl)))
-    parse_error_context (wfl, "Interface `%s' repeated",
+    parse_error_context (wfl, "Interface %qs repeated",
 			 IDENTIFIER_POINTER (DECL_NAME (interface_decl)));
 }
 
@@ -6951,7 +7140,7 @@ check_class_interface_creation (int is_interface, int flags, tree raw_name,
       && !CPC_INNER_P ())
     {
       parse_error_context
-	(cl, "%s name `%s' clashes with imported type `%s'",
+	(cl, "%s name %qs clashes with imported type %qs",
 	 (is_interface ? "Interface" : "Class"),
 	 IDENTIFIER_POINTER (raw_name), IDENTIFIER_POINTER (node));
       return 1;
@@ -6970,19 +7159,20 @@ check_class_interface_creation (int is_interface, int flags, tree raw_name,
      when dealing with an inner class */
   if (!CPC_INNER_P () && (flags & ACC_PUBLIC ))
     {
+      const char *fname = input_filename;
       const char *f;
 
-      for (f = &input_filename [strlen (input_filename)];
-	   f != input_filename && ! IS_DIR_SEPARATOR (f[0]);
+      for (f = fname + strlen (fname);
+	   f != fname && ! IS_DIR_SEPARATOR (*f);
 	   f--)
 	;
-      if (IS_DIR_SEPARATOR (f[0]))
+      if (IS_DIR_SEPARATOR (*f))
 	f++;
       if (strncmp (IDENTIFIER_POINTER (raw_name),
 		   f , IDENTIFIER_LENGTH (raw_name)) ||
 	  f [IDENTIFIER_LENGTH (raw_name)] != '.')
 	parse_error_context
-	  (cl, "Public %s `%s' must be defined in a file called `%s.java'",
+	  (cl, "Public %s %qs must be defined in a file called %<%s.java%>",
 			     (is_interface ? "interface" : "class"),
 			     IDENTIFIER_POINTER (qualified_name),
 			     IDENTIFIER_POINTER (raw_name));
@@ -6997,7 +7187,7 @@ check_class_interface_creation (int is_interface, int flags, tree raw_name,
 	 complaining a second time */
       if (CPC_INNER_P () && !TOPLEVEL_CLASS_DECL_P (GET_CPC()))
 	{
-	  parse_error_context (cl, "Inner class `%s' can't be static. Static classes can only occur in interfaces and top-level classes",
+	  parse_error_context (cl, "Inner class %qs can't be static. Static classes can only occur in interfaces and top-level classes",
 			       IDENTIFIER_POINTER (qualified_name));
 	  sca = ACC_STATIC;
 	}
@@ -7032,13 +7222,13 @@ check_class_interface_creation (int is_interface, int flags, tree raw_name,
       else
 	uaaf = INTERFACE_MODIFIERS;
 
-      check_modifiers ("Illegal modifier `%s' for interface declaration",
+      check_modifiers ("Illegal modifier %qs for interface declaration",
 		       flags, uaaf);
     }
   else
     check_modifiers ((current_function_decl ?
-		      "Illegal modifier `%s' for local class declaration" :
-		      "Illegal modifier `%s' for class declaration"),
+		      "Illegal modifier %qs for local class declaration" :
+		      "Illegal modifier %qs for class declaration"),
 		     flags, uaaf|sca|icaf);
   return 0;
 }
@@ -7078,7 +7268,7 @@ check_inner_class_redefinition (tree raw_name, tree cl)
     if (raw_name == GET_CPC_UN_NODE (scope_list))
       {
 	parse_error_context
-	  (cl, "The class name `%s' is already defined in this scope. An inner class may not have the same simple name as any of its enclosing classes",
+	  (cl, "The class name %qs is already defined in this scope. An inner class may not have the same simple name as any of its enclosing classes",
 	   IDENTIFIER_POINTER (raw_name));
 	return 1;
       }
@@ -7129,7 +7319,7 @@ resolve_inner_class (htab_t circularity_hash, tree cl, tree *enclosing,
         break;
 
       if (TREE_CODE (local_super) == POINTER_TYPE)
-        local_super = do_resolve_class (NULL, local_super, NULL, NULL);
+        local_super = do_resolve_class (NULL, NULL, local_super, NULL, NULL);
       else
 	local_super = TYPE_NAME (local_super);
 
@@ -7174,7 +7364,7 @@ find_as_inner_class (tree enclosing, tree name, tree cl)
   else if (cl)
     qual = build_tree_list (cl, NULL_TREE);
   else
-    qual = build_tree_list (build_expr_wfl (name, NULL, 0, 0), NULL_TREE);
+    qual = build_tree_list (build_unknown_wfl (name), NULL_TREE);
 
   if ((to_return = find_as_inner_class_do (qual, enclosing)))
     return to_return;
@@ -7191,7 +7381,7 @@ find_as_inner_class (tree enclosing, tree name, tree cl)
 	  acc = merge_qualified_name (acc,
 				      EXPR_WFL_NODE (TREE_PURPOSE (qual)));
 	  BUILD_PTR_FROM_NAME (ptr, acc);
-	  decl = do_resolve_class (NULL_TREE, ptr, NULL_TREE, cl);
+	  decl = do_resolve_class (NULL_TREE, NULL_TREE, ptr, NULL_TREE, cl);
 	}
 
       /* A NULL qual and a decl means that the search ended
@@ -7204,7 +7394,7 @@ find_as_inner_class (tree enclosing, tree name, tree cl)
     }
   /* Otherwise, create a qual for the other part of the resolution. */
   else
-    qual = build_tree_list (build_expr_wfl (name, NULL, 0, 0), NULL_TREE);
+    qual = build_tree_list (build_unknown_wfl (name), NULL_TREE);
 
   return find_as_inner_class_do (qual, enclosing);
 }
@@ -7237,19 +7427,6 @@ find_as_inner_class_do (tree qual, tree enclosing)
     }
 
   return (!qual && enclosing ? enclosing : NULL_TREE);
-}
-
-/* Reach all inner classes and tie their unqualified name to a
-   DECL. */
-
-static void
-set_nested_class_simple_name_value (tree outer, int set)
-{
-  tree l;
-
-  for (l = DECL_INNER_CLASS_LIST (outer); l; l = TREE_CHAIN (l))
-    IDENTIFIER_GLOBAL_VALUE (TREE_VALUE (l)) = (set ?
-						TREE_PURPOSE (l) : NULL_TREE);
 }
 
 static void
@@ -7306,16 +7483,28 @@ maybe_create_class_interface_decl (tree decl, tree raw_name,
     decl = push_class (make_class (), qualified_name);
 
   /* Take care of the file and line business */
+#ifdef USE_MAPPED_LOCATION
+  DECL_SOURCE_LOCATION (decl) = EXPR_LOCATION (cl);
+#else
   DECL_SOURCE_FILE (decl) = EXPR_WFL_FILENAME (cl);
   /* If we're emitting xrefs, store the line/col number information */
   if (flag_emit_xref)
     DECL_SOURCE_LINE (decl) = EXPR_WFL_LINECOL (cl);
   else
     DECL_SOURCE_LINE (decl) = EXPR_WFL_LINENO (cl);
+#endif
   CLASS_FROM_SOURCE_P (TREE_TYPE (decl)) = 1;
   CLASS_PARSED_P (TREE_TYPE (decl)) = 1;
+#ifdef USE_MAPPED_LOCATION
+  {
+    tree tmp = maybe_get_identifier (EXPR_FILENAME (cl));
+    CLASS_FROM_CURRENTLY_COMPILED_P (TREE_TYPE (decl)) =
+      tmp && IS_A_COMMAND_LINE_FILENAME_P (tmp);
+  }
+#else
   CLASS_FROM_CURRENTLY_COMPILED_P (TREE_TYPE (decl)) =
     IS_A_COMMAND_LINE_FILENAME_P (EXPR_WFL_FILENAME_NODE (cl));
+#endif
 
   PUSH_CPC (decl, raw_name);
   DECL_CONTEXT (decl) = GET_ENCLOSING_CPC_CONTEXT ();
@@ -7330,6 +7519,14 @@ maybe_create_class_interface_decl (tree decl, tree raw_name,
 
   /* Install a new dependency list element */
   create_jdep_list (ctxp);
+
+  /* We keep the compilation unit imports in the class so that
+     they can be used later to resolve type dependencies that
+     aren't necessary to solve now. */
+  TYPE_IMPORT_LIST (TREE_TYPE (decl)) = ctxp->import_list;
+  TYPE_IMPORT_DEMAND_LIST (TREE_TYPE (decl)) = ctxp->import_demand_list;
+
+  TYPE_PACKAGE (TREE_TYPE (decl)) = ctxp->package;
 
   SOURCE_FRONTEND_DEBUG (("Defining class/interface %s",
 			  IDENTIFIER_POINTER (qualified_name)));
@@ -7406,10 +7603,17 @@ create_interface (int flags, tree id, tree super)
   if ((flags & ACC_ABSTRACT) && flag_redundant)
     parse_warning_context
       (MODIFIER_WFL (ABSTRACT_TK),
-       "Redundant use of `abstract' modifier. Interface `%s' is implicitly abstract", IDENTIFIER_POINTER (raw_name));
+       "Redundant use of %<abstract%> modifier. Interface %qs is implicitly abstract", IDENTIFIER_POINTER (raw_name));
 
   /* Create a new decl if DECL is NULL, otherwise fix it */
   decl = maybe_create_class_interface_decl (decl, raw_name, q_name, id);
+
+  /* Interfaces are always abstract. */
+  flags |= ACC_ABSTRACT;
+
+  /* Inner interfaces are always static.  */
+  if (INNER_CLASS_DECL_P (decl))
+    flags |= ACC_STATIC;
 
   /* Set super info and mark the class a complete */
   set_super_info (ACC_INTERFACE | flags, TREE_TYPE (decl),
@@ -7437,16 +7641,24 @@ patch_anonymous_class (tree type_decl, tree class_decl, tree wfl)
   /* If it's an interface, implement it */
   if (CLASS_INTERFACE (type_decl))
     {
-      tree s_binfo;
-      int length;
-
       if (parser_check_super_interface (type_decl, class_decl, wfl))
 	return;
 
-      s_binfo = TREE_VEC_ELT (BINFO_BASETYPES (TYPE_BINFO (class)), 0);
-      length = TREE_VEC_LENGTH (TYPE_BINFO_BASETYPES (class))+1;
-      TYPE_BINFO_BASETYPES (class) = make_tree_vec (length);
-      TREE_VEC_ELT (BINFO_BASETYPES (TYPE_BINFO (class)), 0) = s_binfo;
+      if (!VEC_space (tree, BINFO_BASE_BINFOS (binfo), 1))
+	{
+	   /* Extend the binfo - by reallocating and copying it. */
+	  tree new_binfo;
+	  tree base_binfo;
+	  int i;
+	  
+	  new_binfo = make_tree_binfo ((BINFO_N_BASE_BINFOS (binfo) + 1) * 2);
+	  for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
+	    BINFO_BASE_APPEND (new_binfo, base_binfo);
+	  CLASS_HAS_SUPER_FLAG (new_binfo) = CLASS_HAS_SUPER_FLAG (binfo);
+	  BINFO_VTABLE (new_binfo) = BINFO_VTABLE (binfo);
+	  TYPE_BINFO (class) = new_binfo;
+	}
+      
       /* And add the interface */
       parser_add_interface (class_decl, type_decl, wfl);
     }
@@ -7455,12 +7667,15 @@ patch_anonymous_class (tree type_decl, tree class_decl, tree wfl)
     {
       if (parser_check_super (type_decl, class_decl, wfl))
 	return;
-      BINFO_TYPE (TREE_VEC_ELT (BINFO_BASETYPES (binfo), 0)) = type;
+      BINFO_TYPE (BINFO_BASE_BINFO (binfo, 0)) = type;
     }
 }
 
+/* Create an anonymous class which extends/implements TYPE_NAME, and return
+   its decl.  */
+
 static tree
-create_anonymous_class (int location, tree type_name)
+create_anonymous_class (tree type_name)
 {
   char buffer [80];
   tree super = NULL_TREE, itf = NULL_TREE;
@@ -7469,7 +7684,7 @@ create_anonymous_class (int location, tree type_name)
   /* The unqualified name of the anonymous class. It's just a number. */
   sprintf (buffer, "%d", anonymous_class_counter++);
   id = build_wfl_node (get_identifier (buffer));
-  EXPR_WFL_LINECOL (id) = location;
+  EXPR_WFL_LINECOL (id) = EXPR_WFL_LINECOL (type_name);
 
   /* We know about the type to extend/implement. We go ahead */
   if ((type_decl = IDENTIFIER_CLASS_VALUE (EXPR_WFL_NODE (type_name))))
@@ -7543,7 +7758,7 @@ create_class (int flags, tree id, tree super, tree interfaces)
        - Public classes defined in the correct file */
   if ((flags & ACC_ABSTRACT) && (flags & ACC_FINAL))
     parse_error_context
-      (id, "Class `%s' can't be declared both abstract and final",
+      (id, "Class %qs can't be declared both abstract and final",
        IDENTIFIER_POINTER (raw_name));
 
   /* Create a new decl if DECL is NULL, otherwise fix it */
@@ -7552,10 +7767,10 @@ create_class (int flags, tree id, tree super, tree interfaces)
   /* If SUPER exists, use it, otherwise use Object */
   if (super)
     {
-      /* Can't extend java.lang.Object */
+      /* java.lang.Object can't extend anything.  */
       if (TREE_TYPE (IDENTIFIER_CLASS_VALUE (class_id)) == object_type_node)
 	{
-	  parse_error_context (id, "Can't extend `java.lang.Object'");
+	  parse_error_context (id, "%<java.lang.Object%> can't extend anything");
 	  return NULL_TREE;
 	}
 
@@ -7582,9 +7797,14 @@ create_class (int flags, tree id, tree super, tree interfaces)
   CLASS_COMPLETE_P (decl) = 1;
   add_superinterfaces (decl, interfaces);
 
+  /* TYPE_VFIELD' is a compiler-generated field used to point to
+     virtual function tables.  In gcj, every class has a common base
+     virtual function table in java.lang.object.  */
+  TYPE_VFIELD (TREE_TYPE (decl)) = TYPE_VFIELD (object_type_node);
+
   /* Add the private this$<n> field, Replicate final locals still in
      scope as private final fields mangled like val$<local_name>.
-     This doesn't not occur for top level (static) inner classes. */
+     This does not occur for top level (static) inner classes. */
   if (PURE_INNER_CLASS_DECL_P (decl))
     add_inner_class_fields (decl, current_function_decl);
 
@@ -7792,7 +8012,7 @@ duplicate_declaration_error_p (tree new_field_name, tree new_type, tree cl)
 			  IDENTIFIER_POINTER (TYPE_NAME (TREE_TYPE (decl))) :
 			  lang_printable_name (TREE_TYPE (decl), 1)));
       parse_error_context
-	(cl , "Duplicate variable declaration: `%s %s' was `%s %s' (%s:%d)",
+	(cl, "Duplicate variable declaration: %<%s %s%> was %<%s %s%> (%s:%d)",
 	 t1, IDENTIFIER_POINTER (new_field_name),
 	 t2, IDENTIFIER_POINTER (DECL_NAME (decl)),
 	 DECL_SOURCE_FILE (decl), DECL_SOURCE_LINE (decl));
@@ -7812,7 +8032,7 @@ register_fields (int flags, tree type, tree variable_list)
 {
   tree current, saved_type;
   tree class_type = NULL_TREE;
-  int saved_lineno = input_line;
+  location_t saved_location = input_location;
   int must_chain = 0;
   tree wfl = NULL_TREE;
 
@@ -7832,7 +8052,7 @@ register_fields (int flags, tree type, tree variable_list)
 				 flags, ACC_STATIC, "interface field(s)");
       OBSOLETE_MODIFIER_WARNING (MODIFIER_WFL (FINAL_TK),
 				 flags, ACC_FINAL, "interface field(s)");
-      check_modifiers ("Illegal interface member modifier `%s'", flags,
+      check_modifiers ("Illegal interface member modifier %qs", flags,
 		       INTERFACE_FIELD_MODIFIERS);
       flags |= (ACC_PUBLIC | ACC_STATIC | ACC_FINAL);
     }
@@ -7856,7 +8076,7 @@ register_fields (int flags, tree type, tree variable_list)
       if ((flags & ACC_STATIC) && !TOPLEVEL_CLASS_TYPE_P (class_type)
           && !(flags & ACC_FINAL))
 	parse_error_context
-          (cl, "Field `%s' can't be static in inner class `%s' unless it is final",
+          (cl, "Field %qs can't be static in inner class %qs unless it is final",
 	   IDENTIFIER_POINTER (EXPR_WFL_NODE (cl)),
 	   lang_printable_name (class_type, 0));
 
@@ -7879,12 +8099,16 @@ register_fields (int flags, tree type, tree variable_list)
       if (duplicate_declaration_error_p (current_name, real_type, cl))
 	continue;
 
-      /* Set lineno to the line the field was found and create a
+      /* Set input_line to the line the field was found and create a
          declaration for it. Eventually sets the @deprecated tag flag. */
+#ifdef USE_MAPPED_LOCATION
+      input_location = EXPR_LOCATION (cl);
+#else
       if (flag_emit_xref)
 	input_line = EXPR_WFL_LINECOL (cl);
       else
 	input_line = EXPR_WFL_LINENO (cl);
+#endif
       field_decl = add_field (class_type, current_name, real_type, flags);
       CHECK_DEPRECATED_NO_RESET (field_decl);
 
@@ -7946,7 +8170,7 @@ register_fields (int flags, tree type, tree variable_list)
     }
 
   CLEAR_DEPRECATED;
-  input_line = saved_lineno;
+  input_location = saved_location;
 }
 
 /* Generate finit$, using the list of initialized fields to populate
@@ -8067,7 +8291,7 @@ method_header (int flags, tree type, tree mdecl, tree throws)
   tree meth_name = NULL_TREE;
   tree current, orig_arg, this_class = NULL;
   tree id, meth;
-  int saved_lineno;
+  location_t saved_location;
   int constructor_ok = 0, must_chain;
   int count;
 
@@ -8097,21 +8321,22 @@ method_header (int flags, tree type, tree mdecl, tree throws)
       if (!CLASS_ABSTRACT (TYPE_NAME (this_class))
 	  && !CLASS_INTERFACE (TYPE_NAME (this_class)))
 	parse_error_context
-	  (id, "Class `%s' must be declared abstract to define abstract method `%s'",
+	  (id,
+           "Class %qs must be declared abstract to define abstract method %qs",
 	   IDENTIFIER_POINTER (DECL_NAME (GET_CPC ())),
 	   IDENTIFIER_POINTER (EXPR_WFL_NODE (id)));
     }
 
   /* A native method can't be strictfp.  */
   if ((flags & ACC_NATIVE) && (flags & ACC_STRICT))
-    parse_error_context (id, "native method `%s' can't be strictfp",
+    parse_error_context (id, "native method %qs can't be strictfp",
 			 IDENTIFIER_POINTER (EXPR_WFL_NODE (id)));
   /* No such thing as a transient or volatile method.  */
   if ((flags & ACC_TRANSIENT))
-    parse_error_context (id, "method `%s' can't be transient",
+    parse_error_context (id, "method %qs can't be transient",
 			 IDENTIFIER_POINTER (EXPR_WFL_NODE (id)));
   if ((flags & ACC_VOLATILE))
-    parse_error_context (id, "method `%s' can't be volatile",
+    parse_error_context (id, "method %qs can't be volatile",
 			 IDENTIFIER_POINTER (EXPR_WFL_NODE (id)));
 
   /* Things to be checked when declaring a constructor */
@@ -8161,7 +8386,7 @@ method_header (int flags, tree type, tree mdecl, tree throws)
   if ((flags & ACC_STATIC) && !TOPLEVEL_CLASS_TYPE_P (this_class))
     {
       parse_error_context
-	(id, "Method `%s' can't be static in inner class `%s'. Only members of interfaces and top-level classes can be static",
+	(id, "Method %qs can't be static in inner class %qs. Only members of interfaces and top-level classes can be static",
 	 IDENTIFIER_POINTER (EXPR_WFL_NODE (id)),
 	 lang_printable_name (this_class, 0));
     }
@@ -8198,12 +8423,17 @@ method_header (int flags, tree type, tree mdecl, tree throws)
   else
     TREE_TYPE (meth) = type;
 
-  saved_lineno = input_line;
+  saved_location = input_location;
   /* When defining an abstract or interface method, the curly
      bracket at level 1 doesn't exist because there is no function
      body */
-  input_line = (ctxp->first_ccb_indent1 ? ctxp->first_ccb_indent1 :
-	    EXPR_WFL_LINENO (id));
+#ifdef USE_MAPPED_LOCATION
+  input_location = (ctxp->first_ccb_indent1 ? ctxp->first_ccb_indent1 :
+		    EXPR_LOCATION (id));
+#else
+  input_line = (ctxp->first_ccb_indent1 ? (int) ctxp->first_ccb_indent1 :
+		EXPR_WFL_LINENO (id));
+#endif
 
   /* Remember the original argument list */
   orig_arg = TYPE_ARG_TYPES (meth);
@@ -8236,7 +8466,7 @@ method_header (int flags, tree type, tree mdecl, tree throws)
   /* Register the parameter number and re-install the current line
      number */
   DECL_MAX_LOCALS (meth) = ctxp->formal_parameter_number+1;
-  input_line = saved_lineno;
+  input_location = saved_location;
 
   /* Register exception specified by the `throws' keyword for
      resolution and set the method decl appropriate field to the list.
@@ -8277,7 +8507,13 @@ method_header (int flags, tree type, tree mdecl, tree throws)
   /* If doing xref, store column and line number information instead
      of the line number only. */
   if (flag_emit_xref)
-    DECL_SOURCE_LINE (meth) = EXPR_WFL_LINECOL (id);
+    {
+#ifdef USE_MAPPED_LOCATION
+      DECL_SOURCE_LOCATION (meth) = EXPR_LOCATION (id);
+#else
+      DECL_SOURCE_LINE (meth) = EXPR_WFL_LINECOL (id);
+#endif
+    }
 
   return meth;
 }
@@ -8316,7 +8552,7 @@ finish_method_declaration (tree method_body)
     {
       tree name = DECL_NAME (current_function_decl);
       parse_error_context (DECL_FUNCTION_WFL (current_function_decl),
-			   "%s method `%s' can't have a body defined",
+			   "%s method %qs can't have a body defined",
 			   (METHOD_NATIVE (current_function_decl) ?
 			    "Native" : "Abstract"),
 			   IDENTIFIER_POINTER (name));
@@ -8327,7 +8563,7 @@ finish_method_declaration (tree method_body)
       tree name = DECL_NAME (current_function_decl);
       parse_error_context
 	(DECL_FUNCTION_WFL (current_function_decl),
-	 "Non native and non abstract method `%s' must have a body defined",
+	 "Non native and non abstract method %qs must have a body defined",
 	 IDENTIFIER_POINTER (name));
       method_body = NULL_TREE;
     }
@@ -8363,8 +8599,8 @@ static char *
 constructor_circularity_msg (tree from, tree to)
 {
   static char string [4096];
-  char *t = xstrdup (lang_printable_name (from, 0));
-  sprintf (string, "`%s' invokes `%s'", t, lang_printable_name (to, 0));
+  char *t = xstrdup (lang_printable_name (from, 2));
+  sprintf (string, "'%s' invokes '%s'", t, lang_printable_name (to, 2));
   free (t);
   return string;
 }
@@ -8396,9 +8632,9 @@ verify_constructor_circularity (tree meth, tree current)
 		  java_error_count--;
 		}
 	    }
-	  t = xstrdup (lang_printable_name (meth, 0));
+	  t = xstrdup (lang_printable_name (meth, 2));
 	  parse_error_context (TREE_PURPOSE (c),
-			       "%s: recursive invocation of constructor `%s'",
+			       "%s: recursive invocation of constructor %qs",
 			       constructor_circularity_msg (current, meth), t);
 	  free (t);
 	  vcc_list = NULL_TREE;
@@ -8428,7 +8664,7 @@ check_modifiers_consistency (int flags)
   THIS_MODIFIER_ONLY (flags, ACC_PROTECTED, PROTECTED_TK, acc_count, cl);
   if (acc_count > 1)
     parse_error_context
-      (cl, "Inconsistent member declaration.  At most one of `public', `private', or `protected' may be specified");
+      (cl, "Inconsistent member declaration.  At most one of %<public%>, %<private%>, or %<protected%> may be specified");
 
   acc_count = 0;
   cl = NULL_TREE;
@@ -8436,7 +8672,7 @@ check_modifiers_consistency (int flags)
   THIS_MODIFIER_ONLY (flags, ACC_VOLATILE, VOLATILE_TK, acc_count, cl);
   if (acc_count > 1)
     parse_error_context (cl,
-			 "Inconsistent member declaration.  At most one of `final' or `volatile' may be specified");
+			 "Inconsistent member declaration.  At most one of %<final%> or %<volatile%> may be specified");
 }
 
 /* Check the methode header METH for abstract specifics features */
@@ -8453,7 +8689,7 @@ check_abstract_method_header (tree meth)
 			      ACC_PUBLIC, "abstract method",
 			      IDENTIFIER_POINTER (DECL_NAME (meth)));
 
-  check_modifiers ("Illegal modifier `%s' for interface method",
+  check_modifiers ("Illegal modifier %qs for interface method",
 		  flags, INTERFACE_METHOD_MODIFIERS);
 }
 
@@ -8526,7 +8762,7 @@ method_declarator (tree id, tree list)
 	if (TREE_PURPOSE (already) == name)
 	  {
 	    parse_error_context
-	      (wfl_name, "Variable `%s' is used more than once in the argument list of method `%s'",
+	      (wfl_name, "Variable %qs is used more than once in the argument list of method %qs",
 	       IDENTIFIER_POINTER (name),
 	       IDENTIFIER_POINTER (EXPR_WFL_NODE (id)));
 	    break;
@@ -8561,7 +8797,6 @@ method_declarator (tree id, tree list)
 
 static int
 unresolved_type_p (tree wfl, tree *returned)
-
 {
   if (TREE_CODE (wfl) == EXPR_WITH_FILE_LOCATION)
     {
@@ -8611,7 +8846,7 @@ parser_check_super_interface (tree super_decl, tree this_decl, tree this_wfl)
   if (!CLASS_INTERFACE (super_decl))
     {
       parse_error_context
-	(this_wfl, "%s `%s' can't implement/extend %s `%s'",
+	(this_wfl, "%s %qs can't implement/extend %s %qs",
 	 (CLASS_INTERFACE (TYPE_NAME (TREE_TYPE (this_decl))) ?
 	  "Interface" : "Class"),
 	 IDENTIFIER_POINTER (DECL_NAME (this_decl)),
@@ -8624,7 +8859,7 @@ parser_check_super_interface (tree super_decl, tree this_decl, tree this_wfl)
      access rules (6.6.1). */
   if (! INNER_CLASS_P (super_type)
       && check_pkg_class_access (DECL_NAME (super_decl),
-				 lookup_cl (this_decl), true))
+				 NULL_TREE, true, this_decl))
     return 1;
 
   SOURCE_FRONTEND_DEBUG (("Completing interface %s with %s",
@@ -8645,7 +8880,7 @@ parser_check_super (tree super_decl, tree this_decl, tree wfl)
   if (TYPE_ARRAY_P (super_type) || CLASS_INTERFACE (TYPE_NAME (super_type)))
     {
       parse_error_context
-	(wfl, "Class `%s' can't subclass %s `%s'",
+	(wfl, "Class %qs can't subclass %s %qs",
 	 IDENTIFIER_POINTER (DECL_NAME (this_decl)),
 	 (CLASS_INTERFACE (TYPE_NAME (super_type)) ? "interface" : "array"),
 	 IDENTIFIER_POINTER (DECL_NAME (super_decl)));
@@ -8662,7 +8897,7 @@ parser_check_super (tree super_decl, tree this_decl, tree wfl)
   /* Check top-level class scope. Inner classes are subject to member access
      rules (6.6.1). */
   if (! INNER_CLASS_P (super_type)
-      && (check_pkg_class_access (DECL_NAME (super_decl), wfl, true)))
+      && (check_pkg_class_access (DECL_NAME (super_decl), wfl, true, NULL_TREE)))
     return 1;
 
   SOURCE_FRONTEND_DEBUG (("Completing class %s with %s",
@@ -8741,12 +8976,9 @@ register_incomplete_type (int kind, tree wfl, tree decl, tree ptr)
   JDEP_MISC (new) = NULL_TREE;
   /* For some dependencies, set the enclosing class of the current
      class to be the enclosing context */
-  if ((kind == JDEP_INTERFACE  || kind == JDEP_ANONYMOUS)
+  if ((kind == JDEP_INTERFACE || kind == JDEP_ANONYMOUS || kind == JDEP_SUPER)
       && GET_ENCLOSING_CPC ())
     JDEP_ENCLOSING (new) = TREE_VALUE (GET_ENCLOSING_CPC ());
-  else if (kind == JDEP_SUPER)
-    JDEP_ENCLOSING (new) = (GET_ENCLOSING_CPC () ?
-			    TREE_VALUE (GET_ENCLOSING_CPC ()) : NULL_TREE);
   else
     JDEP_ENCLOSING (new) = GET_CPC ();
   JDEP_GET_PATCH (new) = (tree *)NULL;
@@ -8767,23 +8999,18 @@ register_incomplete_type (int kind, tree wfl, tree decl, tree ptr)
 static tree
 check_inner_circular_reference (tree source, tree target)
 {
-  tree basetype_vec = TYPE_BINFO_BASETYPES (source);
+  tree base_binfo;
   tree ctx, cl;
   int i;
 
-  if (!basetype_vec)
-    return NULL_TREE;
-
-  for (i = 0; i < TREE_VEC_LENGTH (basetype_vec); i++)
+  for (i = 0; BINFO_BASE_ITERATE (TYPE_BINFO (source), i, base_binfo); i++)
     {
       tree su;
 
       /* We can end up with a NULL_TREE or an incomplete type here if
 	 we encountered previous type resolution errors. It's safe to
 	 simply ignore these cases.  */
-      if (TREE_VEC_ELT (basetype_vec, i) == NULL_TREE)
-	continue;
-      su = BINFO_TYPE (TREE_VEC_ELT (basetype_vec, i));
+      su = BINFO_TYPE (base_binfo);
       if (INCOMPLETE_TYPE_P (su))
 	continue;
 
@@ -8813,10 +9040,10 @@ check_inner_circular_reference (tree source, tree target)
 static tree
 check_circular_reference (tree type)
 {
-  tree basetype_vec = TYPE_BINFO_BASETYPES (type);
+  tree base_binfo;
   int i;
 
-  if (!basetype_vec)
+  if (!BINFO_N_BASE_BINFOS (TYPE_BINFO (type)))
     return NULL_TREE;
 
   if (! CLASS_INTERFACE (TYPE_NAME (type)))
@@ -8826,12 +9053,11 @@ check_circular_reference (tree type)
       return NULL_TREE;
     }
 
-  for (i = 0; i < TREE_VEC_LENGTH (basetype_vec); i++)
+  for (i = 0; BINFO_BASE_ITERATE (TYPE_BINFO (type), i, base_binfo); i++)
     {
-      tree vec_elt = TREE_VEC_ELT (basetype_vec, i);
-      if (vec_elt && BINFO_TYPE (vec_elt) != object_type_node
-	  && interface_of_p (type, BINFO_TYPE (vec_elt)))
-	return lookup_cl (TYPE_NAME (BINFO_TYPE (vec_elt)));
+      if (BINFO_TYPE (base_binfo) != object_type_node
+	  && interface_of_p (type, BINFO_TYPE (base_binfo)))
+	return lookup_cl (TYPE_NAME (BINFO_TYPE (base_binfo)));
     }
   return NULL_TREE;
 }
@@ -8946,19 +9172,14 @@ craft_constructor (tree class_decl, tree args)
 {
   tree class_type = TREE_TYPE (class_decl);
   tree parm = NULL_TREE;
-  int flags = (get_access_flags_from_decl (class_decl) & ACC_PUBLIC ?
-	       ACC_PUBLIC : 0);
+  /* Inherit access flags for the constructor from its enclosing class. */
+  int valid_ctor_flags = ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE;
+  int flags = (get_access_flags_from_decl (class_decl) & valid_ctor_flags);
   int i = 0, artificial = 0;
   tree decl, ctor_name;
   char buffer [80];
 
-  /* The constructor name is <init> unless we're dealing with an
-     anonymous class, in which case the name will be fixed after having
-     be expanded. */
-  if (ANONYMOUS_CLASS_P (class_type))
-    ctor_name = DECL_NAME (class_decl);
-  else
-    ctor_name = init_identifier_node;
+  ctor_name = init_identifier_node;
 
   /* If we're dealing with an inner class constructor, we hide the
      this$<n> decl in the name field of its parameter declaration. */
@@ -8978,6 +9199,10 @@ craft_constructor (tree class_decl, tree args)
   /* Then if there are any args to be enforced, enforce them now */
   for (; args && args != end_params_node; args = TREE_CHAIN (args))
     {
+      /* If we see a `void *', we need to change it to Object.  */
+      if (TREE_VALUE (args) == TREE_TYPE (null_pointer_node))
+	TREE_VALUE (args) = object_ptr_type_node;
+
       sprintf (buffer, "parm%d", i++);
       parm = tree_cons (get_identifier (buffer), TREE_VALUE (args), parm);
     }
@@ -9031,7 +9256,7 @@ java_fix_constructors (void)
 }
 
 /* safe_layout_class just makes sure that we can load a class without
-   disrupting the current_class, input_file, lineno, etc, information
+   disrupting the current_class, input_file, input_line, etc, information
    about the class processed currently.  */
 
 void
@@ -9050,6 +9275,9 @@ static tree
 jdep_resolve_class (jdep *dep)
 {
   tree decl;
+  
+  /* Set the correct context for class resolution.  */
+  current_class = TREE_TYPE (JDEP_ENCLOSING (dep));
 
   if (JDEP_RESOLVED_P (dep))
     decl = JDEP_RESOLVED_DECL (dep);
@@ -9066,7 +9294,7 @@ jdep_resolve_class (jdep *dep)
 
   if (!decl)
     complete_class_report_errors (dep);
-  else if (PURE_INNER_CLASS_DECL_P (decl))
+  else if (INNER_CLASS_DECL_P (decl))
     {
       tree inner = TREE_TYPE (decl);
       if (! CLASS_LOADED_P (inner))
@@ -9103,12 +9331,6 @@ java_complete_class (void)
     {
       jdep *dep;
 
-      /* We keep the compilation unit imports in the class so that
-	 they can be used later to resolve type dependencies that
-	 aren't necessary to solve now. */
-      TYPE_IMPORT_LIST (TREE_TYPE (cclass)) = ctxp->import_list;
-      TYPE_IMPORT_DEMAND_LIST (TREE_TYPE (cclass)) = ctxp->import_demand_list;
-
       for (dep = CLASSD_FIRST (cclassd); dep; dep = JDEP_CHAIN (dep))
 	{
 	  tree decl;
@@ -9122,8 +9344,9 @@ java_complete_class (void)
 	      /* Simply patch super */
 	      if (parser_check_super (decl, JDEP_DECL (dep), JDEP_WFL (dep)))
 		continue;
-	      BINFO_TYPE (TREE_VEC_ELT (BINFO_BASETYPES (TYPE_BINFO
-	        (TREE_TYPE (JDEP_DECL (dep)))), 0)) = TREE_TYPE (decl);
+	      BINFO_TYPE (BINFO_BASE_BINFO
+			  (TYPE_BINFO (TREE_TYPE (JDEP_DECL (dep))), 0))
+		= TREE_TYPE (decl);
 	      break;
 
 	    case JDEP_FIELD:
@@ -9138,7 +9361,7 @@ java_complete_class (void)
 		DECL_USER_ALIGN (field_decl) = 0;
 		layout_decl (field_decl, 0);
 		SOURCE_FRONTEND_DEBUG
-		  (("Completed field/var decl `%s' with `%s'",
+		  (("Completed field/var decl '%s' with '%s'",
 		    IDENTIFIER_POINTER (DECL_NAME (field_decl)),
 		    IDENTIFIER_POINTER (DECL_NAME (decl))));
 		break;
@@ -9156,8 +9379,8 @@ java_complete_class (void)
 		      JDEP_APPLY_PATCH (dep, type);
 		      SOURCE_FRONTEND_DEBUG
 			(((JDEP_KIND (dep) == JDEP_METHOD_RETURN ?
-			   "Completing fct `%s' with ret type `%s'":
-			   "Completing arg `%s' with type `%s'"),
+			   "Completing fct '%s' with ret type '%s'":
+			   "Completing arg '%s' with type '%s'"),
 			  IDENTIFIER_POINTER (EXPR_WFL_NODE
 					      (JDEP_DECL_WFL (dep))),
 			  IDENTIFIER_POINTER (DECL_NAME (decl))));
@@ -9211,7 +9434,7 @@ java_complete_class (void)
 	    case JDEP_EXCEPTION:
 	      JDEP_APPLY_PATCH (dep, TREE_TYPE (decl));
 	      SOURCE_FRONTEND_DEBUG
-		(("Completing `%s' `throws' argument node",
+		(("Completing '%s' 'throws' argument node",
 		  IDENTIFIER_POINTER (EXPR_WFL_NODE (JDEP_WFL (dep)))));
 	      break;
 
@@ -9258,7 +9481,7 @@ resolve_class (tree enclosing, tree class_type, tree decl, tree cl)
     WFL_STRIP_BRACKET (cl, cl);
 
   /* 2- Resolve the bare type */
-  if (!(resolved_type_decl = do_resolve_class (enclosing, class_type,
+  if (!(resolved_type_decl = do_resolve_class (enclosing, NULL_TREE, class_type,
 					       decl, cl)))
     return NULL_TREE;
   resolved_type = TREE_TYPE (resolved_type_decl);
@@ -9281,7 +9504,8 @@ resolve_class (tree enclosing, tree class_type, tree decl, tree cl)
    and (but it doesn't really matter) qualify_and_find.  */
 
 tree
-do_resolve_class (tree enclosing, tree class_type, tree decl, tree cl)
+do_resolve_class (tree enclosing, tree import_type, tree class_type, tree decl,
+		  tree cl)
 {
   tree new_class_decl = NULL_TREE, super = NULL_TREE;
   tree saved_enclosing_type = enclosing ? TREE_TYPE (enclosing) : NULL_TREE;
@@ -9295,10 +9519,10 @@ do_resolve_class (tree enclosing, tree class_type, tree decl, tree cl)
 	 class and then treat Id as a member type.  If we can't find Q
 	 as a class then we fall through.  */
       tree q, left, left_type, right;
-      if (breakdown_qualified (&left, &right, TYPE_NAME (class_type)) == 0)
+      if (split_qualified_name (&left, &right, TYPE_NAME (class_type)) == 0)
 	{
 	  BUILD_PTR_FROM_NAME (left_type, left);
-	  q = do_resolve_class (enclosing, left_type, decl, cl);
+	  q = do_resolve_class (enclosing, import_type, left_type, decl, cl);
 	  if (q)
 	    {
 	      enclosing = q;
@@ -9343,15 +9567,17 @@ do_resolve_class (tree enclosing, tree class_type, tree decl, tree cl)
 	return new_class_decl;
     }
 
-  /* 1- Check for the type in single imports. This will change
-     TYPE_NAME() if something relevant is found */
+  /* 1- Check for the type in single imports.  Look at enclosing classes and,
+     if we're laying out a superclass, at the import list for the subclass.
+     This will change TYPE_NAME() if something relevant is found. */
+  if (import_type && TYPE_IMPORT_LIST (import_type))
+    find_in_imports (import_type, class_type);
   find_in_imports (saved_enclosing_type, class_type);
 
   /* 2- And check for the type in the current compilation unit */
   if ((new_class_decl = IDENTIFIER_CLASS_VALUE (TYPE_NAME (class_type))))
     {
-      if (!CLASS_LOADED_P (TREE_TYPE (new_class_decl)) &&
-	  !CLASS_FROM_SOURCE_P (TREE_TYPE (new_class_decl)))
+      if (!CLASS_LOADED_P (TREE_TYPE (new_class_decl)))
 	load_class (TYPE_NAME (class_type), 0);
       return IDENTIFIER_CLASS_VALUE (TYPE_NAME (class_type));
     }
@@ -9359,37 +9585,29 @@ do_resolve_class (tree enclosing, tree class_type, tree decl, tree cl)
   /* 3- Search according to the current package definition */
   if (!QUALIFIED_P (TYPE_NAME (class_type)))
     {
-      if ((new_class_decl = qualify_and_find (class_type, ctxp->package,
-					     TYPE_NAME (class_type))))
+     /* printf ("cc= %s\n", current_class ? IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME
+      (current_class))) : "null"); */
+      if ((new_class_decl = qualify_and_find (class_type, 
+      		TYPE_PACKAGE (current_class), TYPE_NAME (class_type))))
 	return new_class_decl;
     }
 
   /* 4- Check the import on demands. Don't allow bar.baz to be
      imported from foo.* */
   if (!QUALIFIED_P (TYPE_NAME (class_type)))
-    if (find_in_imports_on_demand (saved_enclosing_type, class_type))
-      return NULL_TREE;
+    {
+      if (import_type
+	  && TYPE_IMPORT_DEMAND_LIST (import_type)
+	  && find_in_imports_on_demand (import_type, class_type))
+        return NULL_TREE;
+      if (find_in_imports_on_demand (saved_enclosing_type, class_type))
+        return NULL_TREE;
+    }
 
   /* If found in find_in_imports_on_demand, the type has already been
      loaded. */
   if ((new_class_decl = IDENTIFIER_CLASS_VALUE (TYPE_NAME (class_type))))
     return new_class_decl;
-
-  /* 5- Try with a name qualified with the package name we've seen so far */
-  if (!QUALIFIED_P (TYPE_NAME (class_type)))
-    {
-      tree package;
-
-      /* If there is a current package (ctxp->package), it's the first
-	 element of package_list and we can skip it. */
-      for (package = (ctxp->package ?
-		      TREE_CHAIN (package_list) : package_list);
-	   package; package = TREE_CHAIN (package))
-	if ((new_class_decl = qualify_and_find (class_type,
-					       TREE_PURPOSE (package),
-					       TYPE_NAME (class_type))))
-	  return new_class_decl;
-    }
 
   /* 5- Check another compilation unit that bears the name of type */
   load_class (TYPE_NAME (class_type), 0);
@@ -9402,7 +9620,7 @@ do_resolve_class (tree enclosing, tree class_type, tree decl, tree cl)
      by the caller. */
   if (cl)
     {
-      if (check_pkg_class_access (TYPE_NAME (class_type), cl, true))
+      if (check_pkg_class_access (TYPE_NAME (class_type), cl, true, NULL_TREE))
         return NULL_TREE;
     }
 
@@ -9445,9 +9663,8 @@ qualify_and_find (tree class_type, tree package, tree name)
     load_class (new_qualified, 0);
   if ((new_class_decl = IDENTIFIER_CLASS_VALUE (new_qualified)))
     {
-      if (!CLASS_LOADED_P (TREE_TYPE (new_class_decl)) &&
-	  !CLASS_FROM_SOURCE_P (TREE_TYPE (new_class_decl)))
-	load_class (new_qualified, 0);
+      if (!CLASS_LOADED_P (TREE_TYPE (new_class_decl)))
+	load_class (TREE_TYPE (new_class_decl), 0);
       TYPE_NAME (class_type) = new_qualified;
       return IDENTIFIER_CLASS_VALUE (new_qualified);
     }
@@ -9566,46 +9783,46 @@ complete_class_report_errors (jdep *dep)
     {
     case JDEP_SUPER:
       parse_error_context
-	(JDEP_WFL (dep), "Superclass `%s' of class `%s' not found",
+	(JDEP_WFL (dep), "Superclass %qs of class %qs not found",
 	 purify_type_name (name),
 	 IDENTIFIER_POINTER (DECL_NAME (JDEP_DECL (dep))));
       break;
     case JDEP_FIELD:
       parse_error_context
-	(JDEP_WFL (dep), "Type `%s' not found in declaration of field `%s'",
+	(JDEP_WFL (dep), "Type %qs not found in declaration of field %qs",
 	 purify_type_name (name),
 	 IDENTIFIER_POINTER (DECL_NAME (JDEP_DECL (dep))));
       break;
     case JDEP_METHOD:		/* Covers arguments */
       parse_error_context
-	(JDEP_WFL (dep), "Type `%s' not found in the declaration of the argument `%s' of method `%s'",
+	(JDEP_WFL (dep), "Type %qs not found in the declaration of the argument %qs of method %qs",
 	 purify_type_name (name),
 	 IDENTIFIER_POINTER (EXPR_WFL_NODE (JDEP_DECL_WFL (dep))),
 	 IDENTIFIER_POINTER (EXPR_WFL_NODE (JDEP_MISC (dep))));
       break;
     case JDEP_METHOD_RETURN:	/* Covers return type */
       parse_error_context
-	(JDEP_WFL (dep), "Type `%s' not found in the declaration of the return type of method `%s'",
+	(JDEP_WFL (dep), "Type %qs not found in the declaration of the return type of method %qs",
 	 purify_type_name (name),
 	 IDENTIFIER_POINTER (EXPR_WFL_NODE (JDEP_DECL_WFL (dep))));
       break;
     case JDEP_INTERFACE:
       parse_error_context
-	(JDEP_WFL (dep), "Superinterface `%s' of %s `%s' not found",
+	(JDEP_WFL (dep), "Superinterface %qs of %s %qs not found",
 	 IDENTIFIER_POINTER (EXPR_WFL_NODE (JDEP_WFL (dep))),
 	 (CLASS_OR_INTERFACE (JDEP_DECL (dep), "class", "interface")),
 	 IDENTIFIER_POINTER (DECL_NAME (JDEP_DECL (dep))));
       break;
     case JDEP_VARIABLE:
       parse_error_context
-	(JDEP_WFL (dep), "Type `%s' not found in the declaration of the local variable `%s'",
+	(JDEP_WFL (dep), "Type %qs not found in the declaration of the local variable %qs",
 	 purify_type_name (IDENTIFIER_POINTER
 			   (EXPR_WFL_NODE (JDEP_WFL (dep)))),
 	 IDENTIFIER_POINTER (DECL_NAME (JDEP_DECL (dep))));
       break;
     case JDEP_EXCEPTION:	/* As specified by `throws' */
       parse_error_context
-	  (JDEP_WFL (dep), "Class `%s' not found in `throws'",
+	  (JDEP_WFL (dep), "Class %qs not found in %<throws%>",
 	 IDENTIFIER_POINTER (EXPR_WFL_NODE (JDEP_WFL (dep))));
       break;
     default:
@@ -9631,7 +9848,7 @@ get_printable_method_name (tree decl)
       DECL_NAME (decl) = DECL_NAME (TYPE_NAME (DECL_CONTEXT (decl)));
     }
 
-  to_return = lang_printable_name (decl, 0);
+  to_return = lang_printable_name (decl, 2);
   if (DECL_CONSTRUCTOR_P (decl))
     DECL_NAME (decl) = name;
 
@@ -9662,7 +9879,7 @@ check_method_redefinition (tree class, tree method)
 	  && !DECL_ARTIFICIAL (method))
 	{
 	  parse_error_context
-	    (DECL_FUNCTION_WFL (method), "Duplicate %s declaration `%s'",
+	    (DECL_FUNCTION_WFL (method), "Duplicate %s declaration %qs",
 	     (DECL_CONSTRUCTOR_P (redef) ? "constructor" : "method"),
 	     get_printable_method_name (redef));
 	  return 1;
@@ -9736,9 +9953,9 @@ check_abstract_method_definitions (int do_interface, tree class_decl,
 
 	  parse_error_context
 	    (lookup_cl (class_decl),
-	     "Class `%s' doesn't define the abstract method `%s %s' from %s `%s'. This method must be defined or %s `%s' must be declared abstract",
+	     "Class %qs doesn't define the abstract method %<%s %s%> from %s %<%s%>. This method must be defined or %s %qs must be declared abstract",
 	     IDENTIFIER_POINTER (DECL_NAME (class_decl)),
-	     t, lang_printable_name (method, 0),
+	     t, lang_printable_name (method, 2),
 	     (CLASS_INTERFACE (TYPE_NAME (DECL_CONTEXT (method))) ?
 	      "interface" : "class"),
 	     IDENTIFIER_POINTER (ccn),
@@ -9753,12 +9970,13 @@ check_abstract_method_definitions (int do_interface, tree class_decl,
     {
       /* Check for implemented interfaces. */
       int i;
-      tree vector = TYPE_BINFO_BASETYPES (type);
-      for (i = 1; ok && vector && i < TREE_VEC_LENGTH (vector); i++)
-	{
-	  tree super = BINFO_TYPE (TREE_VEC_ELT (vector, i));
-	  ok = check_abstract_method_definitions (1, class_decl, super);
-	}
+      tree base_binfo;
+      
+      for (i = 1;
+	   ok && BINFO_BASE_ITERATE (TYPE_BINFO (type), i, base_binfo);
+	   i++)
+	ok = check_abstract_method_definitions (1, class_decl,
+						BINFO_TYPE (base_binfo));
     }
 
   return ok;
@@ -9771,7 +9989,7 @@ static void
 java_check_abstract_method_definitions (tree class_decl)
 {
   tree class = TREE_TYPE (class_decl);
-  tree super, vector;
+  tree super, base_binfo;
   int i;
 
   if (CLASS_ABSTRACT (class_decl))
@@ -9785,12 +10003,8 @@ java_check_abstract_method_definitions (tree class_decl)
   } while (super != object_type_node);
 
   /* Check for implemented interfaces. */
-  vector = TYPE_BINFO_BASETYPES (class);
-  for (i = 1; i < TREE_VEC_LENGTH (vector); i++)
-    {
-      super = BINFO_TYPE (TREE_VEC_ELT (vector, i));
-      check_abstract_method_definitions (1, class_decl, super);
-    }
+  for (i = 1; BINFO_BASE_ITERATE (TYPE_BINFO (class), i, base_binfo); i++)
+    check_abstract_method_definitions (1, class_decl, BINFO_TYPE (base_binfo));
 }
 
 /* Check all the types method DECL uses and return 1 if all of them
@@ -9895,7 +10109,7 @@ java_check_regular_methods (tree class_decl)
 	{
 	  if (!inherits_from_p (TREE_VALUE (mthrows), throwable_type_node))
 	    parse_error_context
-	      (TREE_PURPOSE (mthrows), "Class `%s' in `throws' clause must be a subclass of class `java.lang.Throwable'",
+	      (TREE_PURPOSE (mthrows), "Class %qs in %<throws%> clause must be a subclass of class %<java.lang.Throwable%>",
 	       IDENTIFIER_POINTER
 	         (DECL_NAME (TYPE_NAME (TREE_VALUE (mthrows)))));
 	}
@@ -9918,8 +10132,8 @@ java_check_regular_methods (tree class_decl)
 	{
 	  char *t = xstrdup (lang_printable_name (class, 0));
 	  parse_error_context
-	    (method_wfl, "Method `%s' can't be static in inner class `%s'. Only members of interfaces and top-level classes can be static",
-	     lang_printable_name (method, 0), t);
+	    (method_wfl, "Method %qs can't be static in inner class %qs. Only members of interfaces and top-level classes can be static",
+	     lang_printable_name (method, 2), t);
 	  free (t);
 	}
 
@@ -9939,9 +10153,9 @@ java_check_regular_methods (tree class_decl)
 	  && !METHOD_PUBLIC (method))
 	{
 	  tree found_decl = TYPE_NAME (DECL_CONTEXT (found));
-	  parse_error_context (method_wfl, "Class `%s' must override `%s' with a public method in order to implement interface `%s'",
+	  parse_error_context (method_wfl, "Class %qs must override %qs with a public method in order to implement interface %qs",
 			       IDENTIFIER_POINTER (DECL_NAME (class_decl)),
-			       lang_printable_name (method, 0),
+			       lang_printable_name (method, 2),
 			       IDENTIFIER_POINTER (DECL_NAME (found_decl)));
 	}
 
@@ -9950,11 +10164,11 @@ java_check_regular_methods (tree class_decl)
       if (TREE_TYPE (TREE_TYPE (found)) != TREE_TYPE (TREE_TYPE (method)))
 	{
 	  char *t = xstrdup
-	    (lang_printable_name (TREE_TYPE (TREE_TYPE (found)), 0));
+	    (lang_printable_name (TREE_TYPE (TREE_TYPE (found)), 2));
 	  parse_error_context
 	    (method_wfl,
-	     "Method `%s' was defined with return type `%s' in class `%s'",
-	     lang_printable_name (found, 0), t,
+	     "Method %qs was defined with return type %qs in class %qs",
+	     lang_printable_name (found, 2), t,
 	     IDENTIFIER_POINTER
 	       (DECL_NAME (TYPE_NAME (DECL_CONTEXT (found)))));
 	  free (t);
@@ -9970,9 +10184,9 @@ java_check_regular_methods (tree class_decl)
 	    continue;
 	  parse_error_context
 	    (method_wfl,
-	     "%s methods can't be overridden. Method `%s' is %s in class `%s'",
+	     "%s methods can't be overridden. Method %qs is %s in class %qs",
 	     (METHOD_FINAL (found) ? "Final" : "Static"),
-	     lang_printable_name (found, 0),
+	     lang_printable_name (found, 2),
 	     (METHOD_FINAL (found) ? "final" : "static"),
 	     IDENTIFIER_POINTER
 	       (DECL_NAME (TYPE_NAME (DECL_CONTEXT (found)))));
@@ -9984,8 +10198,8 @@ java_check_regular_methods (tree class_decl)
 	{
 	  parse_error_context
 	    (method_wfl,
-	     "Instance methods can't be overridden by a static method. Method `%s' is an instance method in class `%s'",
-	     lang_printable_name (found, 0),
+	     "Instance methods can't be overridden by a static method. Method %qs is an instance method in class %qs",
+	     lang_printable_name (found, 2),
 	     IDENTIFIER_POINTER
 	       (DECL_NAME (TYPE_NAME (DECL_CONTEXT (found)))));
 	  continue;
@@ -10007,7 +10221,7 @@ java_check_regular_methods (tree class_decl)
 	{
 	  parse_error_context
 	    (method_wfl,
-	     "Methods can't be overridden to be more private. Method `%s' is not %s in class `%s'", lang_printable_name (method, 0),
+	     "Methods can't be overridden to be more private. Method %qs is not %s in class %qs", lang_printable_name (method, 2),
 	     (METHOD_PUBLIC (method) ? "public" :
 	      (METHOD_PRIVATE (method) ? "private" : "protected")),
 	     IDENTIFIER_POINTER (DECL_NAME
@@ -10048,8 +10262,6 @@ check_interface_throws_clauses (tree check_class_decl, tree class_decl)
 {
   for (; class_decl != NULL_TREE; class_decl = CLASSTYPE_SUPER (class_decl))
     {
-      tree bases;
-      int iface_len;
       int i;
 
       if (! CLASS_LOADED_P (class_decl))
@@ -10060,11 +10272,10 @@ check_interface_throws_clauses (tree check_class_decl, tree class_decl)
 	    load_class (class_decl, 1);
 	}
 
-      bases = TYPE_BINFO_BASETYPES (class_decl);
-      iface_len = TREE_VEC_LENGTH (bases) - 1;
-      for (i = iface_len; i > 0; --i)
+      for (i = BINFO_N_BASE_BINFOS (TYPE_BINFO (class_decl)) - 1; i > 0; --i)
 	{
-	  tree interface = BINFO_TYPE (TREE_VEC_ELT (bases, i));
+	  tree interface
+	    = BINFO_TYPE (BINFO_BASE_BINFO (TYPE_BINFO (class_decl), i));
 	  tree iface_method;
 
 	  for (iface_method = TYPE_METHODS (interface);
@@ -10151,9 +10362,9 @@ check_throws_clauses (tree method, tree method_wfl, tree found)
       if (!fthrows)
 	{
 	  parse_error_context
-	    (method_wfl, "Invalid checked exception class `%s' in `throws' clause.  The exception must be a subclass of an exception thrown by `%s' from class `%s'",
+	    (method_wfl, "Invalid checked exception class %qs in %<throws%> clause.  The exception must be a subclass of an exception thrown by %qs from class %qs",
 	     IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (TREE_VALUE (mthrows)))),
-	     lang_printable_name (found, 0),
+	     lang_printable_name (found, 2),
 	     IDENTIFIER_POINTER
 	     (DECL_NAME (TYPE_NAME (DECL_CONTEXT (found)))));
 	}
@@ -10164,9 +10375,10 @@ check_throws_clauses (tree method, tree method_wfl, tree found)
 static void
 java_check_abstract_methods (tree interface_decl)
 {
-  int i, n;
-  tree method, basetype_vec, found;
+  int i;
+  tree method, found;
   tree interface = TREE_TYPE (interface_decl);
+  tree base_binfo;
 
   for (method = TYPE_METHODS (interface); method; method = TREE_CHAIN (method))
     {
@@ -10179,11 +10391,11 @@ java_check_abstract_methods (tree interface_decl)
       if (found)
 	{
 	  char *t;
-	  t = xstrdup (lang_printable_name (TREE_TYPE (TREE_TYPE (found)), 0));
+	  t = xstrdup (lang_printable_name (TREE_TYPE (TREE_TYPE (found)), 2));
 	  parse_error_context
 	    (DECL_FUNCTION_WFL (found),
-	     "Method `%s' was defined with return type `%s' in class `%s'",
-	     lang_printable_name (found, 0), t,
+	     "Method %qs was defined with return type %qs in class %qs",
+	     lang_printable_name (found, 2), t,
 	     IDENTIFIER_POINTER
 	       (DECL_NAME (TYPE_NAME (DECL_CONTEXT (found)))));
 	  free (t);
@@ -10192,16 +10404,11 @@ java_check_abstract_methods (tree interface_decl)
     }
 
   /* 4- Inherited methods can't differ by their returned types */
-  if (!(basetype_vec = TYPE_BINFO_BASETYPES (interface)))
-    return;
-  n = TREE_VEC_LENGTH (basetype_vec);
-  for (i = 0; i < n; i++)
+  for (i = 0; BINFO_BASE_ITERATE (TYPE_BINFO (interface), i, base_binfo); i++)
     {
       tree sub_interface_method, sub_interface;
-      tree vec_elt = TREE_VEC_ELT (basetype_vec, i);
-      if (!vec_elt)
-	continue;
-      sub_interface = BINFO_TYPE (vec_elt);
+
+      sub_interface = BINFO_TYPE (base_binfo);
       for (sub_interface_method = TYPE_METHODS (sub_interface);
 	   sub_interface_method;
 	   sub_interface_method = TREE_CHAIN (sub_interface_method))
@@ -10212,9 +10419,9 @@ java_check_abstract_methods (tree interface_decl)
 	    {
 	      parse_error_context
 		(lookup_cl (sub_interface_method),
-		 "Interface `%s' inherits method `%s' from interface `%s'. This method is redefined with a different return type in interface `%s'",
+		 "Interface %qs inherits method %qs from interface %qs. This method is redefined with a different return type in interface %qs",
 		 IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (interface))),
-		 lang_printable_name (found, 0),
+		 lang_printable_name (found, 2),
 		 IDENTIFIER_POINTER
 		   (DECL_NAME (TYPE_NAME
 			       (DECL_CONTEXT (sub_interface_method)))),
@@ -10231,25 +10438,21 @@ java_check_abstract_methods (tree interface_decl)
 static tree
 lookup_java_interface_method2 (tree class, tree method_decl)
 {
-  int i, n;
-  tree basetype_vec = TYPE_BINFO_BASETYPES (class), to_return;
+  int i;
+  tree base_binfo;
+  tree to_return;
 
-  if (!basetype_vec)
-    return NULL_TREE;
-
-  n = TREE_VEC_LENGTH (basetype_vec);
-  for (i = 0; i < n; i++)
+  for (i = 0; BINFO_BASE_ITERATE (TYPE_BINFO (class), i, base_binfo); i++)
     {
-      tree vec_elt = TREE_VEC_ELT (basetype_vec, i), to_return;
-      if ((BINFO_TYPE (vec_elt) != object_type_node)
+      if ((BINFO_TYPE (base_binfo) != object_type_node)
 	  && (to_return =
-	      lookup_java_method2 (BINFO_TYPE (vec_elt), method_decl, 1)))
+	      lookup_java_method2 (BINFO_TYPE (base_binfo), method_decl, 1)))
 	return to_return;
     }
-  for (i = 0; i < n; i++)
+  for (i = 0; BINFO_BASE_ITERATE (TYPE_BINFO (class), i, base_binfo); i++)
     {
       to_return = lookup_java_interface_method2
-	(BINFO_TYPE (TREE_VEC_ELT (basetype_vec, i)), method_decl);
+	(BINFO_TYPE (base_binfo), method_decl);
       if (to_return)
 	return to_return;
     }
@@ -10290,22 +10493,28 @@ lookup_java_method2 (tree clas, tree method_decl, int do_interface)
 }
 
 /* Return the line that matches DECL line number, and try its best to
-   position the column number. Used during error reports.  */
+   position the column number. Used during error reports.
+   FUTURE/FIXME: return source_location instead of node. */
 
 static GTY(()) tree cl_v;
 static tree
 lookup_cl (tree decl)
 {
+#ifndef USE_MAPPED_LOCATION
   char *line, *found;
+#endif
 
   if (!decl)
     return NULL_TREE;
 
   if (cl_v == NULL_TREE)
     {
-      cl_v = build_expr_wfl (NULL_TREE, NULL, 0, 0);
+      cl_v = build_unknown_wfl (NULL_TREE);
     }
 
+#ifdef USE_MAPPED_LOCATION
+  SET_EXPR_LOCATION (cl_v, DECL_SOURCE_LOCATION (decl));
+#else
   EXPR_WFL_FILENAME_NODE (cl_v) = get_identifier (DECL_SOURCE_FILE (decl));
   EXPR_WFL_SET_LINECOL (cl_v, DECL_SOURCE_LINE (decl), -1);
 
@@ -10316,6 +10525,7 @@ lookup_cl (tree decl)
 		  (const char *)IDENTIFIER_POINTER (DECL_NAME (decl)));
   if (found)
     EXPR_WFL_SET_LINECOL (cl_v, EXPR_WFL_LINENO (cl_v), found - line);
+#endif
 
   return cl_v;
 }
@@ -10347,13 +10557,13 @@ process_imports (void)
       tree to_be_found = EXPR_WFL_NODE (TREE_PURPOSE (import));
       char *original_name;
 
-      original_name = xmemdup (IDENTIFIER_POINTER (to_be_found),
-			       IDENTIFIER_LENGTH (to_be_found),
-			       IDENTIFIER_LENGTH (to_be_found) + 1);
-
       /* Don't load twice something already defined. */
       if (IDENTIFIER_CLASS_VALUE (to_be_found))
 	continue;
+
+      original_name = xmemdup (IDENTIFIER_POINTER (to_be_found),
+			       IDENTIFIER_LENGTH (to_be_found),
+			       IDENTIFIER_LENGTH (to_be_found) + 1);
 
       while (1)
 	{
@@ -10362,7 +10572,7 @@ process_imports (void)
 	  QUALIFIED_P (to_be_found) = 1;
 	  load_class (to_be_found, 0);
 	  error_found =
-	    check_pkg_class_access (to_be_found, TREE_PURPOSE (import), true);
+	    check_pkg_class_access (to_be_found, TREE_PURPOSE (import), true, NULL_TREE);
 
 	  /* We found it, we can bail out */
 	  if (IDENTIFIER_CLASS_VALUE (to_be_found))
@@ -10376,7 +10586,7 @@ process_imports (void)
 	     inner class.  The only way for us to know is to try again
 	     after having dropped a qualifier. If we can't break it further,
 	     we have an error. */
-	  if (breakdown_qualified (&left, NULL, to_be_found))
+	  if (split_qualified_name (&left, NULL, to_be_found))
 	    break;
 
 	  to_be_found = left;
@@ -10384,7 +10594,7 @@ process_imports (void)
       if (!IDENTIFIER_CLASS_VALUE (to_be_found))
 	{
 	  parse_error_context (TREE_PURPOSE (import),
-			       "Class or interface `%s' not found in import",
+			       "Class or interface %qs not found in import",
 			       original_name);
 	  error_found = 1;
 	}
@@ -10402,8 +10612,12 @@ process_imports (void)
 static void
 find_in_imports (tree enclosing_type, tree class_type)
 {
-  tree import = (enclosing_type ? TYPE_IMPORT_LIST (enclosing_type) :
-		 ctxp->import_list);
+  tree import;
+  if (enclosing_type && TYPE_IMPORT_LIST (enclosing_type))
+    import = TYPE_IMPORT_LIST (enclosing_type);
+  else
+    import = ctxp->import_list;
+
   while (import)
     {
       if (TREE_VALUE (import) == TYPE_NAME (class_type))
@@ -10467,7 +10681,7 @@ read_import_dir (tree wfl)
 	  buffer_grow (filename, entry_length);
 	  memcpy (filename->data, entry_name, entry_length - 1);
 	  filename->data[entry_length-1] = '\0';
-	  zipf = opendir_in_zip (filename->data, jcf_path_is_system (entry));
+	  zipf = opendir_in_zip ((const char *) filename->data, jcf_path_is_system (entry));
 	  if (zipf == NULL)
 	    error ("malformed .zip archive in CLASSPATH: %s", entry_name);
 	  else
@@ -10487,7 +10701,7 @@ read_import_dir (tree wfl)
 		  int current_entry_len = zipd->filename_length;
 
 		  if (current_entry_len >= BUFFER_LENGTH (filename)
-		      && strncmp (filename->data, current_entry,
+		      && strncmp ((const char *) filename->data, current_entry,
 				  BUFFER_LENGTH (filename)) != 0)
 		    continue;
 		  found |= note_possible_classname (current_entry,
@@ -10499,7 +10713,7 @@ read_import_dir (tree wfl)
 	{
 	  BUFFER_RESET (filename);
 	  buffer_grow (filename, entry_length + package_length + 4);
-	  strcpy (filename->data, entry_name);
+	  strcpy ((char *) filename->data, entry_name);
 	  filename->ptr = filename->data + entry_length;
 	  for (k = 0; k < package_length; k++)
 	    {
@@ -10508,7 +10722,7 @@ read_import_dir (tree wfl)
 	    }
 	  *filename->ptr = '\0';
 
-	  dirp = opendir (filename->data);
+	  dirp = opendir ((const char *) filename->data);
 	  if (dirp == NULL)
 	    continue;
 	  *filename->ptr++ = '/';
@@ -10522,8 +10736,8 @@ read_import_dir (tree wfl)
 	      d_name = direntp->d_name;
 	      len = strlen (direntp->d_name);
 	      buffer_grow (filename, len+1);
-	      strcpy (filename->ptr, d_name);
-	      found |= note_possible_classname (filename->data + entry_length,
+	      strcpy ((char *) filename->ptr, d_name);
+	      found |= note_possible_classname ((const char *) filename->data + entry_length,
 						package_length+len+1);
 	    }
 	  if (dirp)
@@ -10540,12 +10754,12 @@ read_import_dir (tree wfl)
       static int first = 1;
       if (first)
 	{
-	  error ("Can't find default package `%s'. Check the CLASSPATH environment variable and the access to the archives", package_name);
+	  error ("Can't find default package %qs. Check the CLASSPATH environment variable and the access to the archives", package_name);
 	  java_error_count++;
 	  first = 0;
 	}
       else
-	parse_error_context (wfl, "Package `%s' not found in import",
+	parse_error_context (wfl, "Package %qs not found in import",
 			     package_name);
       current_jcf = saved_jcf;
       return;
@@ -10561,16 +10775,20 @@ static int
 find_in_imports_on_demand (tree enclosing_type, tree class_type)
 {
   tree class_type_name = TYPE_NAME (class_type);
-  tree import = (enclosing_type ? TYPE_IMPORT_DEMAND_LIST (enclosing_type) :
-		  ctxp->import_demand_list);
   tree cl = NULL_TREE;
   int seen_once = -1;	/* -1 when not set, 1 if seen once, >1 otherwise. */
   int to_return = -1;	/* -1 when not set, 0 or 1 otherwise */
   tree node;
+  tree import;
+
+  if (enclosing_type && TYPE_IMPORT_DEMAND_LIST (enclosing_type))
+    import = TYPE_IMPORT_DEMAND_LIST (enclosing_type);
+  else
+    import = ctxp->import_demand_list;
 
   for (; import; import = TREE_CHAIN (import))
     {
-      int saved_lineno = input_line;
+      location_t saved_location = input_location;
       int access_check;
       const char *id_name;
       tree decl, type_name_copy;
@@ -10587,9 +10805,13 @@ find_in_imports_on_demand (tree enclosing_type, tree class_type)
       if (! (node = maybe_get_identifier (id_name)))
 	continue;
 
-      /* Setup lineno so that it refers to the line of the import (in
+      /* Setup input_line so that it refers to the line of the import (in
 	 case we parse a class file and encounter errors */
+#ifdef USE_MAPPED_LOCATION
+      input_location = EXPR_LOCATION (TREE_PURPOSE (import));
+#else
       input_line = EXPR_WFL_LINENO (TREE_PURPOSE (import));
+#endif
 
       type_name_copy = TYPE_NAME (class_type);
       TYPE_NAME (class_type) = node;
@@ -10598,20 +10820,19 @@ find_in_imports_on_demand (tree enclosing_type, tree class_type)
       access_check = -1;
       /* If there is no DECL set for the class or if the class isn't
 	 loaded and not seen in source yet, then load */
-      if (!decl || (!CLASS_LOADED_P (TREE_TYPE (decl))
-		    && !CLASS_FROM_SOURCE_P (TREE_TYPE (decl))))
+      if (!decl || ! CLASS_LOADED_P (TREE_TYPE (decl)))
 	{
 	  load_class (node, 0);
 	  decl = IDENTIFIER_CLASS_VALUE (node);
 	}
       if (decl && ! INNER_CLASS_P (TREE_TYPE (decl)))
 	access_check = check_pkg_class_access (node, TREE_PURPOSE (import),
-					       false);
+					       false, NULL_TREE);
       else
 	/* 6.6.1: Inner classes are subject to member access rules. */
 	access_check = 0;
 
-      input_line = saved_lineno;
+      input_location = saved_location;
 
       /* If the loaded class is not accessible or couldn't be loaded,
 	 we restore the original TYPE_NAME and process the next
@@ -10639,7 +10860,7 @@ find_in_imports_on_demand (tree enclosing_type, tree class_type)
 	      seen_once++;
 	      parse_error_context
 		(location,
-		 "Type `%s' also potentially defined in package `%s'",
+		 "Type %qs also potentially defined in package %qs",
 		 IDENTIFIER_POINTER (TYPE_NAME (class_type)),
 		 IDENTIFIER_POINTER (package));
 	    }
@@ -10651,27 +10872,6 @@ find_in_imports_on_demand (tree enclosing_type, tree class_type)
     return to_return;
   else
     return (seen_once < 0 ? 0 : seen_once); /* It's ok not to have found */
-}
-
-/* Add package NAME to the list of packages encountered so far. To
-   speed up class lookup in do_resolve_class, we make sure a
-   particular package is added only once.  */
-
-static void
-register_package (tree name)
-{
-  static htab_t pht;
-  void **e;
-
-  if (pht == NULL)
-    pht = htab_create (50, htab_hash_pointer, htab_eq_pointer, NULL);
-
-  e = htab_find_slot (pht, name, INSERT);
-  if (*e == NULL)
-    {
-      package_list = chainon (package_list, build_tree_list (name, NULL));
-      *e = name;
-    }
 }
 
 static tree
@@ -10786,16 +10986,17 @@ check_inner_class_access (tree decl, tree enclosing_decl, tree cl)
 
   parse_error_context (cl, "Nested %s %s is %s; cannot be accessed from here",
 		       (CLASS_INTERFACE (decl) ? "interface" : "class"),
-		       lang_printable_name (decl, 0), access);
+		       lang_printable_name (decl, 2), access);
 }
 
 /* Accessibility check for top-level classes. If CLASS_NAME is in a
    foreign package, it must be PUBLIC. Return 0 if no access
    violations were found, 1 otherwise. If VERBOSE is true and an error
-   was found, it is reported and accounted for.  */
+   was found, it is reported and accounted for.  If CL is NULL then 
+   look it up with THIS_DECL.  */
 
 static int
-check_pkg_class_access (tree class_name, tree cl, bool verbose)
+check_pkg_class_access (tree class_name, tree cl, bool verbose, tree this_decl)
 {
   tree type;
 
@@ -10810,7 +11011,7 @@ check_pkg_class_access (tree class_name, tree cl, bool verbose)
       /* Access to a private class within the same package is
          allowed. */
       tree l, r;
-      breakdown_qualified (&l, &r, class_name);
+      split_qualified_name (&l, &r, class_name);
       if (!QUALIFIED_P (class_name) && !ctxp->package)
 	/* Both in the empty package. */
         return 0;
@@ -10820,7 +11021,8 @@ check_pkg_class_access (tree class_name, tree cl, bool verbose)
 
       if (verbose)
 	parse_error_context
-	  (cl, "Can't access %s `%s'. Only public classes and interfaces in other packages can be accessed",
+	  (cl == NULL ? lookup_cl (this_decl): cl,
+           "Can't access %s %qs. Only public classes and interfaces in other packages can be accessed",
 	   (CLASS_INTERFACE (TYPE_NAME (type)) ? "interface" : "class"),
 	   IDENTIFIER_POINTER (class_name));
       return 1;
@@ -10858,7 +11060,7 @@ declare_local_variables (int modifier, tree type, tree vlist)
 	{
 	  parse_error_context
 	    (ctxp->modifier_ctx [i],
-	     "Only `final' is allowed as a local variables modifier");
+	     "Only %<final%> is allowed as a local variables modifier");
 	  return;
 	}
     }
@@ -10906,12 +11108,24 @@ declare_local_variables (int modifier, tree type, tree vlist)
 
       /* If doing xreferencing, replace the line number with the WFL
          compound value */
+#ifdef USE_MAPPED_LOCATION
+      if (flag_emit_xref)
+	DECL_SOURCE_LOCATION (decl) = EXPR_LOCATION (wfl);
+#else
       if (flag_emit_xref)
 	DECL_SOURCE_LINE (decl) = EXPR_WFL_LINECOL (wfl);
+#endif
 
       /* Don't try to use an INIT statement when an error was found */
       if (init && java_error_count)
 	init = NULL_TREE;
+
+      /* Remember it if this is an initialized-upon-declaration final
+         variable.  */
+      if (init && final_p)
+        {
+          DECL_LOCAL_FINAL_IUD (decl) = 1;
+        }
 
       /* Add the initialization function to the current function's code */
       if (init)
@@ -10998,14 +11212,18 @@ create_artificial_method (tree class, int flags, tree type,
 			  tree name, tree args)
 {
   tree mdecl;
+  location_t save_location = input_location;
 
-  java_parser_context_save_global ();
-  input_line = 0;
+  input_location = DECL_SOURCE_LOCATION (TYPE_NAME (class));
   mdecl = make_node (FUNCTION_TYPE);
   TREE_TYPE (mdecl) = type;
   TYPE_ARG_TYPES (mdecl) = args;
-  mdecl = add_method (class, flags, name, build_java_signature (mdecl));
-  java_parser_context_restore_global ();
+  /* We used to compute the signature of MDECL here and then use
+     add_method(), but that failed because our caller might modify
+     the type of the returned method, which trashes the cache in
+     get_type_from_signature().  */
+  mdecl = add_method_1 (class, flags, name, mdecl);
+  input_location = save_location;
   DECL_ARTIFICIAL (mdecl) = 1;
   return mdecl;
 }
@@ -11015,8 +11233,13 @@ create_artificial_method (tree class, int flags, tree type,
 static void
 start_artificial_method_body (tree mdecl)
 {
+#ifdef USE_MAPPED_LOCATION
+  DECL_SOURCE_LOCATION (mdecl) = ctxp->file_start_location;
+  DECL_FUNCTION_LAST_LINE (mdecl) = ctxp->file_start_location;
+#else
   DECL_SOURCE_LINE (mdecl) = 1;
   DECL_FUNCTION_LAST_LINE (mdecl) = 1;
+#endif
   source_start_java_method (mdecl);
   enter_block ();
 }
@@ -11060,24 +11283,26 @@ source_end_java_method (void)
     return;
 
   java_parser_context_save_global ();
+#ifdef USE_MAPPED_LOCATION
+  input_location = ctxp->last_ccb_indent1;
+#else
   input_line = ctxp->last_ccb_indent1;
+#endif
 
   /* Turn function bodies with only a NOP expr null, so they don't get
      generated at all and we won't get warnings when using the -W
      -Wall flags. */
-  if (BLOCK_EXPR_BODY (DECL_FUNCTION_BODY (fndecl)) == empty_stmt_node)
+  if (IS_EMPTY_STMT (BLOCK_EXPR_BODY (DECL_FUNCTION_BODY (fndecl))))
     BLOCK_EXPR_BODY (DECL_FUNCTION_BODY (fndecl)) = NULL_TREE;
 
-  /* We've generated all the trees for this function, and it has been
-     patched.  Dump it to a file if the user requested it.  */
-  dump_java_tree (TDI_original, fndecl);
-
-  /* Defer expanding the method until cgraph analysis is complete.  */
-  if (DECL_SAVED_TREE (fndecl))
-    cgraph_finalize_function (fndecl, false);
+  if (BLOCK_EXPR_BODY (DECL_FUNCTION_BODY (fndecl))
+      && ! flag_emit_class_files
+      && ! flag_emit_xref)
+    finish_method (fndecl);
 
   current_function_decl = NULL_TREE;
   java_parser_context_restore_global ();
+  current_function_decl = NULL_TREE;
 }
 
 /* Record EXPR in the current function block. Complements compound
@@ -11107,19 +11332,10 @@ add_stmt_to_block (tree b, tree type, tree stmt)
   return c;
 }
 
-/* Add STMT to EXISTING if possible, otherwise create a new
-   COMPOUND_EXPR and add STMT to it. */
+/* Lays out the methods for the classes seen so far.  */
 
-static tree
-add_stmt_to_compound (tree existing, tree type, tree stmt)
-{
-  if (existing)
-    return build (COMPOUND_EXPR, type, existing, stmt);
-  else
-    return stmt;
-}
-
-void java_layout_seen_class_methods (void)
+void
+java_layout_seen_class_methods (void)
 {
   tree previous_list = all_class_list;
   tree end = NULL_TREE;
@@ -11129,7 +11345,20 @@ void java_layout_seen_class_methods (void)
     {
       for (current = previous_list;
 	   current != end; current = TREE_CHAIN (current))
-	layout_class_methods (TREE_TYPE (TREE_VALUE (current)));
+        {
+	  tree decl = TREE_VALUE (current);
+          tree cls = TREE_TYPE (decl);
+
+	  input_location = DECL_SOURCE_LOCATION (decl);
+
+          if (! CLASS_LOADED_P (cls))
+            load_class (cls, 0);
+
+          layout_class_methods (cls);
+        }
+
+      /* Note that new classes might have been added while laying out
+         methods, changing the value of all_class_list.  */
 
       if (previous_list != all_class_list)
 	{
@@ -11244,8 +11473,6 @@ java_complete_expand_class (tree outer)
 {
   tree inner_list;
 
-  set_nested_class_simple_name_value (outer, 1); /* Set */
-
   /* We need to go after all inner classes and start expanding them,
      starting with most nested ones. We have to do that because nested
      classes might add functions to outer classes */
@@ -11255,7 +11482,6 @@ java_complete_expand_class (tree outer)
     java_complete_expand_class (TREE_PURPOSE (inner_list));
 
   java_complete_expand_methods (outer);
-  set_nested_class_simple_name_value (outer, 0); /* Reset */
 }
 
 /* Expand methods registered in CLASS_DECL. The general idea is that
@@ -11292,21 +11518,9 @@ java_complete_expand_methods (tree class_decl)
   /* Now do the constructors */
   for (decl = first_decl ; !java_error_count && decl; decl = TREE_CHAIN (decl))
     {
-      int no_body;
-
       if (!DECL_CONSTRUCTOR_P (decl))
 	continue;
-
-      no_body = !DECL_FUNCTION_BODY (decl);
-      /* Don't generate debug info on line zero when expanding a
-	 generated constructor. */
-      if (no_body)
-	restore_line_number_status (1);
-
       java_complete_expand_method (decl);
-
-      if (no_body)
-	restore_line_number_status (0);
     }
 
   /* First, do the ordinary methods. */
@@ -11391,7 +11605,7 @@ maybe_generate_pre_expand_clinit (tree class_type)
       /* We build the assignment expression that will initialize the
 	 field to its value. There are strict rules on static
 	 initializers (8.5). FIXME */
-      if (TREE_CODE (stmt) != BLOCK && stmt != empty_stmt_node)
+      if (TREE_CODE (stmt) != BLOCK && !IS_EMPTY_STMT (stmt))
 	stmt = build_debugable_stmt (EXPR_WFL_LINECOL (stmt), stmt);
       java_method_add_stmt (mdecl, stmt);
     }
@@ -11485,7 +11699,7 @@ maybe_yank_clinit (tree mdecl)
     bbody = BLOCK_EXPR_BODY (bbody);
   else
     return 0;
-  if (bbody && ! flag_emit_class_files && bbody != empty_stmt_node)
+  if (bbody && ! flag_emit_class_files && !IS_EMPTY_STMT (bbody))
     return 0;
 
   type = DECL_CONTEXT (mdecl);
@@ -11519,7 +11733,7 @@ maybe_yank_clinit (tree mdecl)
 
   /* Now we analyze the method body and look for something that
      isn't a MODIFY_EXPR */
-  if (bbody != empty_stmt_node && analyze_clinit_body (type, bbody))
+  if (!IS_EMPTY_STMT (bbody) && analyze_clinit_body (type, bbody))
     return 0;
 
   /* Get rid of <clinit> in the class' list of methods */
@@ -11554,7 +11768,7 @@ start_complete_expand_method (tree mdecl)
       /* TREE_CHAIN (tem) will change after pushdecl. */
       tree next = TREE_CHAIN (tem);
       tree type = TREE_TYPE (tem);
-      if (PROMOTE_PROTOTYPES
+      if (targetm.calls.promote_prototypes (type)
 	  && TYPE_PRECISION (type) < TYPE_PRECISION (integer_type_node)
 	  && INTEGRAL_TYPE_P (type))
 	type = integer_type_node;
@@ -11566,7 +11780,7 @@ start_complete_expand_method (tree mdecl)
       TREE_CHAIN (tem) = next;
     }
   pushdecl_force_head (DECL_ARGUMENTS (mdecl));
-  input_line = DECL_SOURCE_LINE (mdecl);
+  input_location = DECL_SOURCE_LOCATION (mdecl);
   build_result_decl (mdecl);
 }
 
@@ -11684,7 +11898,6 @@ java_expand_method_bodies (tree class)
   for (decl = TYPE_METHODS (class); decl; decl = TREE_CHAIN (decl))
     {
       tree block;
-      tree body;
 
       if (! DECL_FUNCTION_BODY (decl))
 	continue;
@@ -11693,16 +11906,8 @@ java_expand_method_bodies (tree class)
 
       block = BLOCK_EXPR_BODY (DECL_FUNCTION_BODY (decl));
 
-      if (TREE_CODE (block) != BLOCK)
-	abort ();
-
-      /* Save the function body for inlining.  */
+      /* Save the function body for gimplify and inlining.  */
       DECL_SAVED_TREE (decl) = block;
-
-      body = BLOCK_EXPR_BODY (block);
-
-      if (TREE_TYPE (body) == NULL_TREE)
-	abort ();
 
       /* It's time to assign the variable flagging static class
 	 initialization based on which classes invoked static methods
@@ -11735,41 +11940,7 @@ java_expand_method_bodies (tree class)
 	    }
 	}
 
-      /* Prepend class initialization to static methods.  */
-      if (METHOD_STATIC (decl) && ! METHOD_PRIVATE (decl)
-	  && ! flag_emit_class_files
-	  && ! DECL_CLINIT_P (decl)
-	  && ! CLASS_INTERFACE (TYPE_NAME (class)))
-	{
-	  tree init = build (CALL_EXPR, void_type_node,
-			     build_address_of (soft_initclass_node),
-			     build_tree_list (NULL_TREE,
-					      build_class_ref (class)),
-			     NULL_TREE);
-	  TREE_SIDE_EFFECTS (init) = 1;
-	  body = build (COMPOUND_EXPR, TREE_TYPE (body), init, body);
-	  BLOCK_EXPR_BODY (block) = body;
-	}
-
-      /* Wrap synchronized method bodies in a monitorenter
-	 plus monitorexit cleanup.  */
-      if (METHOD_SYNCHRONIZED (decl) && ! flag_emit_class_files)
-	{
-	  tree enter, exit, lock;
-	  if (METHOD_STATIC (decl))
-	    lock = build_class_ref (class);
-	  else
-	    lock = DECL_ARGUMENTS (decl);
-	  BUILD_MONITOR_ENTER (enter, lock);
-	  BUILD_MONITOR_EXIT (exit, lock);
-
-	  body = build (COMPOUND_EXPR, void_type_node,
-			enter,
-			build (TRY_FINALLY_EXPR, void_type_node, body, exit));
-	  BLOCK_EXPR_BODY (block) = body;
-	}
-
-      /* Expand the the function body.  */
+      /* Expand the function body.  */
       source_end_java_method ();
     }
 }
@@ -11780,114 +11951,163 @@ java_expand_method_bodies (tree class)
    fields either directly by using the relevant access to this$<n> or
    by invoking an access method crafted for that purpose.  */
 
-/* Build the necessary access from an inner class to an outer
-   class. This routine could be optimized to cache previous result
+/* Build the necessary access across nested class boundaries.
+   This routine could be optimized to cache previous result
    (decl, current_class and returned access).  When an access method
-   needs to be generated, it always takes the form of a read. It might
-   be later turned into a write by calling outer_field_access_fix.  */
+   needs to be generated, it always takes the form of a read.  It might
+   be later turned into a write by calling nested_field_access_fix.  */
 
 static tree
-build_outer_field_access (tree id, tree decl)
+build_nested_field_access (tree id, tree decl)
 {
   tree access = NULL_TREE;
-  tree ctx = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (current_class)));
+  tree ctx = NULL_TREE;
   tree decl_ctx = DECL_CONTEXT (decl);
+  bool is_static = FIELD_STATIC (decl);
 
-  /* If the immediate enclosing context of the current class is the
-     field decl's class or inherits from it; build the access as
-     `this$<n>.<field>'. Note that we will break the `private' barrier
-     if we're not emitting bytecodes. */
-  if ((ctx == decl_ctx || inherits_from_p (ctx, decl_ctx))
-      && (!FIELD_PRIVATE (decl) || !flag_emit_class_files ))
+  if (DECL_CONTEXT (TYPE_NAME (current_class)))
+    ctx = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (current_class)));
+
+  /* For non-static fields, if the immediate enclosing context of the
+     current class is the field decl's class or inherits from it,
+     build the access as `this$<n>.<field>'.  Note that we will break
+     the `private' barrier if we're not emitting bytecodes.  */
+  if (!is_static
+      && ctx
+      && (ctx == decl_ctx || inherits_from_p (ctx, decl_ctx))
+      && (!FIELD_PRIVATE (decl) || !flag_emit_class_files))
     {
       tree thisn = build_current_thisn (current_class);
       access = make_qualified_primary (build_wfl_node (thisn),
 				       id, EXPR_WFL_LINECOL (id));
     }
-  /* Otherwise, generate access methods to outer this and access the
-     field (either using an access method or by direct access.) */
+  /* Otherwise, generate and use accessor methods for the field as
+     needed.  */
   else
     {
       int lc = EXPR_WFL_LINECOL (id);
 
       /* Now we chain the required number of calls to the access$0 to
-	 get a hold to the enclosing instance we need, and then we
-	 build the field access. */
-      access = build_access_to_thisn (current_class, decl_ctx, lc);
+	 get a hold to the enclosing instance we need for a non-static
+         field, and then we build the field access. */
+      if (!is_static)
+        access = build_access_to_thisn (current_class, decl_ctx, lc);
 
       /* If the field is private and we're generating bytecode, then
-         we generate an access method */
-      if (FIELD_PRIVATE (decl) && flag_emit_class_files )
+         we generate an access method.  */
+      if (FIELD_PRIVATE (decl) && flag_emit_class_files)
 	{
-	  tree name = build_outer_field_access_methods (decl);
-	  access = build_outer_field_access_expr (lc, decl_ctx,
-						  name, access, NULL_TREE);
+	  tree name = build_nested_field_access_methods (decl);
+	  access = build_nested_field_access_expr (lc, decl_ctx,
+						   name, access, NULL_TREE);
 	}
-      /* Otherwise we use `access$(this$<j>). ... access$(this$<i>).<field>'.
+      /* Otherwise we use `access$(this$<j>). ... access$(this$<i>).<field>'
+         for non-static fields.
 	 Once again we break the `private' access rule from a foreign
-	 class. */
+	 class.  */
+      else if (is_static)
+        {
+          tree class_name = DECL_NAME (TYPE_NAME (decl_ctx));
+          access
+            = make_qualified_primary (build_wfl_node (class_name), id, lc);
+        }
       else
-	access = make_qualified_primary (access, id, lc);
+        access = make_qualified_primary (access, id, lc);
     }
+
   return resolve_expression_name (access, NULL);
 }
 
-/* Return a nonzero value if NODE describes an outer field inner
-   access.  */
+/* Return a nonzero value if DECL describes a member access across nested
+   class boundaries.  That is, DECL is in a class that either encloses,
+   is enclosed by or shares a common enclosing class with the class
+   TYPE.  */
 
 static int
-outer_field_access_p (tree type, tree decl)
+nested_member_access_p (tree type, tree decl)
 {
+  bool is_static = false;
+  tree decl_type = DECL_CONTEXT (decl);
+  tree type_root, decl_type_root;
+
+  if (decl_type == type
+      || (TREE_CODE (decl) != FIELD_DECL
+          && TREE_CODE (decl) != VAR_DECL
+          && TREE_CODE (decl) != FUNCTION_DECL))
+    return 0;
+  
   if (!INNER_CLASS_TYPE_P (type)
-      || TREE_CODE (decl) != FIELD_DECL
-      || DECL_CONTEXT (decl) == type)
+      && !(TREE_CODE (decl_type) == RECORD_TYPE
+           && INNER_CLASS_TYPE_P (decl_type)))
     return 0;
 
-  /* If the inner class extends the declaration context of the field
-     we're trying to access, then this isn't an outer field access */
-  if (inherits_from_p (type, DECL_CONTEXT (decl)))
+  is_static = (TREE_CODE (decl) == FUNCTION_DECL)
+              ? METHOD_STATIC (decl)
+              : FIELD_STATIC (decl);
+
+  /* If TYPE extends the declaration context of the non-static
+     member we're trying to access, then this isn't a nested member
+     access we need to worry about.  */
+  if (!is_static && inherits_from_p (type, decl_type))
     return 0;
 
-  for (type = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (type))); ;
-       type = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (type))))
+  for (type_root = type;
+       DECL_CONTEXT (TYPE_NAME (type_root));
+       type_root = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (type_root))))
     {
-      if (type == DECL_CONTEXT (decl))
-	return 1;
-
-      if (!DECL_CONTEXT (TYPE_NAME (type)))
-	{
-	  /* Before we give up, see whether the field is inherited from
-	     the enclosing context we're considering. */
-	  if (inherits_from_p (type, DECL_CONTEXT (decl)))
-	    return 1;
-	  break;
-	}
+      if (type_root == decl_type)
+        return 1;
     }
+
+  if (TREE_CODE (decl_type) == RECORD_TYPE
+      && INNER_CLASS_TYPE_P (decl_type))
+    {
+      for (decl_type_root = decl_type;
+           DECL_CONTEXT (TYPE_NAME (decl_type_root));
+           decl_type_root
+             = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (decl_type_root))))
+        {
+          if (decl_type_root == type)
+            return 1;
+        }
+    }
+  else
+    decl_type_root = decl_type;
+    
+  if (type_root == decl_type_root)
+    return 1;
+
+  /* Before we give up, see whether it is a non-static field
+     inherited from the enclosing context we are considering.  */
+  if (!DECL_CONTEXT (TYPE_NAME (type_root))
+      && !is_static
+      && inherits_from_p (type_root, decl_type))
+    return 1;
 
   return 0;
 }
 
-/* Return a nonzero value if NODE represents an outer field inner
-   access that was been already expanded. As a side effect, it returns
+/* Return a nonzero value if NODE represents a cross-nested-class 
+   access that has already been expanded.  As a side effect, it returns
    the name of the field being accessed and the argument passed to the
    access function, suitable for a regeneration of the access method
-   call if necessary. */
+   call if necessary.  */
 
 static int
-outer_field_expanded_access_p (tree node, tree *name, tree *arg_type,
-			       tree *arg)
+nested_field_expanded_access_p (tree node, tree *name, tree *arg_type,
+			        tree *arg)
 {
   int identified = 0;
 
   if (TREE_CODE (node) != CALL_EXPR)
     return 0;
 
-  /* Well, gcj generates slightly different tree nodes when compiling
-     to native or bytecodes. It's the case for function calls. */
+  /* Well, GCJ generates slightly different tree nodes when compiling
+     to native or bytecodes.  It's the case for function calls.  */
 
   if (flag_emit_class_files
       && TREE_CODE (node) == CALL_EXPR
-      && OUTER_FIELD_ACCESS_IDENTIFIER_P (DECL_NAME (TREE_OPERAND (node, 0))))
+      && NESTED_FIELD_ACCESS_IDENTIFIER_P (DECL_NAME (TREE_OPERAND (node, 0))))
     identified = 1;
   else if (!flag_emit_class_files)
     {
@@ -11899,7 +12119,7 @@ outer_field_expanded_access_p (tree node, tree *name, tree *arg_type,
 	  node = TREE_OPERAND (node, 0);
 	  if (TREE_OPERAND (node, 0)
 	      && TREE_CODE (TREE_OPERAND (node, 0)) == FUNCTION_DECL
-	      && (OUTER_FIELD_ACCESS_IDENTIFIER_P
+	      && (NESTED_FIELD_ACCESS_IDENTIFIER_P
 		  (DECL_NAME (TREE_OPERAND (node, 0)))))
 	    identified = 1;
 	}
@@ -11909,26 +12129,37 @@ outer_field_expanded_access_p (tree node, tree *name, tree *arg_type,
     {
       tree argument = TREE_OPERAND (node, 1);
       *name = DECL_NAME (TREE_OPERAND (node, 0));
-      *arg_type = TREE_TYPE (TREE_TYPE (TREE_VALUE (argument)));
-      *arg = TREE_VALUE (argument);
+
+      /* The accessors for static fields do not take in a this$<n> argument,
+         so we take the class name from the accessor's context instead.  */
+      if (argument)
+        {
+          *arg_type = TREE_TYPE (TREE_TYPE (TREE_VALUE (argument)));
+          *arg = TREE_VALUE (argument);
+        }
+      else
+        {
+          *arg_type = DECL_CONTEXT (TREE_OPERAND (node, 0));
+          *arg = NULL_TREE;
+        }
     }
   return identified;
 }
 
-/* Detect in NODE an outer field read access from an inner class and
-   transform it into a write with RHS as an argument. This function is
-   called from the java_complete_lhs when an assignment to a LHS can
-   be identified. */
+/* Detect in NODE cross-nested-class field read access and
+   transform it into a write with RHS as an argument.  This function
+   is called from the java_complete_lhs when an assignment to a LHS can
+   be identified.  */
 
 static tree
-outer_field_access_fix (tree wfl, tree node, tree rhs)
+nested_field_access_fix (tree wfl, tree node, tree rhs)
 {
   tree name, arg_type, arg;
 
-  if (outer_field_expanded_access_p (node, &name, &arg_type, &arg))
+  if (nested_field_expanded_access_p (node, &name, &arg_type, &arg))
     {
-      node = build_outer_field_access_expr (EXPR_WFL_LINECOL (wfl),
-					    arg_type, name, arg, rhs);
+      node = build_nested_field_access_expr (EXPR_WFL_LINECOL (wfl),
+					     arg_type, name, arg, rhs);
       return java_complete_tree (node);
     }
   return NULL_TREE;
@@ -11941,22 +12172,33 @@ outer_field_access_fix (tree wfl, tree node, tree rhs)
    read access.  */
 
 static tree
-build_outer_field_access_expr (int lc, tree type, tree access_method_name,
-			       tree arg1, tree arg2)
+build_nested_field_access_expr (int lc, tree type, tree access_method_name,
+			        tree arg1, tree arg2)
 {
   tree args, cn, access;
 
-  args = arg1 ? arg1 :
-    build_wfl_node (build_current_thisn (current_class));
-  args = build_tree_list (NULL_TREE, args);
+  if (arg1)
+    args = build_tree_list (NULL_TREE, arg1);
+  else
+    args = NULL_TREE;
 
   if (arg2)
-    args = tree_cons (NULL_TREE, arg2, args);
+    {
+      if (args)
+        args = tree_cons (NULL_TREE, arg2, args);
+      else
+        args = build_tree_list (NULL_TREE, arg2);
+    }
 
-  access = build_method_invocation (build_wfl_node (access_method_name), args);
+  access
+    = build_method_invocation (build_wfl_node (access_method_name), args);
   cn = build_wfl_node (DECL_NAME (TYPE_NAME (type)));
+
   return make_qualified_primary (cn, access, lc);
 }
+
+/* Build the name of a synthetic accessor used to access class members
+   across nested class boundaries.  */
 
 static tree
 build_new_access_id (void)
@@ -11968,8 +12210,8 @@ build_new_access_id (void)
   return get_identifier (buffer);
 }
 
-/* Create the static access functions for the outer field DECL. We define a
-   read:
+/* Create the static access functions for the cross-nested-class field DECL.
+   We define a read:
      TREE_TYPE (<field>) access$<n> (DECL_CONTEXT (<field>) inst$) {
        return inst$.field;
      }
@@ -11978,63 +12220,89 @@ build_new_access_id (void)
                                      TREE_TYPE (<field>) value$) {
        return inst$.field = value$;
      }
-   We should have a usage flags on the DECL so we can lazily turn the ones
-   we're using for code generation. FIXME.
+   For static fields, these methods are generated without the instance
+   parameter.
+   We should have a usage flag on the DECL so we can lazily turn the ones
+   we're using for code generation.  FIXME.
 */
 
 static tree
-build_outer_field_access_methods (tree decl)
+build_nested_field_access_methods (tree decl)
 {
-  tree id, args, stmt, mdecl;
+  tree id, args, stmt, mdecl, class_name = NULL_TREE;
+  bool is_static = FIELD_STATIC (decl);
 
-  if (FIELD_INNER_ACCESS_P (decl))
-    return FIELD_INNER_ACCESS (decl);
+  if (FIELD_NESTED_ACCESS_P (decl))
+    return FIELD_NESTED_ACCESS (decl);
 
   MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC (decl);
 
-  /* Create the identifier and a function named after it. */
+  /* Create the identifier and a function named after it.  */
   id = build_new_access_id ();
 
   /* The identifier is marked as bearing the name of a generated write
-     access function for outer field accessed from inner classes. */
-  OUTER_FIELD_ACCESS_IDENTIFIER_P (id) = 1;
+     access function for outer field accessed from inner classes.  */
+  NESTED_FIELD_ACCESS_IDENTIFIER_P (id) = 1;
 
-  /* Create the read access */
-  args = build_tree_list (inst_id, build_pointer_type (DECL_CONTEXT (decl)));
-  TREE_CHAIN (args) = end_params_node;
-  stmt = make_qualified_primary (build_wfl_node (inst_id),
-				 build_wfl_node (DECL_NAME (decl)), 0);
-  stmt = build_return (0, stmt);
-  mdecl = build_outer_field_access_method (DECL_CONTEXT (decl),
-					   TREE_TYPE (decl), id, args, stmt);
-  DECL_FUNCTION_ACCESS_DECL (mdecl) = decl;
-
-  /* Create the write access method. No write access for final variable */
-  if (!FIELD_FINAL (decl))
+  /* Create the read access.  */
+  if (!is_static)
     {
       args = build_tree_list (inst_id,
-			      build_pointer_type (DECL_CONTEXT (decl)));
-      TREE_CHAIN (args) = build_tree_list (wpv_id, TREE_TYPE (decl));
-      TREE_CHAIN (TREE_CHAIN (args)) = end_params_node;
+                              build_pointer_type (DECL_CONTEXT (decl)));
+      TREE_CHAIN (args) = end_params_node;
       stmt = make_qualified_primary (build_wfl_node (inst_id),
 				     build_wfl_node (DECL_NAME (decl)), 0);
+    }
+  else
+    {
+      args = end_params_node;
+      class_name = DECL_NAME (TYPE_NAME (DECL_CONTEXT (decl)));
+      stmt = make_qualified_primary (build_wfl_node (class_name),
+                                     build_wfl_node (DECL_NAME (decl)), 0);
+    }
+  stmt = build_return (0, stmt);
+  mdecl = build_nested_field_access_method (DECL_CONTEXT (decl),
+					    TREE_TYPE (decl), id, args, stmt);
+  DECL_FUNCTION_ACCESS_DECL (mdecl) = decl;
+
+  /* Create the write access method.  No write access for final variable */
+  if (!FIELD_FINAL (decl))
+    {
+      if (!is_static)
+        {
+          args = build_tree_list (inst_id,
+			          build_pointer_type (DECL_CONTEXT (decl)));
+          TREE_CHAIN (args) = build_tree_list (wpv_id, TREE_TYPE (decl));
+          TREE_CHAIN (TREE_CHAIN (args)) = end_params_node;
+          stmt = make_qualified_primary (build_wfl_node (inst_id),
+				         build_wfl_node (DECL_NAME (decl)),
+                                         0);
+        }
+      else
+        {
+          args = build_tree_list (wpv_id, TREE_TYPE (decl));
+          TREE_CHAIN (args) = end_params_node;
+          stmt = make_qualified_primary (build_wfl_node (class_name),
+                                         build_wfl_node (DECL_NAME (decl)),
+                                         0);
+        }
       stmt = build_return (0, build_assignment (ASSIGN_TK, 0, stmt,
 						build_wfl_node (wpv_id)));
-      mdecl = build_outer_field_access_method (DECL_CONTEXT (decl),
-					       TREE_TYPE (decl), id,
-					       args, stmt);
+      mdecl = build_nested_field_access_method (DECL_CONTEXT (decl),
+					        TREE_TYPE (decl), id,
+					        args, stmt);
     }
   DECL_FUNCTION_ACCESS_DECL (mdecl) = decl;
 
   /* Return the access name */
-  return FIELD_INNER_ACCESS (decl) = id;
+  return FIELD_NESTED_ACCESS (decl) = id;
 }
 
-/* Build an field access method NAME.  */
+/* Build a field access method NAME.  */
 
 static tree
-build_outer_field_access_method (tree class, tree type, tree name,
-				 tree args, tree body)
+build_nested_field_access_method (tree class, tree type, tree name,
+				  tree args, tree body)
 {
   tree saved_current_function_decl, mdecl;
 
@@ -12055,10 +12323,10 @@ build_outer_field_access_method (tree class, tree type, tree name,
 
 
 /* This section deals with building access function necessary for
-   certain kinds of method invocation from inner classes.  */
+   certain kinds of method invocation across nested class boundaries.  */
 
 static tree
-build_outer_method_access_method (tree decl)
+build_nested_method_access_method (tree decl)
 {
   tree saved_current_function_decl, mdecl;
   tree args = NULL_TREE, call_args = NULL_TREE;
@@ -12078,7 +12346,7 @@ build_outer_method_access_method (tree decl)
 
   /* Obtain an access identifier and mark it */
   id = build_new_access_id ();
-  OUTER_FIELD_ACCESS_IDENTIFIER_P (id) = 1;
+  NESTED_FIELD_ACCESS_IDENTIFIER_P (id) = 1;
 
   carg = TYPE_ARG_TYPES (TREE_TYPE (decl));
   /* Create the arguments, as much as the original */
@@ -12107,8 +12375,7 @@ build_outer_method_access_method (tree decl)
   start_artificial_method_body (mdecl);
 
   /* The actual method invocation uses the same args. When invoking a
-     static methods that way, we don't want to skip the first
-     argument. */
+     static methods that way, we don't want to skip the first argument.  */
   carg = args;
   if (!METHOD_STATIC (decl))
     carg = TREE_CHAIN (carg);
@@ -12127,10 +12394,10 @@ build_outer_method_access_method (tree decl)
   end_artificial_method_body (mdecl);
   current_function_decl = saved_current_function_decl;
 
-  /* Back tag the access function so it know what it accesses */
+  /* Back tag the access function so it know what it accesses.  */
   DECL_FUNCTION_ACCESS_DECL (decl) = mdecl;
 
-  /* Tag the current method so it knows it has an access generated */
+  /* Tag the current method so it knows it has an access generated.  */
   return DECL_FUNCTION_INNER_ACCESS (decl) = mdecl;
 }
 
@@ -12144,7 +12411,7 @@ build_outer_method_access_method (tree decl)
    others. Access methods to this$<n> are build on the fly if
    necessary. This CAN'T be used to solely access this$<n-1> from
    this$<n> (which alway yield to special cases and optimization, see
-   for example build_outer_field_access).  */
+   for example build_nested_field_access).  */
 
 static tree
 build_access_to_thisn (tree from, tree to, int lc)
@@ -12281,7 +12548,11 @@ build_thisn_assign (void)
       tree lhs = make_qualified_primary (build_wfl_node (this_identifier_node),
 					 build_wfl_node (thisn), 0);
       tree rhs = build_wfl_node (thisn);
+#ifdef USE_MAPPED_LOCATION
+      SET_EXPR_LOCATION (lhs, input_location);
+#else
       EXPR_WFL_SET_LINECOL (lhs, input_line, 0);
+#endif
       return build_assignment (ASSIGN_TK, EXPR_WFL_LINECOL (lhs), lhs, rhs);
     }
   return NULL_TREE;
@@ -12305,7 +12576,11 @@ static tree
 build_dot_class_method (tree class)
 {
 #define BWF(S) build_wfl_node (get_identifier ((S)))
+#ifdef USE_MAPPED_LOCATION
+#define MQN(X,Y) make_qualified_name ((X), (Y), UNKNOWN_LOCATION)
+#else
 #define MQN(X,Y) make_qualified_name ((X), (Y), 0)
+#endif
   tree args, tmp, saved_current_function_decl, mdecl, qual_name;
   tree stmt, throw_stmt;
 
@@ -12343,8 +12618,13 @@ build_dot_class_method (tree class)
 
   /* Now onto the catch block. We start by building the expression
      throwing a new exception: throw new NoClassDefFoundError (_.getMessage) */
+#ifdef USE_MAPPED_LOCATION
+  throw_stmt = make_qualified_name (build_wfl_node (wpv_id),
+				    get_message_wfl, UNKNOWN_LOCATION);
+#else
   throw_stmt = make_qualified_name (build_wfl_node (wpv_id),
 				    get_message_wfl, 0);
+#endif
   throw_stmt = build_method_invocation (throw_stmt, NULL_TREE);
 
   /* Build new NoClassDefFoundError (_.getMessage) */
@@ -12409,7 +12689,7 @@ static void
 fix_constructors (tree mdecl)
 {
   tree iii;			/* Instance Initializer Invocation */
-  tree body = DECL_FUNCTION_BODY (mdecl);
+  tree *bodyp = &DECL_FUNCTION_BODY (mdecl);
   tree thisn_assign, compound = NULL_TREE;
   tree class_type = DECL_CONTEXT (mdecl);
 
@@ -12417,7 +12697,7 @@ fix_constructors (tree mdecl)
     return;
   DECL_FIXED_CONSTRUCTOR_P (mdecl) = 1;
 
-  if (!body)
+  if (!*bodyp)
     {
       /* It is an error for the compiler to generate a default
 	 constructor if the superclass doesn't have a constructor that
@@ -12430,8 +12710,8 @@ fix_constructors (tree mdecl)
 	  DECL_NAME (mdecl) = DECL_NAME (sclass_decl);
 	  parse_error_context
 	    (lookup_cl (TYPE_NAME (class_type)),
-	     "No constructor matching `%s' found in class `%s'",
-	     lang_printable_name (mdecl, 0), n);
+	     "No constructor matching %qs found in class %qs",
+	     lang_printable_name (mdecl, 2), n);
 	  DECL_NAME (mdecl) = save;
 	}
 
@@ -12461,31 +12741,30 @@ fix_constructors (tree mdecl)
     {
       int found = 0;
       int invokes_this = 0;
-      tree found_call = NULL_TREE;
-      tree main_block = BLOCK_EXPR_BODY (body);
+      tree main_block = BLOCK_EXPR_BODY (*bodyp);
 
-      while (body)
-	switch (TREE_CODE (body))
-	  {
-	  case CALL_EXPR:
-	    found = CALL_EXPLICIT_CONSTRUCTOR_P (body);
-	    if (CALL_THIS_CONSTRUCTOR_P (body))
-	      invokes_this = 1;
-	    body = NULL_TREE;
-	    break;
-	  case COMPOUND_EXPR:
-	  case EXPR_WITH_FILE_LOCATION:
-	    found_call = body;
-	    body = TREE_OPERAND (body, 0);
-	    break;
-	  case BLOCK:
-	    found_call = body;
-	    body = BLOCK_EXPR_BODY (body);
-	    break;
-	  default:
-	    found = 0;
-	    body = NULL_TREE;
-	  }
+      while (*bodyp)
+	{
+	  tree body = *bodyp;
+	  switch (TREE_CODE (body))
+	    {
+	    case CALL_EXPR:
+	      found = CALL_EXPLICIT_CONSTRUCTOR_P (body);
+	      if (CALL_THIS_CONSTRUCTOR_P (body))
+		invokes_this = 1;
+	      break;
+	    case COMPOUND_EXPR:
+	    case EXPR_WITH_FILE_LOCATION:
+	      bodyp = &TREE_OPERAND (body, 0);
+	      continue;
+	    case BLOCK:
+	      bodyp = &BLOCK_EXPR_BODY (body);
+	      continue;
+	    default:
+	      break;
+	    }
+	  break;
+	}
 
       /* Generate the assignment to this$<n>, if necessary */
       if ((thisn_assign = build_thisn_assign ()))
@@ -12499,9 +12778,8 @@ fix_constructors (tree mdecl)
          instance initializer blocks. */
       else
 	{
-	  compound = add_stmt_to_compound (compound, NULL_TREE,
-					   TREE_OPERAND (found_call, 0));
-	  TREE_OPERAND (found_call, 0) = empty_stmt_node;
+	  compound = add_stmt_to_compound (compound, NULL_TREE, *bodyp);
+	  *bodyp = build_java_empty_stmt ();
 	}
 
       DECL_INIT_CALLS_THIS (mdecl) = invokes_this;
@@ -12582,12 +12860,14 @@ java_expand_classes (void)
 {
   int save_error_count = 0;
   static struct parser_ctxt *cur_ctxp = NULL;
+  location_t save_location;
 
   java_parse_abort_on_error ();
   if (!(ctxp = ctxp_for_generation))
     return;
   java_layout_classes ();
   java_parse_abort_on_error ();
+  save_location = input_location;
 
   for (cur_ctxp = ctxp_for_generation; cur_ctxp; cur_ctxp = cur_ctxp->next)
     {
@@ -12601,12 +12881,12 @@ java_expand_classes (void)
   for (cur_ctxp = ctxp_for_generation; cur_ctxp; cur_ctxp = cur_ctxp->next)
     {
       ctxp = cur_ctxp;
-      input_filename = ctxp->filename;
+      input_location = ctxp->file_start_location;
       lang_init_source (2);	       /* Error msgs have method prototypes */
       java_complete_expand_classes (); /* Complete and expand classes */
       java_parse_abort_on_error ();
     }
-  input_filename = main_input_filename;
+  input_location = save_location;
 
   /* Find anonymous classes and expand their constructor. This extra pass is
      necessary because the constructor itself is only generated when the
@@ -12625,9 +12905,7 @@ java_expand_classes (void)
 		{
 		  if (DECL_CONSTRUCTOR_P (d))
 		    {
-		      restore_line_number_status (1);
 		      java_complete_expand_method (d);
-		      restore_line_number_status (0);
 		      break;	/* There is only one constructor. */
 		    }
 		}
@@ -12649,11 +12927,7 @@ java_expand_classes (void)
 	  for (d = TYPE_METHODS (current_class); d; d = TREE_CHAIN (d))
 	    {
 	      if (DECL_RESULT (d) == NULL_TREE)
-		{
-		  restore_line_number_status (1);
-		  java_complete_expand_method (d);
-		  restore_line_number_status (0);
-		}
+		java_complete_expand_method (d);
 	    }
 	}
     }
@@ -12682,9 +12956,7 @@ java_expand_classes (void)
 		      if (DECL_RESULT (d) == NULL_TREE)
 			{
 			  something_changed = 1;
-			  restore_line_number_status (1);
 			  java_complete_expand_method (d);
-			  restore_line_number_status (0);
 			}
 		    }
 		}
@@ -12826,11 +13098,17 @@ merge_qualified_name (tree left, tree right)
    inherited from the location information of the `.' operator. */
 
 static tree
-make_qualified_name (tree left, tree right, int location)
+make_qualified_name (tree left, tree right,
+#ifdef USE_MAPPED_LOCATION
+		     source_location location
+#else
+		     int location
+#endif
+		     )
 {
 #ifdef USE_COMPONENT_REF
-  tree node = build (COMPONENT_REF, NULL_TREE, left, right);
-  EXPR_WFL_LINECOL (node) = location;
+  tree node = build3 (COMPONENT_REF, NULL_TREE, left, right, NULL_TREE);
+  SET_EXPR_LOCATION (node, location);
   return node;
 #else
   tree left_id = EXPR_WFL_NODE (left);
@@ -12840,6 +13118,15 @@ make_qualified_name (tree left, tree right, int location)
   merge = merge_qualified_name (left_id, right_id);
 
   /* Left wasn't qualified and is now qualified */
+#ifdef USE_MAPPED_LOCATION
+  if (!QUALIFIED_P (left_id))
+    {
+      tree wfl = build_expr_wfl (left_id, EXPR_LOCATION (left));
+      EXPR_WFL_QUALIFICATION (left) = build_tree_list (wfl, NULL_TREE);
+    }
+
+  wfl = build_expr_wfl (right_id, location);
+#else
   if (!QUALIFIED_P (left_id))
     {
       tree wfl = build_expr_wfl (left_id, ctxp->filename, 0, 0);
@@ -12849,8 +13136,8 @@ make_qualified_name (tree left, tree right, int location)
 
   wfl = build_expr_wfl (right_id, ctxp->filename, 0, 0);
   EXPR_WFL_LINECOL (wfl) = location;
+#endif
   chainon (EXPR_WFL_QUALIFICATION (left), build_tree_list (wfl, NULL_TREE));
-
   EXPR_WFL_NODE (left) = merge;
   return left;
 #endif
@@ -12923,21 +13210,28 @@ resolve_expression_name (tree id, tree *orig)
 		  && !enclosing_context_p (DECL_CONTEXT (decl), current_class))
 		{
 		  parse_error_context
-		    (id, "Can't reference `%s' before the superclass constructor has been called", IDENTIFIER_POINTER (name));
+		    (id, "Can't reference %qs before the superclass constructor has been called", IDENTIFIER_POINTER (name));
 		  return error_mark_node;
 		}
 
 	      /* If we're processing an inner class and we're trying
 		 to access a field belonging to an outer class, build
-		 the access to the field */
-	      if (!fs && outer_field_access_p (current_class, decl))
+		 the access to the field.
+		 As usual, we have to treat initialized static final
+		 variables as a special case.  */
+              if (nested_member_access_p (current_class, decl)
+                  && ! (JDECL_P (decl) && CLASS_FINAL_VARIABLE_P (decl)
+                        && DECL_INITIAL (decl) != NULL_TREE
+			&& (JSTRING_TYPE_P (TREE_TYPE (decl))
+			    || JNUMERIC_TYPE_P (TREE_TYPE (decl)))
+			&& TREE_CONSTANT (DECL_INITIAL (decl))))
 		{
-		  if (CLASS_STATIC (TYPE_NAME (current_class)))
+		  if (!fs && CLASS_STATIC (TYPE_NAME (current_class)))
 		    {
 		      static_ref_err (id, DECL_NAME (decl), current_class);
 		      return error_mark_node;
 		    }
-		  access = build_outer_field_access (id, decl);
+		  access = build_nested_field_access (id, decl);
 		  if (orig)
 		    *orig = access;
 		  return access;
@@ -12977,12 +13271,12 @@ resolve_expression_name (tree id, tree *orig)
   /* We've got an error here */
   if (INNER_CLASS_TYPE_P (current_class))
     parse_error_context (id,
-			 "Local variable `%s' can't be accessed from within the inner class `%s' unless it is declared final",
+			 "Local variable %qs can't be accessed from within the inner class %qs unless it is declared final",
 			 IDENTIFIER_POINTER (name),
 			 IDENTIFIER_POINTER (DECL_NAME
 					     (TYPE_NAME (current_class))));
   else
-    parse_error_context (id, "Undefined variable `%s'",
+    parse_error_context (id, "Undefined variable %qs",
 			 IDENTIFIER_POINTER (name));
 
   return error_mark_node;
@@ -12993,7 +13287,7 @@ static_ref_err (tree wfl, tree field_id, tree class_type)
 {
   parse_error_context
     (wfl,
-     "Can't make a static reference to nonstatic variable `%s' in class `%s'",
+     "Can't make a static reference to nonstatic variable %qs in class %qs",
      IDENTIFIER_POINTER (field_id),
      IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (class_type))));
 }
@@ -13008,7 +13302,7 @@ resolve_field_access (tree qual_wfl, tree *field_decl, tree *field_type)
 {
   int is_static = 0;
   tree field_ref;
-  tree decl, where_found, type_found;
+  tree decl = NULL_TREE, where_found, type_found;
 
   if (resolve_qualified_expression_name (qual_wfl, &decl,
 					 &where_found, &type_found))
@@ -13090,8 +13384,8 @@ extract_field_decl (tree node)
 	   tree call = TREE_OPERAND (op1, 0);
 	   if (TREE_CODE (call) == CALL_EXPR
 	       && TREE_CODE (TREE_OPERAND (call, 0)) == ADDR_EXPR
-	       && TREE_OPERAND (TREE_OPERAND (call, 0), 0)
-	       == soft_initclass_node)
+	       && (TREE_OPERAND (TREE_OPERAND (call, 0), 0)
+		   == soft_initclass_node))
 	     return TREE_OPERAND (op1, 1);
 	 }
       else if (JDECL_P (op1))
@@ -13122,7 +13416,11 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
     {
       tree qual_wfl = QUAL_WFL (q);
       tree ret_decl;		/* for EH checking */
+#ifdef USE_MAPPED_LOCATION
+      source_location location;  /* for EH checking */
+#else
       int location;		/* for EH checking */
+#endif
 
       /* 15.10.1 Field Access Using a Primary */
       switch (TREE_CODE (qual_wfl))
@@ -13168,8 +13466,14 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 
 	  if (from_super && TREE_CODE (qual_wfl) == CALL_EXPR)
 	    CALL_USING_SUPER (qual_wfl) = 1;
+#ifdef USE_MAPPED_LOCATION
+	  location = (TREE_CODE (qual_wfl) == CALL_EXPR
+		      ? EXPR_LOCATION (TREE_OPERAND (qual_wfl, 0))
+		      : UNKNOWN_LOCATION);
+#else
 	  location = (TREE_CODE (qual_wfl) == CALL_EXPR ?
 		      EXPR_WFL_LINECOL (TREE_OPERAND (qual_wfl, 0)) : 0);
+#endif
 	  *where_found = patch_method_invocation (qual_wfl, decl, type,
 						  from_super,
 						  &is_static, &ret_decl);
@@ -13189,7 +13493,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      && INNER_ENCLOSING_SCOPE_CHECK (type))
 	    {
 	      parse_error_context
-		(qual_wfl, "No enclosing instance for inner class `%s' is in scope%s",
+		(qual_wfl, "No enclosing instance for inner class %qs is in scope%s",
 		 lang_printable_name (type, 0),
 		 (!current_this ? "" :
 		  "; an explicit one must be provided when creating this inner class"));
@@ -13201,7 +13505,11 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	     instantiation using a primary qualified by a `new' */
 	  RESTORE_THIS_AND_CURRENT_CLASS;
 
+#ifdef USE_MAPPED_LOCATION
+	  if (location != UNKNOWN_LOCATION)
+#else
 	  if (location)
+#endif
 	    {
 	      tree arguments = NULL_TREE;
 	      if (TREE_CODE (qual_wfl) == CALL_EXPR
@@ -13216,8 +13524,11 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	     forcoming function's argument. */
 	  if (previous_call_static && is_static)
 	    {
-	      decl = build (COMPOUND_EXPR, TREE_TYPE (*where_found),
-			    decl, *where_found);
+	      /* We must set CAN_COMPLETE_NORMALLY for the first call
+		 since it is done nowhere else.  */
+	      CAN_COMPLETE_NORMALLY (decl) = 1;
+	      decl = build2 (COMPOUND_EXPR, TREE_TYPE (*where_found),
+			     decl, *where_found);
 	      TREE_SIDE_EFFECTS (decl) = 1;
 	    }
 	  else
@@ -13301,13 +13612,13 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	  if (!current_this)
 	    {
 	      parse_error_context
-		(wfl, "Keyword `this' used outside allowed context");
+		(wfl, "Keyword %<this%> used outside allowed context");
 	      return 1;
 	    }
 	  if (ctxp->explicit_constructor_p
 	      && type == current_class)
 	    {
-	      parse_error_context (wfl, "Can't reference `this' before the superclass constructor has been called");
+	      parse_error_context (wfl, "Can't reference %<this%> before the superclass constructor has been called");
 	      return 1;
 	    }
 	  /* We have to generate code for intermediate access */
@@ -13323,7 +13634,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      if (!enclosing_context_p (type, current_class))
 		{
 		  char *p  = xstrdup (lang_printable_name (type, 0));
-		  parse_error_context (qual_wfl, "Can't use variable `%s.this': type `%s' isn't an outer type of type `%s'",
+		  parse_error_context (qual_wfl, "Can't use variable %<%s.this%>: type %qs isn't an outer type of type %qs",
 				       p, p,
 				       lang_printable_name (current_class, 0));
 		  free (p);
@@ -13356,7 +13667,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      || current_class == object_type_node)
 	    {
 	      parse_error_context
-		(wfl, "Keyword `super' used outside allowed context");
+		(wfl, "Keyword %<super%> used outside allowed context");
 	      return 1;
 	    }
 	  /* Otherwise, treat SUPER as (SUPER_CLASS)THIS */
@@ -13381,6 +13692,8 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      tree list;
 	      *where_found = decl;
 
+	      check_pkg_class_access (DECL_NAME (decl), qual_wfl, true, NULL);
+
 	      /* We want to be absolutely sure that the class is laid
                  out. We're going to search something inside it. */
 	      *type_found = type = TREE_TYPE (decl);
@@ -13403,12 +13716,12 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      if (from_super || from_cast)
 		parse_error_context
 		  ((from_cast ? qual_wfl : wfl),
-		   "No variable `%s' defined in class `%s'",
+		   "No variable %qs defined in class %qs",
 		   IDENTIFIER_POINTER (EXPR_WFL_NODE (qual_wfl)),
 		   lang_printable_name (type, 0));
 	      else
 		parse_error_context
-		  (qual_wfl, "Undefined variable or class name: `%s'",
+		  (qual_wfl, "Undefined variable or class name: %qs",
 		   IDENTIFIER_POINTER (name));
 	      return 1;
 	    }
@@ -13421,18 +13734,18 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	  decl = QUAL_RESOLUTION (q);
 
 	  /* Sneak preview. If next we see a `new', we're facing a
-	     qualification with resulted in a type being selected
-	     instead of a field.  Report the error */
+	     qualification which resulted in a type being selected
+	     instead of a field.  Report the error.  */
 	  if(TREE_CHAIN (q)
 	     && TREE_CODE (TREE_PURPOSE (TREE_CHAIN (q))) == NEW_CLASS_EXPR)
 	    {
-	      parse_error_context (qual_wfl, "Undefined variable `%s'",
+	      parse_error_context (qual_wfl, "Undefined variable %qs",
 				   IDENTIFIER_POINTER (EXPR_WFL_NODE (wfl)));
 	      return 1;
 	    }
 
-	  if (not_accessible_p (TREE_TYPE (decl), decl, type, 0))
- 	    return not_accessible_field_error (qual_wfl, decl);
+	  check_pkg_class_access (DECL_NAME (decl), qual_wfl, true, NULL);
+          
 	  check_deprecation (qual_wfl, decl);
 
 	  type = TREE_TYPE (decl);
@@ -13452,18 +13765,29 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      decl = QUAL_RESOLUTION (q);
 	      if (!type)
 		{
-		  if (TREE_CODE (decl) == FIELD_DECL && !FIELD_STATIC (decl))
+		  if (TREE_CODE (decl) == FIELD_DECL
+                      || TREE_CODE (decl) == VAR_DECL)
 		    {
-		      if (current_this)
-			*where_found = current_this;
-		      else
-			{
-			  static_ref_err (qual_wfl, DECL_NAME (decl),
-					  current_class);
-			  return 1;
-			}
-                      if (outer_field_access_p (current_class, decl))
-                        decl = build_outer_field_access (qual_wfl, decl);
+                      if (TREE_CODE (decl) == FIELD_DECL
+                          && !FIELD_STATIC (decl))
+                        {
+               	          if (current_this)
+                            *where_found = current_this;
+                          else
+                            {
+                              static_ref_err (qual_wfl, DECL_NAME (decl),
+                                              current_class);
+                              return 1;
+                            }
+                        }
+                      else
+                        {
+                          *where_found = TREE_TYPE (decl);
+                          if (TREE_CODE (*where_found) == POINTER_TYPE)
+                            *where_found = TREE_TYPE (*where_found);
+                        }
+                      if (nested_member_access_p (current_class, decl))
+                        decl = build_nested_field_access (qual_wfl, decl);
 		    }
 		  else
 		    {
@@ -13479,7 +13803,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	  else if (TREE_CODE (qual_wfl) == INTEGER_CST)
 	    {
 	      parse_error_context
-		(wfl, "Can't use type `%s' as a qualifier",
+		(wfl, "Can't use type %qs as a qualifier",
 		 lang_printable_name (TREE_TYPE (qual_wfl), 0));
 	      return 1;
 	    }
@@ -13498,7 +13822,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      if (!from_type && !JREFERENCE_TYPE_P (type))
 		{
 		  parse_error_context
-		    (qual_wfl, "Attempt to reference field `%s' in `%s %s'",
+		    (qual_wfl, "Attempt to reference field %qs in %<%s %s%>",
 		     IDENTIFIER_POINTER (EXPR_WFL_NODE (qual_wfl)),
 		     lang_printable_name (type, 0),
 		     IDENTIFIER_POINTER (DECL_NAME (decl)));
@@ -13529,7 +13853,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      if (field_decl == NULL_TREE)
 		{
 		  parse_error_context
-		    (qual_wfl, "No variable `%s' defined in type `%s'",
+		    (qual_wfl, "No variable %qs defined in type %qs",
 		     IDENTIFIER_POINTER (EXPR_WFL_NODE (qual_wfl)),
 		     GET_TYPE_NAME (type));
 		  return 1;
@@ -13552,7 +13876,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 
 	      /* Check on accessibility here */
 	      if (not_accessible_p (current_class, field_decl,
-				    DECL_CONTEXT (field_decl), from_super))
+				    *type_found, from_super))
  		return not_accessible_field_error (qual_wfl,field_decl);    
 	      check_deprecation (qual_wfl, field_decl);
 
@@ -13572,7 +13896,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 		}
 	      from_cast = from_super = 0;
 
-	      /* It's an access from a type but it isn't static, we
+	      /* If it's an access from a type but isn't static, we
 		 make it relative to `this'. */
 	      if (!is_static && from_type)
 		decl = current_this;
@@ -13587,8 +13911,8 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 		    return 1;
 		}
 
-	      /* We want to keep the location were found it, and the type
-		 we found. */
+              /* We want to keep the location where we found it, and the
+                 type we found.  */
 	      *where_found = decl;
 	      *type_found = type;
 
@@ -13596,9 +13920,17 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 		 qualified this */
 	      if (from_qualified_this)
 		{
-		  field_decl = build_outer_field_access (qual_wfl, field_decl);
+		  field_decl
+                    = build_nested_field_access (qual_wfl, field_decl);
 		  from_qualified_this = 0;
 		}
+
+              /* If needed, generate accessors for static field access.  */
+              if (is_static
+                  && FIELD_PRIVATE (field_decl)
+                  && flag_emit_class_files
+                  && nested_member_access_p (current_class, field_decl))
+                field_decl = build_nested_field_access (qual_wfl, field_decl);
 
 	      /* This is the decl found and eventually the next one to
 		 search from */
@@ -13613,7 +13945,7 @@ resolve_qualified_expression_name (tree wfl, tree *found_decl,
 	      && TREE_CODE (TREE_PURPOSE (TREE_CHAIN (q))) == NEW_CLASS_EXPR
 	      && !JREFERENCE_TYPE_P (type))
 	    {
-	      parse_error_context (qual_wfl, "Attempt to reference field `new' in a `%s'",
+	      parse_error_context (qual_wfl, "Attempt to reference field %<new%> in a %qs",
 				   lang_printable_name (type, 0));
 	      return 1;
 	    }
@@ -13638,10 +13970,13 @@ static int
 not_accessible_p (tree reference, tree member, tree where, int from_super)
 {
   int access_flag = get_access_flags_from_decl (member);
-
-  /* Inner classes are processed by check_inner_class_access */
-  if (INNER_CLASS_TYPE_P (reference))
-    return 0;
+  bool is_static = false;
+ 
+  if (TREE_CODE (member) == FIELD_DECL ||
+      TREE_CODE (member) == VAR_DECL)
+    is_static = FIELD_STATIC (member);
+  else
+    is_static = METHOD_STATIC (member);
 
   /* Access always granted for members declared public */
   if (access_flag & ACC_PUBLIC)
@@ -13660,26 +13995,34 @@ not_accessible_p (tree reference, tree member, tree where, int from_super)
       if (from_super)
 	return 0;
 
-      /* If where is active, access was made through a
-	 qualifier. Access is granted if the type of the qualifier is
-	 or is a sublass of the type the access made from (6.6.2.1.)  */
-      if (where && !inherits_from_p (reference, where))
-	return 1;
-
-      /* Otherwise, access is granted if occurring from the class where
-	 member is declared or a subclass of it. Find the right
-	 context to perform the check */
-      if (PURE_INNER_CLASS_TYPE_P (reference))
+      /* If WHERE is active, access was made through a qualifier. For 
+         non-static members, access is granted if the type of the qualifier 
+	 is or is a sublass of the type the access is made from (6.6.2.1.)  */
+      if (where && !is_static)
         {
-          while (INNER_CLASS_TYPE_P (reference))
+	  while (reference)
             {
-              if (inherits_from_p (reference, DECL_CONTEXT (member)))
-                return 0;
-              reference = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (reference)));
-            }
+	      if (inherits_from_p (where, reference))
+	        return 0;
+	      if (INNER_CLASS_TYPE_P (reference))
+		reference = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (reference)));
+	      else
+	        break;
+	    }
+	  return 1;
+	}
+
+      /* Otherwise, access is granted if occurring from within the class
+         where member is declared, or a subclass of it.  */
+      while (reference)
+        {
+          if (inherits_from_p (reference, DECL_CONTEXT (member)))
+            return 0;
+	  if (INNER_CLASS_TYPE_P (reference))
+            reference = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (reference)));
+	  else
+	    break;
         }
-      if (inherits_from_p (reference, DECL_CONTEXT (member)))
-	return 0;
       return 1;
     }
 
@@ -13688,21 +14031,15 @@ not_accessible_p (tree reference, tree member, tree where, int from_super)
      it for innerclasses too. */
   if (access_flag & ACC_PRIVATE)
     {
-      if (reference == DECL_CONTEXT (member))
-	return 0;
-      if (enclosing_context_p (reference, DECL_CONTEXT (member)))
+      if (reference == DECL_CONTEXT (member) ||
+          common_enclosing_context_p (DECL_CONTEXT (member), reference))
 	return 0;
       return 1;
     }
 
-  /* Default access are permitted only when occurring within the
-     package in which the type (REFERENCE) is declared. In other words,
-     REFERENCE is defined in the current package */
-  if (ctxp->package)
-    return !class_in_current_package (reference);
-
-  /* Otherwise, access is granted */
-  return 0;
+  /* Default access is permitted only when occurring from within the
+     package in which the context (MEMBER) is declared.  */
+  return !class_in_current_package (DECL_CONTEXT (member));
 }
 
 /* Test deprecated decl access.  */
@@ -13712,7 +14049,7 @@ check_deprecation (tree wfl, tree decl)
   const char *file;
   tree elt;
 
-  if (! flag_deprecated)
+  if (! warn_deprecated)
     return;
 
   /* We want to look at the element type of arrays here, so we strip
@@ -13745,7 +14082,7 @@ check_deprecation (tree wfl, tree decl)
 	  the = "field";
 	  break;
 	case TYPE_DECL:
-	  parse_warning_context (wfl, "The class `%s' has been deprecated",
+	  parse_warning_context (wfl, "The class %qs has been deprecated",
 				 IDENTIFIER_POINTER (DECL_NAME (decl)));
 	  return;
 	default:
@@ -13755,7 +14092,7 @@ check_deprecation (tree wfl, tree decl)
          whole. */
       if (! CLASS_DEPRECATED (TYPE_NAME (DECL_CONTEXT (decl))))
 	parse_warning_context
-	  (wfl, "The %s `%s' in class `%s' has been deprecated",
+	  (wfl, "The %s %qs in class %qs has been deprecated",
 	   the, lang_printable_name (decl, 0),
 	   IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (DECL_CONTEXT (decl)))));
     }
@@ -13763,37 +14100,11 @@ check_deprecation (tree wfl, tree decl)
 
 /* Returns 1 if class was declared in the current package, 0 otherwise */
 
-static GTY(()) tree cicp_cache;
 static int
 class_in_current_package (tree class)
 {
-  int qualified_flag;
-  tree left;
-
-  if (cicp_cache == class)
+  if (TYPE_PACKAGE (current_class) == TYPE_PACKAGE (class))
     return 1;
-
-  qualified_flag = QUALIFIED_P (DECL_NAME (TYPE_NAME (class)));
-
-  /* If the current package is empty and the name of CLASS is
-     qualified, class isn't in the current package.  If there is a
-     current package and the name of the CLASS is not qualified, class
-     isn't in the current package */
-  if ((!ctxp->package && qualified_flag) || (ctxp->package && !qualified_flag))
-    return 0;
-
-  /* If there is not package and the name of CLASS isn't qualified,
-     they belong to the same unnamed package */
-  if (!ctxp->package && !qualified_flag)
-    return 1;
-
-  /* Compare the left part of the name of CLASS with the package name */
-  breakdown_qualified (&left, NULL, DECL_NAME (TYPE_NAME (class)));
-  if (ctxp->package == left)
-    {
-      cicp_cache = class;
-      return 1;
-    }
   return 0;
 }
 
@@ -13872,7 +14183,7 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
         {
 	  parse_error_context
 	    (identifier_wfl,
-	     "Can't invoke a method on primitive type `%s'",
+	     "Can't invoke a method on primitive type %qs",
 	     IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type))));
 	  PATCH_METHOD_RETURN_ERROR ();
 	}
@@ -13887,21 +14198,27 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 	    {
 	      parse_error_context
 		(identifier_wfl,
-		"Can't make static reference to method `%s' in interface `%s'",
+		"Can't make static reference to method %qs in interface %qs",
 		 IDENTIFIER_POINTER (identifier),
 		 IDENTIFIER_POINTER (name));
 	      PATCH_METHOD_RETURN_ERROR ();
 	    }
-	  if (list && !METHOD_STATIC (list))
+	  if (list)
 	    {
-	      char *fct_name = xstrdup (lang_printable_name (list, 0));
-	      parse_error_context
-		(identifier_wfl,
-		 "Can't make static reference to method `%s %s' in class `%s'",
-		 lang_printable_name (TREE_TYPE (TREE_TYPE (list)), 0),
-		 fct_name, IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type))));
-	      free (fct_name);
-	      PATCH_METHOD_RETURN_ERROR ();
+              if (METHOD_STATIC (list))
+                maybe_use_access_method (0, &list, NULL);
+              else
+                {
+                  char *fct_name = xstrdup (lang_printable_name (list, 2));
+                  parse_error_context
+                    (identifier_wfl,
+                     "Can't make static reference to method %<%s %s%> in class %qs",
+                     lang_printable_name (TREE_TYPE (TREE_TYPE (list)), 0),
+                     fct_name,
+                     IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type))));
+                  free (fct_name);
+                  PATCH_METHOD_RETURN_ERROR ();
+                }
 	    }
 	}
       else
@@ -13950,7 +14267,7 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 	      if (!class_to_search)
 		{
 		  parse_error_context
-		    (wfl, "Class `%s' not found in type declaration",
+		    (wfl, "Class %qs not found in type declaration",
 		     IDENTIFIER_POINTER (EXPR_WFL_NODE (wfl)));
 		  PATCH_METHOD_RETURN_ERROR ();
 		}
@@ -13962,7 +14279,7 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 		  && TREE_CODE (patch) == NEW_CLASS_EXPR)
 		{
 		  parse_error_context
-		    (wfl, "Class `%s' is an abstract class. It can't be instantiated",
+		    (wfl, "Class %qs is an abstract class. It can't be instantiated",
 		     IDENTIFIER_POINTER (EXPR_WFL_NODE (wfl)));
 		  PATCH_METHOD_RETURN_ERROR ();
 		}
@@ -13992,7 +14309,7 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 		  if (! INNER_CLASS_TYPE_P (class_to_search))
 		    {
 		      parse_error_context (wfl,
-					   "No method named `%s' in scope",
+					   "No method named %qs in scope",
 					   IDENTIFIER_POINTER (name));
 		      PATCH_METHOD_RETURN_ERROR ();
 		    }
@@ -14018,7 +14335,7 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
           && DECL_NAME (list) == get_identifier ("clone"))
         is_array_clone_call = 1;
 
-      /* Check for static reference if non static methods */
+      /* Check for static reference of non static methods.  */
       if (check_for_static_method_reference (wfl, patch, list,
 					     class_to_search, primary))
 	PATCH_METHOD_RETURN_ERROR ();
@@ -14030,7 +14347,7 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 	  && !DECL_INIT_P (current_function_decl))
 	{
 	  parse_error_context
-	    (wfl, "No enclosing instance for inner class `%s' is in scope%s",
+	    (wfl, "No enclosing instance for inner class %qs is in scope%s",
 	     lang_printable_name (class_to_search, 0),
 	     (!current_this ? "" :
 	      "; an explicit one must be provided when creating this inner class"));
@@ -14038,8 +14355,8 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 	}
 
       /* Non static methods are called with the current object extra
-	 argument. If patch a `new TYPE()', the argument is the value
-	 returned by the object allocator. If method is resolved as a
+	 argument.  If PATCH is a `new TYPE()', the argument is the value
+	 returned by the object allocator.  If method is resolved as a
 	 primary, use the primary otherwise use the current THIS. */
       args = nreverse (args);
       if (TREE_CODE (patch) != NEW_CLASS_EXPR)
@@ -14051,16 +14368,16 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 
 	     1) We're not generating bytecodes:
 
-	     - LIST is non static. It's invocation is transformed from
+	     - LIST is non-static.  Its invocation is transformed from
 	       x(a1,...,an) into this$<n>.x(a1,....an).
-	     - LIST is static. It's invocation is transformed from
+	     - LIST is static.  Its invocation is transformed from
 	       x(a1,...,an) into TYPE_OF(this$<n>).x(a1,....an)
 
 	     2) We're generating bytecodes:
 
-	     - LIST is non static. It's invocation is transformed from
+	     - LIST is non-static.  Its invocation is transformed from
 	       x(a1,....,an) into access$<n>(this$<n>,a1,...,an).
-	     - LIST is static. It's invocation is transformed from
+	     - LIST is static.  Its invocation is transformed from
 	       x(a1,....,an) into TYPE_OF(this$<n>).x(a1,....an).
 
 	     Of course, this$<n> can be arbitrarily complex, ranging from
@@ -14069,10 +14386,12 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 
 	     maybe_use_access_method returns a nonzero value if the
 	     this_arg has to be moved into the (then generated) stub
-	     argument list. In the meantime, the selected function
-	     might have be replaced by a generated stub. */
-	  if (!primary &&
-	      maybe_use_access_method (is_super_init, &list, &this_arg))
+	     argument list.  In the meantime, the selected function
+	     might have been replaced by a generated stub.  */
+          if (METHOD_STATIC (list))
+            maybe_use_access_method (0, &list, NULL);
+	  else if (!primary &&
+	           maybe_use_access_method (is_super_init, &list, &this_arg))
 	    {
 	      args = tree_cons (NULL_TREE, this_arg, args);
 	      this_arg = NULL_TREE; /* So it doesn't get chained twice */
@@ -14095,17 +14414,15 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
     {
       const char *const fct_name = IDENTIFIER_POINTER (DECL_NAME (list));
       const char *const access =
-	java_accstring_lookup (get_access_flags_from_decl (list));
+	accessibility_string (get_access_flags_from_decl (list));
       const char *const klass =
 	IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (DECL_CONTEXT (list))));
       const char *const refklass =
 	IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (current_class)));
       const char *const what = (DECL_CONSTRUCTOR_P (list)
 				? "constructor" : "method");
-      /* FIXME: WFL yields the wrong message here but I don't know
-	 what else to use.  */
       parse_error_context (wfl,
-			   "Can't access %s %s `%s.%s' from `%s'",
+			   "Can't access %s %s %<%s.%s%> from %qs",
 			   access, what, klass, fct_name, refklass);
       PATCH_METHOD_RETURN_ERROR ();
     }
@@ -14186,7 +14503,7 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
       && (!primary || primary == current_this)
       && (TREE_CODE (patch) != NEW_CLASS_EXPR))
     {
-      parse_error_context (wfl, "Can't reference `this' before the superclass constructor has been called");
+      parse_error_context (wfl, "Can't reference %<this%> before the superclass constructor has been called");
       PATCH_METHOD_RETURN_ERROR ();
     }
   java_parser_context_restore_global ();
@@ -14215,8 +14532,8 @@ patch_method_invocation (tree patch, tree primary, tree where, int from_super,
 	 initialization statement and build a compound statement along
 	 with the super constructor invocation. */
       CAN_COMPLETE_NORMALLY (patch) = 1;
-      patch = build (COMPOUND_EXPR, void_type_node, patch,
-		     java_complete_tree (finit_call));
+      patch = build2 (COMPOUND_EXPR, void_type_node, patch,
+		      java_complete_tree (finit_call));
     }
   return patch;
 }
@@ -14233,7 +14550,7 @@ check_for_static_method_reference (tree wfl, tree node, tree method,
     {
       char *fct_name = xstrdup (lang_printable_name (method, 0));
       parse_error_context
-	(wfl, "Can't make static reference to method `%s %s' in class `%s'",
+	(wfl, "Can't make static reference to method %<%s %s%> in class %qs",
 	 lang_printable_name (TREE_TYPE (TREE_TYPE (method)), 0), fct_name,
 	 IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (where))));
       free (fct_name);
@@ -14242,8 +14559,8 @@ check_for_static_method_reference (tree wfl, tree node, tree method,
   return 0;
 }
 
-/* Fix the invocation of *MDECL if necessary in the case of a
-   invocation from an inner class. *THIS_ARG might be modified
+/* Fix the invocation of *MDECL if necessary in the case of an
+   invocation across a nested class.  *THIS_ARG might be modified
    appropriately and an alternative access to *MDECL might be
    returned.  */
 
@@ -14251,24 +14568,26 @@ static int
 maybe_use_access_method (int is_super_init, tree *mdecl, tree *this_arg)
 {
   tree ctx;
-  tree md = *mdecl, ta = *this_arg;
+  tree md = *mdecl, ta = NULL_TREE;
   int to_return = 0;
   int non_static_context = !METHOD_STATIC (md);
 
   if (is_super_init
-      || DECL_CONTEXT (md) == current_class
-      || !PURE_INNER_CLASS_TYPE_P (current_class)
       || DECL_FINIT_P (md)
-      || DECL_INSTINIT_P (md))
+      || DECL_INSTINIT_P (md)
+      || !nested_member_access_p (current_class, md))
     return 0;
 
   /* If we're calling a method found in an enclosing class, generate
-     what it takes to retrieve the right this. Don't do that if we're
-     invoking a static method. Note that if MD's type is unrelated to
+     what it takes to retrieve the right `this'.  Don't do that if we're
+     invoking a static method.  Note that if MD's type is unrelated to
      CURRENT_CLASS, then the current this can be used. */
 
-  if (non_static_context && DECL_CONTEXT (md) != object_type_node)
+  if (non_static_context 
+      && !inherits_from_p (current_class, DECL_CONTEXT (md))
+      && DECL_CONTEXT (TYPE_NAME (current_class)))
     {
+      ta = *this_arg;
       ctx = TREE_TYPE (DECL_CONTEXT (TYPE_NAME (current_class)));
       if (inherits_from_p (ctx, DECL_CONTEXT (md)))
 	{
@@ -14294,16 +14613,17 @@ maybe_use_access_method (int is_super_init, tree *mdecl, tree *this_arg)
     }
 
   /* We might have to use an access method to get to MD. We can
-     break the method access rule as far as we're not generating
-     bytecode */
+     break the method access rule as long as we're not generating
+     bytecode.  */
   if (METHOD_PRIVATE (md) && flag_emit_class_files)
     {
-      md = build_outer_method_access_method (md);
+      md = build_nested_method_access_method (md);
       to_return = 1;
     }
 
   *mdecl = md;
-  *this_arg = ta;
+  if (this_arg)
+    *this_arg = ta;
 
   /* Returning a nonzero value indicates we were doing a non static
      method invocation that is now a static invocation. It will have
@@ -14403,7 +14723,7 @@ patch_invoke (tree patch, tree method, tree args)
   if (TREE_CODE (original_call) == NEW_CLASS_EXPR)
     {
       tree class = DECL_CONTEXT (method);
-      tree c1, saved_new, size, new;
+      tree c1, saved_new, new;
       tree alloc_node;
 
       if (flag_emit_class_files || flag_emit_xref)
@@ -14413,22 +14733,19 @@ patch_invoke (tree patch, tree method, tree args)
 	}
       if (!TYPE_SIZE (class))
 	safe_layout_class (class);
-      size = size_in_bytes (class);
       alloc_node =
 	(class_has_finalize_method (class) ? alloc_object_node
 		  			   : alloc_no_finalizer_node);
-      new = build (CALL_EXPR, promote_type (class),
-		   build_address_of (alloc_node),
-		   tree_cons (NULL_TREE, build_class_ref (class),
-			      build_tree_list (NULL_TREE,
-					       size_in_bytes (class))),
-		   NULL_TREE);
+      new = build3 (CALL_EXPR, promote_type (class),
+		    build_address_of (alloc_node),
+		    build_tree_list (NULL_TREE, build_class_ref (class)),
+		    NULL_TREE);
       saved_new = save_expr (new);
       c1 = build_tree_list (NULL_TREE, saved_new);
       TREE_CHAIN (c1) = TREE_OPERAND (original_call, 1);
       TREE_OPERAND (original_call, 1) = c1;
       TREE_SET_CODE (original_call, CALL_EXPR);
-      patch = build (COMPOUND_EXPR, TREE_TYPE (new), patch, saved_new);
+      patch = build2 (COMPOUND_EXPR, TREE_TYPE (new), patch, saved_new);
     }
 
   /* If CHECK is set, then we are building a check to see if the object
@@ -14438,8 +14755,8 @@ patch_invoke (tree patch, tree method, tree args)
       /* We have to call force_evaluation_order now because creating a
  	 COMPOUND_EXPR wraps the arg list in a way that makes it
  	 unrecognizable by force_evaluation_order later.  Yuk.  */
-      patch = build (COMPOUND_EXPR, TREE_TYPE (patch), check, 
- 		     force_evaluation_order (patch));
+      patch = build2 (COMPOUND_EXPR, TREE_TYPE (patch), check, 
+		      force_evaluation_order (patch));
       TREE_SIDE_EFFECTS (patch) = 1;
     }
 
@@ -14458,16 +14775,16 @@ patch_invoke (tree patch, tree method, tree args)
       /* We have to call force_evaluation_order now because creating a
 	 COMPOUND_EXPR wraps the arg list in a way that makes it
 	 unrecognizable by force_evaluation_order later.  Yuk.  */
-      tree save = save_expr (force_evaluation_order (patch));
+      tree save = force_evaluation_order (patch);
       tree type = TREE_TYPE (patch);
 
-      patch = build (COMPOUND_EXPR, type, save, empty_stmt_node);
+      patch = build2 (COMPOUND_EXPR, type, save, build_java_empty_stmt ());
       list = tree_cons (method, patch,
 			DECL_FUNCTION_STATIC_METHOD_INVOCATION_COMPOUND (fndecl));
 
       DECL_FUNCTION_STATIC_METHOD_INVOCATION_COMPOUND (fndecl) = list;
 
-      patch = build (COMPOUND_EXPR, type, patch, save);
+      patch = build2 (COMPOUND_EXPR, type, patch, save);
     }
 
   return patch;
@@ -14489,11 +14806,20 @@ invocation_mode (tree method, int super)
   if (DECL_CONSTRUCTOR_P (method))
     return INVOKE_STATIC;
 
-  if (access & ACC_FINAL || access & ACC_PRIVATE)
+  if (access & ACC_PRIVATE)
     return INVOKE_NONVIRTUAL;
 
-  if (CLASS_FINAL (TYPE_NAME (DECL_CONTEXT (method))))
-    return INVOKE_NONVIRTUAL;
+  /* Binary compatibility: just because it's final today, that doesn't
+     mean it'll be final tomorrow.  */
+  if (! flag_indirect_dispatch  
+      || DECL_CONTEXT (method) == object_type_node)
+    {
+      if (access & ACC_FINAL)
+	return INVOKE_NONVIRTUAL;
+
+      if (CLASS_FINAL (TYPE_NAME (DECL_CONTEXT (method))))
+	return INVOKE_NONVIRTUAL;
+    }
 
   if (CLASS_INTERFACE (TYPE_NAME (DECL_CONTEXT (method))))
     return INVOKE_INTERFACE;
@@ -14522,6 +14848,17 @@ lookup_method_invoke (int lc, tree cl, tree class, tree name, tree arg_list)
       /* And promoted */
       if (TREE_CODE (current_arg) == RECORD_TYPE)
         current_arg = promote_type (current_arg);
+      /* If we're building an anonymous constructor call, and one of
+	 the arguments has array type, cast it to a size-less array
+	 type.  This prevents us from getting a strange gcj-specific
+	 "sized array" signature in the constructor's signature.  */
+      if (lc && ANONYMOUS_CLASS_P (class)
+	  && TREE_CODE (current_arg) == POINTER_TYPE
+	  && TYPE_ARRAY_P (TREE_TYPE (current_arg)))
+	{
+	  tree elt = TYPE_ARRAY_ELEMENT (TREE_TYPE (current_arg));
+	  current_arg = build_pointer_type (build_java_array_type (elt, -1));
+	}
       atl = tree_cons (NULL_TREE, current_arg, atl);
     }
 
@@ -14531,12 +14868,10 @@ lookup_method_invoke (int lc, tree cl, tree class, tree name, tree arg_list)
 
   if (lc && ANONYMOUS_CLASS_P (class))
     {
-      tree saved_current_class;
       tree mdecl = craft_constructor (TYPE_NAME (class), atl);
-      saved_current_class = current_class;
-      current_class = class;
-      fix_constructors (mdecl);
-      current_class = saved_current_class;
+      /* The anonymous class may have already been laid out, so make sure
+         the new constructor is laid out here.  */
+      layout_class_method (class, CLASSTYPE_SUPER (class), mdecl, NULL_TREE);
     }
 
   /* Find all candidates and then refine the list, searching for the
@@ -14561,7 +14896,7 @@ lookup_method_invoke (int lc, tree cl, tree class, tree name, tree arg_list)
 	  if (!cm || not_accessible_p (class, cm, NULL_TREE, 0))
 	    continue;
 	  sprintf
-	    (string, "  `%s' in `%s'%s",
+	    (string, "  '%s' in '%s'%s",
 	     get_printable_method_name (cm),
 	     IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (DECL_CONTEXT (cm)))),
 	     (TREE_CHAIN (current) ? "\n" : ""));
@@ -14575,7 +14910,7 @@ lookup_method_invoke (int lc, tree cl, tree class, tree name, tree arg_list)
   TYPE_ARG_TYPES (method) = atl;
   signature = build_java_argument_signature (method);
   dup = xstrdup (lang_printable_name (class, 0));
-  parse_error_context (cl, "Can't find %s `%s(%s)' in type `%s'%s",
+  parse_error_context (cl, "Can't find %s %<%s(%s)%> in type %qs%s",
 		       (lc ? "constructor" : "method"),
 		       (lc ? dup : IDENTIFIER_POINTER (name)),
 		       IDENTIFIER_POINTER (signature), dup,
@@ -14594,6 +14929,8 @@ find_applicable_accessible_methods_list (int lc, tree class, tree name,
   static htab_t searched_classes;
   static int search_not_done = 0;
   tree list = NULL_TREE, all_list = NULL_TREE;
+  tree base_binfo;
+  int i;
 
   /* Check the hash table to determine if this class has been searched
      already. */
@@ -14611,7 +14948,7 @@ find_applicable_accessible_methods_list (int lc, tree class, tree name,
   search_not_done++;
   *htab_find_slot (searched_classes, class, INSERT) = class;
 
-  if (!CLASS_LOADED_P (class) && !CLASS_FROM_SOURCE_P (class))
+  if (!CLASS_LOADED_P (class))
     {
       load_class (class, 1);
       safe_layout_class (class);
@@ -14621,16 +14958,13 @@ find_applicable_accessible_methods_list (int lc, tree class, tree name,
   if (TREE_CODE (TYPE_NAME (class)) == TYPE_DECL
       && CLASS_INTERFACE (TYPE_NAME (class)))
     {
-      int i, n;
-      tree basetype_vec = TYPE_BINFO_BASETYPES (class);
       search_applicable_methods_list (lc, TYPE_METHODS (class),
 				      name, arglist, &list, &all_list);
-      n = TREE_VEC_LENGTH (basetype_vec);
-      for (i = 1; i < n; i++)
+      for (i = 1; BINFO_BASE_ITERATE (TYPE_BINFO (class), i, base_binfo); i++)
 	{
-	  tree t = BINFO_TYPE (TREE_VEC_ELT (basetype_vec, i));
+	  tree t = BINFO_TYPE (base_binfo);
 	  tree rlist;
-
+	  
 	  rlist = find_applicable_accessible_methods_list (lc,  t, name,
 							   arglist);
 	  list = chainon (rlist, list);
@@ -14654,21 +14988,20 @@ find_applicable_accessible_methods_list (int lc, tree class, tree name,
 
       /* We must search all interfaces of this class */
       if (!lc)
-      {
-	tree basetype_vec = TYPE_BINFO_BASETYPES (class);
-	int n = TREE_VEC_LENGTH (basetype_vec), i;
-	for (i = 1; i < n; i++)
-	  {
-	    tree t = BINFO_TYPE (TREE_VEC_ELT (basetype_vec, i));
-	    if (t != object_type_node)
-	      {
-		tree rlist
-		  = find_applicable_accessible_methods_list (lc, t,
-							     name, arglist);
-		list = chainon (rlist, list);
-	      }
-	  }
-      }
+	{
+	  for (i = 1;
+	       BINFO_BASE_ITERATE (TYPE_BINFO (class), i, base_binfo); i++)
+	    {
+	      tree t = BINFO_TYPE (base_binfo);
+	      if (t != object_type_node)
+		{
+		  tree rlist
+		    = find_applicable_accessible_methods_list (lc, t,
+							       name, arglist);
+		  list = chainon (rlist, list);
+		}
+	    }
+	}
 
       /* Search superclass */
       if (!lc && CLASSTYPE_SUPER (class) != NULL_TREE)
@@ -14942,60 +15275,6 @@ qualify_ambiguous_name (tree id)
     RESOLVE_PACKAGE_NAME_P (id) = 1;
 }
 
-static int
-breakdown_qualified (tree *left, tree *right, tree source)
-{
-  char *p, *base;
-  int l = IDENTIFIER_LENGTH (source);
-
-  base = alloca (l + 1);
-  memcpy (base, IDENTIFIER_POINTER (source), l + 1);
-
-  /* Breakdown NAME into REMAINDER . IDENTIFIER.  */
-  p = base + l - 1;
-  while (*p != '.' && p != base)
-    p--;
-
-  /* We didn't find a '.'. Return an error.  */
-  if (p == base)
-    return 1;
-
-  *p = '\0';
-  if (right)
-    *right = get_identifier (p+1);
-  *left = get_identifier (base);
-
-  return 0;
-}
-
-/* Return TRUE if two classes are from the same package. */
-
-static int
-in_same_package (tree name1, tree name2)
-{
-  tree tmp;
-  tree pkg1;
-  tree pkg2;
-
-  if (TREE_CODE (name1) == TYPE_DECL)
-    name1 = DECL_NAME (name1);
-  if (TREE_CODE (name2) == TYPE_DECL)
-    name2 = DECL_NAME (name2);
-
-  if (QUALIFIED_P (name1) != QUALIFIED_P (name2))
-    /* One in empty package. */
-    return 0;
-
-  if (QUALIFIED_P (name1) == 0 && QUALIFIED_P (name2) == 0)
-    /* Both in empty package. */
-    return 1;
-
-  breakdown_qualified (&pkg1, &tmp, name1);
-  breakdown_qualified (&pkg2, &tmp, name2);
-
-  return (pkg1 == pkg2);
-}
-
 /* Patch tree nodes in a function body. When a BLOCK is found, push
    local variable decls if present.
    Same as java_complete_lhs, but does resolve static finals to values. */
@@ -15090,12 +15369,12 @@ java_complete_lhs (tree node)
              long blocks. */
 	  ptr = &BLOCK_EXPR_BODY (node);
 	  while (TREE_CODE (*ptr) == COMPOUND_EXPR
-		 && TREE_OPERAND (*ptr, 1) != empty_stmt_node)
+		 && !IS_EMPTY_STMT (TREE_OPERAND (*ptr, 1)))
 	    {
 	      tree cur = java_complete_tree (TREE_OPERAND (*ptr, 0));
 	      tree *next = &TREE_OPERAND (*ptr, 1);
 	      TREE_OPERAND (*ptr, 0) = cur;
-	      if (cur == empty_stmt_node)
+	      if (IS_EMPTY_STMT (cur))
 		{
 		  /* Optimization;  makes it easier to detect empty bodies.
 		     Most useful for <clinit> with all-constant initializer. */
@@ -15156,13 +15435,11 @@ java_complete_lhs (tree node)
     case TRY_FINALLY_EXPR:
       COMPLETE_CHECK_OP_0 (node);
       COMPLETE_CHECK_OP_1 (node);
-      /* Reduce try/finally nodes with an empty try block.  */
-      if (TREE_OPERAND (node, 0) == empty_stmt_node
-	  || BLOCK_EMPTY_P (TREE_OPERAND (node, 0)))
+      if (IS_EMPTY_STMT (TREE_OPERAND (node, 0)))
+	/* Reduce try/finally nodes with an empty try block.  */
 	return TREE_OPERAND (node, 1);
-      /* Likewise for an empty finally block.  */
-      if (TREE_OPERAND (node, 1) == empty_stmt_node
-	  || BLOCK_EMPTY_P (TREE_OPERAND (node, 1)))
+      if (IS_EMPTY_STMT (TREE_OPERAND (node, 1)))
+	/* Likewise for an empty finally block.  */
 	return TREE_OPERAND (node, 0);
       CAN_COMPLETE_NORMALLY (node)
 	= (CAN_COMPLETE_NORMALLY (TREE_OPERAND (node, 0))
@@ -15177,7 +15454,7 @@ java_complete_lhs (tree node)
       TREE_TYPE (node) = void_type_node;
       POP_LABELED_BLOCK ();
 
-      if (LABELED_BLOCK_BODY (node) == empty_stmt_node)
+      if (IS_EMPTY_STMT (LABELED_BLOCK_BODY (node)))
 	{
 	  LABELED_BLOCK_BODY (node) = NULL_TREE;
 	  CAN_COMPLETE_NORMALLY (node) = 1;
@@ -15187,8 +15464,6 @@ java_complete_lhs (tree node)
       return node;
 
     case EXIT_BLOCK_EXPR:
-      /* We don't complete operand 1, because it's the return value of
-         the EXIT_BLOCK_EXPR which doesn't exist it Java */
       return patch_bc_statement (node);
 
     case CASE_EXPR:
@@ -15198,8 +15473,13 @@ java_complete_lhs (tree node)
 
       /* First, the case expression must be constant. Values of final
          fields are accepted. */
+      nn = fold_constant_for_init (cn, NULL_TREE);
+      if (nn != NULL_TREE)
+	cn = nn;
+
       cn = fold (cn);
-      if ((TREE_CODE (cn) == COMPOUND_EXPR || TREE_CODE (cn) == COMPONENT_REF)
+      if ((TREE_CODE (cn) == COMPOUND_EXPR
+	   || TREE_CODE (cn) == COMPONENT_REF)
 	  && JDECL_P (TREE_OPERAND (cn, 1))
 	  && FIELD_FINAL (TREE_OPERAND (cn, 1))
 	  && DECL_INITIAL (TREE_OPERAND (cn, 1)))
@@ -15208,7 +15488,8 @@ java_complete_lhs (tree node)
 				       TREE_OPERAND (cn, 1));
 	}
       /* Accept final locals too. */
-      else if (TREE_CODE (cn) == VAR_DECL && DECL_FINAL (cn))
+      else if (TREE_CODE (cn) == VAR_DECL && DECL_FINAL (cn) 
+	       && DECL_INITIAL (cn))
 	cn = fold_constant_for_init (DECL_INITIAL (cn), cn);
 
       if (!TREE_CONSTANT (cn) && !flag_emit_xref)
@@ -15227,7 +15508,7 @@ java_complete_lhs (tree node)
 	  EXPR_WFL_LINECOL (wfl_operator) = EXPR_WFL_LINECOL (node);
 	  parse_error_context
 	    (wfl_operator,
-	     "Incompatible type for case. Can't convert `%s' to `int'",
+	     "Incompatible type for case. Can't convert %qs to %<int%>",
 	     lang_printable_name (TREE_TYPE (cn), 0));
 	  return error_mark_node;
 	}
@@ -15255,9 +15536,13 @@ java_complete_lhs (tree node)
       /* Only one default label is allowed per switch statement */
       if (SWITCH_HAS_DEFAULT (nn))
 	{
+#ifdef USE_MAPPED_LOCATION
+	  SET_EXPR_LOCATION (wfl_operator, EXPR_LOCATION (node));
+#else
 	  EXPR_WFL_LINECOL (wfl_operator) = EXPR_WFL_LINECOL (node);
+#endif
 	  parse_error_context (wfl_operator,
-			       "Duplicate case label: `default'");
+			       "Duplicate case label: %<default%>");
 	  return error_mark_node;
 	}
       else
@@ -15312,7 +15597,16 @@ java_complete_lhs (tree node)
       TREE_OPERAND (node, 1) = java_complete_tree (TREE_OPERAND (node, 1));
       if (TREE_OPERAND (node, 1) == error_mark_node)
 	return error_mark_node;
-      TREE_OPERAND (node, 2) = java_complete_tree (TREE_OPERAND (node, 2));
+      {
+	/* This is a special case due to build_assertion().  When
+	   assertions are disabled we build a COND_EXPR in which
+	   Operand 1 is the body of the assertion.  If that happens to
+	   be a string concatenation we'll need to patch it here.  */
+	tree patched = patch_string (TREE_OPERAND (node, 1));
+	if (patched)
+	  TREE_OPERAND (node, 1) = patched;
+      }
+     TREE_OPERAND (node, 2) = java_complete_tree (TREE_OPERAND (node, 2));
       if (TREE_OPERAND (node, 2) == error_mark_node)
 	return error_mark_node;
       return patch_if_else_statement (node);
@@ -15333,7 +15627,7 @@ java_complete_lhs (tree node)
       wfl_op2 = TREE_OPERAND (node, 1);
       TREE_OPERAND (node, 0) = nn =
 	java_complete_tree (TREE_OPERAND (node, 0));
-      if (wfl_op2 == empty_stmt_node)
+      if (IS_EMPTY_STMT (wfl_op2))
 	CAN_COMPLETE_NORMALLY (node) = CAN_COMPLETE_NORMALLY (nn);
       else
 	{
@@ -15399,14 +15693,20 @@ java_complete_lhs (tree node)
       else
 	{
 	  tree body;
-	  int save_lineno = input_line;
+	  location_t save_location = input_location;
+#ifdef USE_MAPPED_LOCATION
+	  input_location = EXPR_LOCATION (node);
+	  if (input_location == UNKNOWN_LOCATION)
+	    input_location = save_location;
+#else
 	  input_line = EXPR_WFL_LINENO (node);
+#endif
 	  body = java_complete_tree (EXPR_WFL_NODE (node));
-	  input_line = save_lineno;
+	  input_location = save_location;
 	  EXPR_WFL_NODE (node) = body;
 	  TREE_SIDE_EFFECTS (node) = TREE_SIDE_EFFECTS (body);
 	  CAN_COMPLETE_NORMALLY (node) = CAN_COMPLETE_NORMALLY (body);
-	  if (body == empty_stmt_node || TREE_CONSTANT (body))
+	  if (IS_EMPTY_STMT (body) || TREE_CONSTANT (body))
 	    {
 	      /* Makes it easier to constant fold, detect empty bodies. */
 	      return body;
@@ -15442,9 +15742,13 @@ java_complete_lhs (tree node)
 	      TREE_VALUE (cn) = dim;
 	      /* Setup the location of the current dimension, for
 		 later error report. */
+#ifdef USE_MAPPED_LOCATION
+	      TREE_PURPOSE (cn) = expr_add_location (NULL_TREE, location, 0);
+#else
 	      TREE_PURPOSE (cn) =
 		build_expr_wfl (NULL_TREE, input_filename, 0, 0);
 	      EXPR_WFL_LINECOL (TREE_PURPOSE (cn)) = location;
+#endif
 	    }
 	}
       /* They complete the array creation expression, if no errors
@@ -15483,7 +15787,11 @@ java_complete_lhs (tree node)
 	  int from_super = (EXPR_WFL_NODE (TREE_OPERAND (node, 0)) ==
                            super_identifier_node);
 	  tree arguments;
+#ifdef USE_MAPPED_LOCATION
+	  source_location location = EXPR_LOCATION (node);
+#else
 	  int location = EXPR_WFL_LINECOL (node);
+#endif
 
 	  node = patch_method_invocation (node, NULL_TREE, NULL_TREE,
 					  from_super, 0, &decl);
@@ -15542,7 +15850,7 @@ java_complete_lhs (tree node)
 		  else
 		    DECL_INITIAL (nn) = TREE_OPERAND (node, 1);
 		  DECL_FIELD_FINAL_IUD (nn) = 1;
-		  return empty_stmt_node;
+		  return build_java_empty_stmt ();
 		}
 	    }
 	  if (! flag_emit_class_files)
@@ -15582,7 +15890,7 @@ java_complete_lhs (tree node)
 	  if (JREFERENCE_TYPE_P (TREE_TYPE (lvalue))
 	      && ! JSTRING_TYPE_P (TREE_TYPE (lvalue)))
 	    parse_error_context (wfl_op2,
-				 "Incompatible type for `+='. Can't convert `%s' to `java.lang.String'",
+				 "Incompatible type for %<+=%>. Can't convert %qs to %<java.lang.String%>",
 				 lang_printable_name (TREE_TYPE (lvalue), 0));
 
 	  /* 15.25.2.b: Left hand is an array access. FIXME */
@@ -15613,10 +15921,10 @@ java_complete_lhs (tree node)
       if ((nn = patch_string (TREE_OPERAND (node, 1))))
 	TREE_OPERAND (node, 1) = nn;
 
-      if ((nn = outer_field_access_fix (wfl_op1, TREE_OPERAND (node, 0),
-					TREE_OPERAND (node, 1))))
+      if ((nn = nested_field_access_fix (wfl_op1, TREE_OPERAND (node, 0),
+					 TREE_OPERAND (node, 1))))
 	{
-	  /* We return error_mark_node if outer_field_access_fix
+	  /* We return error_mark_node if nested_field_access_fix
 	     detects we write into a final. */
 	  if (nn == error_mark_node)
 	    return error_mark_node;
@@ -15690,7 +15998,7 @@ java_complete_lhs (tree node)
 
           TREE_OPERAND (node, 1) = nn;
         }
-      return patch_binop (node, wfl_op1, wfl_op2);
+      return patch_binop (node, wfl_op1, wfl_op2, 0);
 
     case INSTANCEOF_EXPR:
       wfl_op1 = TREE_OPERAND (node, 0);
@@ -15700,7 +16008,7 @@ java_complete_lhs (tree node)
 	  TREE_TYPE (node) = boolean_type_node;
 	  return node;
 	}
-      return patch_binop (node, wfl_op1, TREE_OPERAND (node, 1));
+      return patch_binop (node, wfl_op1, TREE_OPERAND (node, 1), 0);
 
     case UNARY_PLUS_EXPR:
     case NEGATE_EXPR:
@@ -15753,12 +16061,12 @@ java_complete_lhs (tree node)
 	  tree field = lookup_field_wrapper (TREE_OPERAND (node, 0), name);
 	  if (field == NULL_TREE)
 	    {
-	      error ("missing static field `%s'", IDENTIFIER_POINTER (name));
+	      error ("missing static field %qs", IDENTIFIER_POINTER (name));
 	      return error_mark_node;
 	    }
 	  if (! FIELD_STATIC (field))
 	    {
-	      error ("not a static field `%s'", IDENTIFIER_POINTER (name));
+	      error ("not a static field %qs", IDENTIFIER_POINTER (name));
 	      return error_mark_node;
 	    }
 	  return field;
@@ -15773,7 +16081,7 @@ java_complete_lhs (tree node)
 	{
 	  EXPR_WFL_LINECOL (wfl_operator) = EXPR_WFL_LINECOL (node);
 	  parse_error_context (wfl_operator,
-			       "Keyword `this' used outside allowed context");
+			       "Keyword %<this%> used outside allowed context");
 	  TREE_TYPE (node) = error_mark_node;
 	  return error_mark_node;
 	}
@@ -15781,7 +16089,7 @@ java_complete_lhs (tree node)
 	{
 	  EXPR_WFL_LINECOL (wfl_operator) = EXPR_WFL_LINECOL (node);
 	  parse_error_context
-	    (wfl_operator, "Can't reference `this' or `super' before the superclass constructor has been called");
+	    (wfl_operator, "Can't reference %<this%> or %<super%> before the superclass constructor has been called");
 	  TREE_TYPE (node) = error_mark_node;
 	  return error_mark_node;
 	}
@@ -15826,8 +16134,8 @@ complete_function_arguments (tree node)
 	  flag = 1;
 	  continue;
 	}
-      /* If have a string literal that we haven't transformed yet or a
-	 crafted string buffer, as a result of use of the the String
+      /* If we have a string literal that we haven't transformed yet or a
+	 crafted string buffer, as a result of the use of the String
 	 `+' operator. Build `parm.toString()' and expand it. */
       if ((temp = patch_string (parm)))
 	parm = temp;
@@ -15847,16 +16155,19 @@ build_debugable_stmt (int location, tree stmt)
 {
   if (TREE_CODE (stmt) != EXPR_WITH_FILE_LOCATION)
     {
+#ifdef USE_MAPPED_LOCATION
+      stmt = expr_add_location (stmt, location, 1);
+#else
       stmt = build_expr_wfl (stmt, input_filename, 0, 0);
       EXPR_WFL_LINECOL (stmt) = location;
+      JAVA_MAYBE_GENERATE_DEBUG_INFO (stmt);
+#endif
     }
-  JAVA_MAYBE_GENERATE_DEBUG_INFO (stmt);
   return stmt;
 }
 
 static tree
 build_expr_block (tree body, tree decls)
-
 {
   tree node = make_node (BLOCK);
   BLOCK_EXPR_DECLS (node) = decls;
@@ -15979,25 +16290,37 @@ build_wfl_wrap (tree node, int location)
   if (TREE_CODE (node) == THIS_EXPR)
     node_to_insert = wfl = build_wfl_node (this_identifier_node);
   else
+#ifdef USE_MAPPED_LOCATION
+    wfl = build_unknown_wfl (NULL_TREE);
+
+  SET_EXPR_LOCATION (wfl, location);
+#else
     wfl = build_expr_wfl (NULL_TREE, ctxp->filename, 0, 0);
 
   EXPR_WFL_LINECOL (wfl) = location;
+#endif
   EXPR_WFL_QUALIFICATION (wfl) = build_tree_list (node_to_insert, NULL_TREE);
   return wfl;
 }
 
-/* Build a super() constructor invocation. Returns empty_stmt_node if
+/* Build a super() constructor invocation. Returns an empty statement if
    we're currently dealing with the class java.lang.Object. */
 
 static tree
 build_super_invocation (tree mdecl)
 {
   if (DECL_CONTEXT (mdecl) == object_type_node)
-    return empty_stmt_node;
+    return build_java_empty_stmt ();
   else
     {
       tree super_wfl = build_wfl_node (super_identifier_node);
       tree a = NULL_TREE, t;
+
+      /* This is called after parsing is done, so the parser context
+         won't be accurate. Set location info from current_class decl. */
+      tree class_wfl = lookup_cl (TYPE_NAME (current_class));
+      EXPR_WFL_LINECOL (super_wfl) = EXPR_WFL_LINECOL (class_wfl);
+
       /* If we're dealing with an anonymous class, pass the arguments
          of the crafted constructor along. */
       if (ANONYMOUS_CLASS_P (DECL_CONTEXT (mdecl)))
@@ -16029,7 +16352,7 @@ build_this_super_qualified_invocation (int use_this, tree name, tree args,
 static tree
 build_method_invocation (tree name, tree args)
 {
-  tree call = build (CALL_EXPR, NULL_TREE, name, args, NULL_TREE);
+  tree call = build3 (CALL_EXPR, NULL_TREE, name, args, NULL_TREE);
   TREE_SIDE_EFFECTS (call) = 1;
   EXPR_WFL_LINECOL (call) = EXPR_WFL_LINECOL (name);
   return call;
@@ -16040,7 +16363,7 @@ build_method_invocation (tree name, tree args)
 static tree
 build_new_invocation (tree name, tree args)
 {
-  tree call = build (NEW_CLASS_EXPR, NULL_TREE, name, args, NULL_TREE);
+  tree call = build3 (NEW_CLASS_EXPR, NULL_TREE, name, args, NULL_TREE);
   TREE_SIDE_EFFECTS (call) = 1;
   EXPR_WFL_LINECOL (call) = EXPR_WFL_LINECOL (name);
   return call;
@@ -16060,7 +16383,7 @@ build_assignment (int op, int op_location, tree lhs, tree rhs)
       rhs = build_binop (BINOP_LOOKUP (op), op_location, lhs, rhs);
       COMPOUND_ASSIGN_P (rhs) = 1;
     }
-  assignment = build (MODIFY_EXPR, NULL_TREE, lhs, rhs);
+  assignment = build2 (MODIFY_EXPR, NULL_TREE, lhs, rhs);
   TREE_SIDE_EFFECTS (assignment) = 1;
   EXPR_WFL_LINECOL (assignment) = op_location;
   return assignment;
@@ -16226,8 +16549,8 @@ patch_assignment (tree node, tree wfl_op1)
   new_rhs = try_builtin_assignconv (wfl_op1, lhs_type, rhs);
 
   /* 5.2 If it failed, try a reference conversion */
-  if (!new_rhs && (new_rhs = try_reference_assignconv (lhs_type, rhs)))
-    lhs_type = promote_type (rhs_type);
+  if (!new_rhs)
+    new_rhs = try_reference_assignconv (lhs_type, rhs);
 
   /* 15.25.2 If we have a compound assignment, convert RHS into the
      type of the LHS */
@@ -16260,17 +16583,17 @@ patch_assignment (tree node, tree wfl_op1)
 	  if (COMPOUND_ASSIGN_P (TREE_OPERAND (node, 1)))
 	    strcpy (operation, "assignment");
 	  else if (is_return)
-	    strcpy (operation, "`return'");
+	    strcpy (operation, "'return'");
 	  else
-	    strcpy (operation, "`='");
+	    strcpy (operation, "'='");
 	}
 
       if (!valid_cast_to_p (rhs_type, lhs_type))
 	parse_error_context
-	  (wfl, "Incompatible type for %s. Can't convert `%s' to `%s'",
+	  (wfl, "Incompatible type for %s. Can't convert %qs to %qs",
 	   operation, t1, t2);
       else
-	parse_error_context (wfl, "Incompatible type for %s. Explicit cast needed to convert `%s' to `%s'",
+	parse_error_context (wfl, "Incompatible type for %s. Explicit cast needed to convert %qs to %qs",
 			     operation, t1, t2);
       free (t1); free (t2);
       error_found = 1;
@@ -16314,8 +16637,8 @@ patch_assignment (tree node, tree wfl_op1)
         base = lvalue;
 
       index_expr = TREE_OPERAND (base, 1);
-      TREE_OPERAND (base, 1) = build (COMPOUND_EXPR, TREE_TYPE (index_expr),
-	  			      store_check, index_expr);
+      TREE_OPERAND (base, 1) = build2 (COMPOUND_EXPR, TREE_TYPE (index_expr),
+				       store_check, index_expr);
     }
 
   /* Final locals can be used as case values in switch
@@ -16328,6 +16651,7 @@ patch_assignment (tree node, tree wfl_op1)
       )
     {
       TREE_CONSTANT (lvalue) = 1;
+      TREE_INVARIANT (lvalue) = 1;
       DECL_INITIAL (lvalue) = new_rhs;
     }
 
@@ -16340,7 +16664,7 @@ patch_assignment (tree node, tree wfl_op1)
 	case INDIRECT_REF:
 	case COMPONENT_REF:
 	  /* Transform a = foo.bar 
-	     into a = { int tmp; tmp = foo.bar; tmp; ).   	     
+	     into a = ({int tmp; tmp = foo.bar;}).
 	     We need to ensure that if a read from memory fails
 	     because of a NullPointerException, a destination variable
 	     will remain unchanged.  An explicit temporary does what
@@ -16355,12 +16679,11 @@ patch_assignment (tree node, tree wfl_op1)
 				   TREE_TYPE (new_rhs));
 	    tree block = make_node (BLOCK);
 	    tree assignment 
-	      = build (MODIFY_EXPR, TREE_TYPE (new_rhs), tmp, fold (new_rhs));
+	      = build2 (MODIFY_EXPR, TREE_TYPE (new_rhs), tmp, fold (new_rhs));
 	    DECL_CONTEXT (tmp) = current_function_decl;
 	    TREE_TYPE (block) = TREE_TYPE (new_rhs);
 	    BLOCK_VARS (block) = tmp;
-	    BLOCK_EXPR_BODY (block) 
-	      = build (COMPOUND_EXPR, TREE_TYPE (new_rhs), assignment, tmp);
+	    BLOCK_EXPR_BODY (block) = assignment;
 	    TREE_SIDE_EFFECTS (block) = 1;
 	    new_rhs = block;
 	  }
@@ -16442,7 +16765,8 @@ try_builtin_assignconv (tree wfl_op1, tree lhs_type, tree rhs)
         new_rhs = convert (lhs_type, rhs);
       else if (wfl_op1)		/* Might be called with a NULL */
 	parse_warning_context
-	  (wfl_op1, "Constant expression `%s' too wide for narrowing primitive conversion to `%s'",
+	  (wfl_op1,
+           "Constant expression %qs too wide for narrowing primitive conversion to %qs",
 	   print_int_node (rhs), lang_printable_name (lhs_type, 0));
       /* Reported a warning that will turn into an error further
 	 down, so we don't return */
@@ -16679,7 +17003,7 @@ valid_method_invocation_conversion_p (tree dest, tree source)
 static tree
 build_binop (enum tree_code op, int op_location, tree op1, tree op2)
 {
-  tree binop = build (op, NULL_TREE, op1, op2);
+  tree binop = build2 (op, NULL_TREE, op1, op2);
   TREE_SIDE_EFFECTS (binop) = 1;
   /* Store the location of the operator, for better error report. The
      string of the operator will be rebuild based on the OP value. */
@@ -16819,7 +17143,7 @@ java_refold (tree t)
    of remaining nodes and detects more errors in certain cases.  */
 
 static tree
-patch_binop (tree node, tree wfl_op1, tree wfl_op2)
+patch_binop (tree node, tree wfl_op1, tree wfl_op2, int folding)
 {
   tree op1 = TREE_OPERAND (node, 0);
   tree op2 = TREE_OPERAND (node, 1);
@@ -16880,8 +17204,11 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
 	      (TREE_CODE (op2) == INTEGER_CST &&
 	       ! TREE_INT_CST_LOW (op2)  && ! TREE_INT_CST_HIGH (op2))))
 	{
-	  parse_warning_context (wfl_operator, "Evaluating this expression will result in an arithmetic exception being thrown");
+	  parse_warning_context
+            (wfl_operator,
+             "Evaluating this expression will result in an arithmetic exception being thrown");
 	  TREE_CONSTANT (node) = 0;
+	  TREE_INVARIANT (node) = 0;
 	}
 
       /* Change the division operator if necessary */
@@ -16914,8 +17241,6 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
 	{
 	  tree mod = build_java_binop (TRUNC_MOD_EXPR, prom_type, op1, op2);
 	  COMPOUND_ASSIGN_P (mod) = COMPOUND_ASSIGN_P (node);
-	  TREE_SIDE_EFFECTS (mod)
-	    = TREE_SIDE_EFFECTS (op1) | TREE_SIDE_EFFECTS (op2);
 	  return mod;
 	}
       break;
@@ -16963,12 +17288,12 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
 	    {
 	      if (JNUMERIC_TYPE_P (op2_type))
 		parse_error_context (wfl_operator,
-				     "Incompatible type for `%s'. Explicit cast needed to convert shift distance from `%s' to integral",
+				     "Incompatible type for %qs. Explicit cast needed to convert shift distance from %qs to integral",
 				     operator_string (node),
 				     lang_printable_name (op2_type, 0));
 	      else
 		parse_error_context (wfl_operator,
-				     "Incompatible type for `%s'. Can't convert shift distance from `%s' to integral",
+				     "Incompatible type for %qs. Can't convert shift distance from %qs to integral",
 				     operator_string (node),
 				     lang_printable_name (op2_type, 0));
 	    }
@@ -16993,23 +17318,21 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
 
       /* Shift int only up to 0x1f and long up to 0x3f */
       if (prom_type == int_type_node)
-	op2 = fold (build (BIT_AND_EXPR, int_type_node, op2,
-			   build_int_2 (0x1f, 0)));
+	op2 = fold (build2 (BIT_AND_EXPR, int_type_node, op2,
+			    build_int_cst (NULL_TREE, 0x1f)));
       else
-	op2 = fold (build (BIT_AND_EXPR, int_type_node, op2,
-			   build_int_2 (0x3f, 0)));
+	op2 = fold (build2 (BIT_AND_EXPR, int_type_node, op2,
+			    build_int_cst (NULL_TREE, 0x3f)));
 
       /* The >>> operator is a >> operating on unsigned quantities */
-      if (code == URSHIFT_EXPR && ! flag_emit_class_files)
+      if (code == URSHIFT_EXPR && (folding || ! flag_emit_class_files))
 	{
 	  tree to_return;
           tree utype = java_unsigned_type (prom_type);
           op1 = convert (utype, op1);
-	  TREE_SET_CODE (node, RSHIFT_EXPR);
-          TREE_OPERAND (node, 0) = op1;
-          TREE_OPERAND (node, 1) = op2;
-          TREE_TYPE (node) = utype;
-	  to_return = convert (prom_type, node);
+
+	  to_return = fold (build2 (RSHIFT_EXPR, utype, op1, op2));
+	  to_return = convert (prom_type, to_return);
 	  /* Copy the original value of the COMPOUND_ASSIGN_P flag */
 	  COMPOUND_ASSIGN_P (to_return) = COMPOUND_ASSIGN_P (node);
 	  TREE_SIDE_EFFECTS (to_return)
@@ -17044,7 +17367,7 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
 	{
 	  SET_WFL_OPERATOR (wfl_operator, node, wfl_op2);
 	  parse_error_context
-	    (wfl_operator, "Invalid argument `%s' for `instanceof'",
+	    (wfl_operator, "Invalid argument %qs for %<instanceof%>",
 	     lang_printable_name (op2_type, 0));
 	  error_found = 1;
 	}
@@ -17071,7 +17394,7 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
 	  char *t1 = xstrdup (lang_printable_name (op1_type, 0));
 	  SET_WFL_OPERATOR (wfl_operator, node, wfl_op1);
 	  parse_error_context
-	    (wfl_operator, "Impossible for `%s' to be instance of `%s'",
+	    (wfl_operator, "Impossible for %qs to be instance of %qs",
 	     t1, lang_printable_name (op2_type, 0));
 	  free (t1);
 	  error_found = 1;
@@ -17185,7 +17508,9 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
       /* Types have to be either references or the null type. If
          they're references, it must be possible to convert either
          type to the other by casting conversion. */
-      else if (op1 == null_pointer_node || op2 == null_pointer_node
+      else if ((op1 == null_pointer_node && op2 == null_pointer_node)
+               || (op1 == null_pointer_node && JREFERENCE_TYPE_P (op2_type))
+               || (JREFERENCE_TYPE_P (op1_type) && op2 == null_pointer_node)
 	       || (JREFERENCE_TYPE_P (op1_type) && JREFERENCE_TYPE_P (op2_type)
 		   && (valid_ref_assignconv_cast_p (op1_type, op2_type, 1)
 		       || valid_ref_assignconv_cast_p (op2_type,
@@ -17200,7 +17525,7 @@ patch_binop (tree node, tree wfl_op1, tree wfl_op2)
 	  t1 = xstrdup (lang_printable_name (op1_type, 0));
 	  parse_error_context
 	    (wfl_operator,
-	     "Incompatible type for `%s'. Can't convert `%s' to `%s'",
+	     "Incompatible type for %qs. Can't convert %qs to %qs",
 	     operator_string (node), t1,
 	     lang_printable_name (op2_type, 0));
 	  free (t1);
@@ -17370,7 +17695,7 @@ build_string_concatenation (tree op1, tree op2)
   int side_effects = TREE_SIDE_EFFECTS (op1) | TREE_SIDE_EFFECTS (op2);
 
   if (flag_emit_xref)
-    return build (PLUS_EXPR, string_type_node, op1, op2);
+    return build2 (PLUS_EXPR, string_type_node, op1, op2);
 
   /* Try to do some static optimization */
   if ((result = string_constant_concatenation (op1, op2)))
@@ -17417,8 +17742,7 @@ build_string_concatenation (tree op1, tree op2)
       /* OP1 is no longer the last node holding a crafted StringBuffer */
       IS_CRAFTED_STRING_BUFFER_P (op1) = 0;
       /* Create a node for `{new...,xxx}.append (op2)' */
-      if (op2)
-	op1 = make_qualified_primary (op1, BUILD_APPEND (op2), 0);
+      op1 = make_qualified_primary (op1, BUILD_APPEND (op2), 0);
     }
 
   /* Mark the last node holding a crafted StringBuffer */
@@ -17468,8 +17792,15 @@ patch_string_cst (tree node)
       location = alloc_name_constant (CONSTANT_String, node);
       node = build_ref_from_constant_pool (location);
     }
-  TREE_TYPE (node) = string_ptr_type_node;
   TREE_CONSTANT (node) = 1;
+  TREE_INVARIANT (node) = 1;
+
+  /* ??? Guessing that the class file code can't handle casts.  */
+  if (! flag_emit_class_files)
+    node = convert (string_ptr_type_node, node);
+  else
+    TREE_TYPE (node) = string_ptr_type_node;
+
   return node;
 }
 
@@ -17509,8 +17840,8 @@ build_incdec (int op_token, int op_location, tree op1, int is_post_p)
       { PREDECREMENT_EXPR, PREINCREMENT_EXPR, },
       { POSTDECREMENT_EXPR, POSTINCREMENT_EXPR, },
     };
-  tree node = build (lookup [is_post_p][(op_token - DECR_TK)],
-		     NULL_TREE, op1, NULL_TREE);
+  tree node = build2 (lookup [is_post_p][(op_token - DECR_TK)],
+		      NULL_TREE, op1, NULL_TREE);
   TREE_SIDE_EFFECTS (node) = 1;
   /* Store the location of the operator, for better error report. The
      string of the operator will be rebuild based on the OP value. */
@@ -17546,25 +17877,32 @@ build_incomplete_class_ref (int location, tree class_name)
       && !JPRIMITIVE_TYPE_P (class_name)
       && !(TREE_CODE (class_name) == VOID_TYPE))
     {
+      tree cpc_list = GET_CPC_LIST();
+      tree cpc = cpc_list;
       tree target_class;
 
-      if (CLASS_INTERFACE (TYPE_NAME (this_class)))
+      /* For inner classes, add a 'class$' method to their outermost
+	 context, creating it if necessary.  */
+      
+      while (GET_NEXT_ENCLOSING_CPC(cpc))
+	cpc = GET_NEXT_ENCLOSING_CPC(cpc);
+      class_decl = TREE_VALUE (cpc);
+
+      target_class = TREE_TYPE (class_decl);
+
+      if (CLASS_INTERFACE (TYPE_NAME (target_class)))
 	{
 	  /* For interfaces, adding a static 'class$' method directly 
 	     is illegal.  So create an inner class to contain the new
 	     method.  Empirically this matches the behavior of javac.  */
-	  tree t = build_wfl_node (DECL_NAME (TYPE_NAME (object_type_node)));
-	  tree inner = create_anonymous_class (0, t);
+	  tree t, inner;
+	  /* We want the generated inner class inside the outermost class. */
+	  GET_CPC_LIST() = cpc;
+	  t = build_wfl_node (DECL_NAME (TYPE_NAME (object_type_node)));
+	  inner = create_anonymous_class (t);
 	  target_class = TREE_TYPE (inner);
 	  end_class_declaration (1);
-	}
-      else
-	{
-	  /* For inner classes, add a 'class$' method to their outermost
-	     context, creating it if necessary.  */
-	  while (INNER_CLASS_DECL_P (class_decl))
-	    class_decl = DECL_CONTEXT (class_decl);
-	  target_class = TREE_TYPE (class_decl);
+	  GET_CPC_LIST() = cpc_list;
 	}
 
       if (TYPE_DOT_CLASS (target_class) == NULL_TREE)
@@ -17616,7 +17954,7 @@ patch_unaryop (tree node, tree wfl_op)
   tree op = TREE_OPERAND (node, 0);
   tree op_type = TREE_TYPE (op);
   tree prom_type = NULL_TREE, value, decl;
-  int outer_field_flag = 0;
+  int nested_field_flag = 0;
   int code = TREE_CODE (node);
   int error_found = 0;
 
@@ -17633,10 +17971,11 @@ patch_unaryop (tree node, tree wfl_op)
       /* 15.14.2 Prefix Decrement Operator -- */
     case PREDECREMENT_EXPR:
       op = decl = extract_field_decl (op);
-      outer_field_flag = outer_field_expanded_access_p (op, NULL, NULL, NULL);
+      nested_field_flag
+        = nested_field_expanded_access_p (op, NULL, NULL, NULL);
       /* We might be trying to change an outer field accessed using
          access method. */
-      if (outer_field_flag)
+      if (nested_field_flag)
 	{
 	  /* Retrieve the decl of the field we're trying to access. We
              do that by first retrieving the function we would call to
@@ -17667,7 +18006,7 @@ patch_unaryop (tree node, tree wfl_op)
       if (!JNUMERIC_TYPE_P (op_type))
 	{
 	  parse_error_context
-	    (wfl_op, "Invalid argument type `%s' to `%s'",
+	    (wfl_op, "Invalid argument type %qs to %qs",
 	     lang_printable_name (op_type, 0), operator_string (node));
 	  TREE_TYPE (node) = error_mark_node;
 	  error_found = 1;
@@ -17678,27 +18017,27 @@ patch_unaryop (tree node, tree wfl_op)
 	     both operands, if really necessary */
 	  if (JINTEGRAL_TYPE_P (op_type))
 	    {
-	      value = build_int_2 (1, 0);
-	      TREE_TYPE (value) = TREE_TYPE (node) = op_type;
+	      value = build_int_cst (op_type, 1);
+	      TREE_TYPE (node) = op_type;
 	    }
 	  else
 	    {
-	      value = build_int_2 (1, 0);
+	      value = build_int_cst (NULL_TREE, 1);
 	      TREE_TYPE (node) =
 		binary_numeric_promotion (op_type,
 					  TREE_TYPE (value), &op, &value);
 	    }
 
 	  /* We remember we might be accessing an outer field */
-	  if (outer_field_flag)
+	  if (nested_field_flag)
 	    {
 	      /* We re-generate an access to the field */
-	      value = build (PLUS_EXPR, TREE_TYPE (op),
-			     build_outer_field_access (wfl_op, decl), value);
+	      value = build2 (PLUS_EXPR, TREE_TYPE (op),
+			      build_nested_field_access (wfl_op, decl), value);
 
 	      /* And we patch the original access$() into a write
                  with plus_op as a rhs */
-	      return outer_field_access_fix (node, op, value);
+	      return nested_field_access_fix (node, op, value);
 	    }
 
 	  /* And write back into the node. */
@@ -17776,9 +18115,14 @@ patch_unaryop (tree node, tree wfl_op)
       else
 	{
 	  value = fold (value);
-	  TREE_SIDE_EFFECTS (value) = TREE_SIDE_EFFECTS (op);
 	  return value;
 	}
+      break;
+
+    case NOP_EXPR:
+      /* This can only happen when the type is already known.  */
+      gcc_assert (TREE_TYPE (node) != NULL_TREE);
+      prom_type = TREE_TYPE (node);
       break;
     }
 
@@ -17807,7 +18151,7 @@ resolve_type_during_patch (tree type)
       if (!type_decl)
 	{
 	  parse_error_context (type,
-			       "Class `%s' not found in type declaration",
+			       "Class %qs not found in type declaration",
 			       IDENTIFIER_POINTER (EXPR_WFL_NODE (type)));
 	  return NULL_TREE;
 	}
@@ -17889,16 +18233,16 @@ patch_cast (tree node, tree wfl_op)
 	}
 
       /* The cast requires a run-time check */
-      return build (CALL_EXPR, promote_type (cast_type),
-		    build_address_of (soft_checkcast_node),
-		    tree_cons (NULL_TREE, build_class_ref (cast_type),
-			       build_tree_list (NULL_TREE, op)),
-		    NULL_TREE);
+      return build3 (CALL_EXPR, promote_type (cast_type),
+		     build_address_of (soft_checkcast_node),
+		     tree_cons (NULL_TREE, build_class_ref (cast_type),
+				build_tree_list (NULL_TREE, op)),
+		     NULL_TREE);
     }
 
   /* Any other casts are proven incorrect at compile time */
   t1 = xstrdup (lang_printable_name (op_type, 0));
-  parse_error_context (wfl_op, "Invalid cast from `%s' to `%s'",
+  parse_error_context (wfl_op, "Invalid cast from %qs to %qs",
 		       t1, lang_printable_name (cast_type, 0));
   free (t1);
   return error_mark_node;
@@ -17909,8 +18253,7 @@ patch_cast (tree node, tree wfl_op)
 static tree
 build_null_of_type (tree type)
 {
-  tree node = build_int_2 (0, 0);
-  TREE_TYPE (node) = promote_type (type);
+  tree node = build_int_cst (promote_type (type), 0);
   return node;
 }
 
@@ -17919,7 +18262,8 @@ build_null_of_type (tree type)
 static tree
 build_array_ref (int location, tree array, tree index)
 {
-  tree node = build (ARRAY_REF, NULL_TREE, array, index);
+  tree node = build4 (ARRAY_REF, NULL_TREE, array, index,
+		      NULL_TREE, NULL_TREE);
   EXPR_WFL_LINECOL (node) = location;
   return node;
 }
@@ -17945,7 +18289,7 @@ patch_array_ref (tree node)
     {
       parse_error_context
 	(wfl_operator,
-	 "`[]' can only be applied to arrays. It can't be applied to `%s'",
+	 "%<[]%> can only be applied to arrays. It can't be applied to %qs",
 	 lang_printable_name (array_type, 0));
       TREE_TYPE (node) = error_mark_node;
       error_found = 1;
@@ -17958,11 +18302,11 @@ patch_array_ref (tree node)
     {
       if (valid_cast_to_p (index_type, int_type_node))
 	parse_error_context (wfl_operator,
-   "Incompatible type for `[]'. Explicit cast needed to convert `%s' to `int'",
+   "Incompatible type for %<[]%>. Explicit cast needed to convert %qs to %<int%>",
 			     lang_printable_name (index_type, 0));
       else
 	parse_error_context (wfl_operator,
-          "Incompatible type for `[]'. Can't convert `%s' to `int'",
+          "Incompatible type for %<[]%>. Can't convert %qs to %<int%>",
 			     lang_printable_name (index_type, 0));
       TREE_TYPE (node) = error_mark_node;
       error_found = 1;
@@ -17989,9 +18333,9 @@ patch_array_ref (tree node)
 static tree
 build_newarray_node (tree type, tree dims, int extra_dims)
 {
-  tree node =
-    build (NEW_ARRAY_EXPR, NULL_TREE, type, nreverse (dims),
-	   build_int_2 (extra_dims, 0));
+  tree node = build3 (NEW_ARRAY_EXPR, NULL_TREE, type,
+		      nreverse (dims),
+		      build_int_cst (NULL_TREE, extra_dims));
   return node;
 }
 
@@ -18033,7 +18377,7 @@ patch_newarray (tree node)
 	{
 	  parse_error_context
 	    (TREE_PURPOSE (cdim),
-	     "Incompatible type for dimension in array creation expression. %s convert `%s' to `int'",
+	     "Incompatible type for dimension in array creation expression. %s convert %qs to %<int%>",
 	     (valid_cast_to_p (TREE_TYPE (dim), int_type_node) ?
 	      "Explicit cast needed to" : "Can't"),
 	     lang_printable_name (TREE_TYPE (dim), 0));
@@ -18085,12 +18429,14 @@ patch_newarray (tree node)
 
   /* Can't reuse what's already written in expr.c because it uses the
      JVM stack representation. Provide a build_multianewarray. FIXME */
-  return build (CALL_EXPR, array_type,
-		build_address_of (soft_multianewarray_node),
-		tree_cons (NULL_TREE, build_class_ref (TREE_TYPE (array_type)),
-			   tree_cons (NULL_TREE,
-				      build_int_2 (ndims, 0), dims )),
-		NULL_TREE);
+  return build3 (CALL_EXPR, array_type,
+		 build_address_of (soft_multianewarray_node),
+		 tree_cons (NULL_TREE,
+			    build_class_ref (TREE_TYPE (array_type)),
+			    tree_cons (NULL_TREE,
+				       build_int_cst (NULL_TREE, ndims),
+				       dims)),
+		 NULL_TREE);
 }
 
 /* 10.6 Array initializer.  */
@@ -18102,8 +18448,18 @@ static tree
 maybe_build_array_element_wfl (tree node)
 {
   if (TREE_CODE (node) != EXPR_WITH_FILE_LOCATION)
-    return build_expr_wfl (NULL_TREE, ctxp->filename,
-			   ctxp->elc.line, ctxp->elc.prev_col);
+    {
+      /* FIXME - old code used "prev_lc.line" and "elc.prev_col */
+      return build_expr_wfl (NULL_TREE,
+#ifdef USE_MAPPED_LOCATION
+			     input_location
+#else
+			     ctxp->filename,
+			     ctxp->lexer->token_start.line,
+			     ctxp->lexer->token_start.col
+#endif
+			     );
+    }
   else
     return NULL_TREE;
 }
@@ -18137,7 +18493,7 @@ patch_new_array_init (tree type, tree node)
   if (TREE_CODE (type) != POINTER_TYPE || ! TYPE_ARRAY_P (TREE_TYPE (type)))
     {
       parse_error_context (node,
-			   "Invalid array initializer for non-array type `%s'",
+			   "Invalid array initializer for non-array type %qs",
 			   lang_printable_name (type, 1));
       return error_mark_node;
     }
@@ -18180,7 +18536,9 @@ patch_new_array_init (tree type, tree node)
   TREE_TYPE (init) = TREE_TYPE (TREE_CHAIN (TREE_CHAIN (TYPE_FIELDS (type))));
   TREE_TYPE (node) = promote_type (type);
   TREE_CONSTANT (init) = all_constant;
+  TREE_INVARIANT (init) = all_constant;
   TREE_CONSTANT (node) = all_constant;
+  TREE_INVARIANT (node) = all_constant;
   return node;
 }
 
@@ -18222,7 +18580,7 @@ array_constructor_check_entry (tree type, tree entry)
       if (!array_type_string)
 	array_type_string = xstrdup (lang_printable_name (type, 1));
       parse_error_context
-	(wfl_operator, "Incompatible type for array. %s convert `%s' to `%s'",
+	(wfl_operator, "Incompatible type for array. %s convert %qs to %qs",
 	 msg, lang_printable_name (type_value, 1), array_type_string);
       error_seen = 1;
     }
@@ -18291,25 +18649,25 @@ patch_return (tree node)
     {
       if (DECL_INSTINIT_P (current_function_decl))
 	parse_error_context (wfl_operator,
-			     "`return' inside instance initializer");
+			     "%<return%> inside instance initializer");
 
       else if (DECL_CLINIT_P (current_function_decl))
 	parse_error_context (wfl_operator,
-			     "`return' inside static initializer");
+			     "%<return%> inside static initializer");
 
       else if (!DECL_CONSTRUCTOR_P (meth))
 	{
 	  char *t = xstrdup (lang_printable_name (mtype, 0));
 	  parse_error_context (wfl_operator,
-			       "`return' with%s value from `%s %s'",
+			       "%<return%> with%s value from %<%s %s%>",
 			       (error_found == 1 ? "" : "out"),
-			       t, lang_printable_name (meth, 0));
+			       t, lang_printable_name (meth, 2));
 	  free (t);
 	}
       else
 	parse_error_context (wfl_operator,
-			     "`return' with value from constructor `%s'",
-			     lang_printable_name (meth, 0));
+			     "%<return%> with value from constructor %qs",
+			     lang_printable_name (meth, 2));
       return error_mark_node;
     }
 
@@ -18324,7 +18682,7 @@ patch_return (tree node)
       if ((patched = patch_string (exp)))
 	exp = patched;
 
-      modify = build (MODIFY_EXPR, NULL_TREE, DECL_RESULT (meth), exp);
+      modify = build2 (MODIFY_EXPR, NULL_TREE, DECL_RESULT (meth), exp);
       EXPR_WFL_LINECOL (modify) = EXPR_WFL_LINECOL (node);
       modify = java_complete_tree (modify);
 
@@ -18349,8 +18707,8 @@ build_if_else_statement (int location, tree expression, tree if_body,
 {
   tree node;
   if (!else_body)
-    else_body = empty_stmt_node;
-  node = build (COND_EXPR, NULL_TREE, expression, if_body, else_body);
+    else_body = build_java_empty_stmt ();
+  node = build3 (COND_EXPR, NULL_TREE, expression, if_body, else_body);
   EXPR_WFL_LINECOL (node) = location;
   node = build_debugable_stmt (location, node);
   return node;
@@ -18373,24 +18731,11 @@ patch_if_else_statement (tree node)
     {
       parse_error_context
 	(wfl_operator,
-	 "Incompatible type for `if'. Can't convert `%s' to `boolean'",
+	 "Incompatible type for %<if%>. Can't convert %qs to %<boolean%>",
 	 lang_printable_name (TREE_TYPE (expression), 0));
       return error_mark_node;
     }
 
-  if (TREE_CODE (expression) == INTEGER_CST)
-    {
-      if (integer_zerop (expression))
-	node = TREE_OPERAND (node, 2);
-      else
-	node = TREE_OPERAND (node, 1);
-      if (CAN_COMPLETE_NORMALLY (node) != can_complete_normally)
-	{
-	  node = build (COMPOUND_EXPR, void_type_node, node, empty_stmt_node);
-	  CAN_COMPLETE_NORMALLY (node) = can_complete_normally;
-	}
-      return node;
-    }
   TREE_TYPE (node) = void_type_node;
   TREE_SIDE_EFFECTS (node) = 1;
   CAN_COMPLETE_NORMALLY (node) = can_complete_normally;
@@ -18419,19 +18764,19 @@ build_labeled_block (int location, tree label)
 	{
 	  EXPR_WFL_LINECOL (wfl_operator) = location;
 	  parse_error_context (wfl_operator,
-            "Declaration of `%s' shadows a previous label declaration",
+            "Declaration of %qs shadows a previous label declaration",
 			       IDENTIFIER_POINTER (label));
 	  EXPR_WFL_LINECOL (wfl_operator) =
 	    EXPR_WFL_LINECOL (IDENTIFIER_LOCAL_VALUE (label_name));
 	  parse_error_context (wfl_operator,
-            "This is the location of the previous declaration of label `%s'",
+            "This is the location of the previous declaration of label %qs",
 			       IDENTIFIER_POINTER (label));
 	  java_error_count--;
 	}
     }
 
   label_decl = create_label_decl (label_name);
-  node = build (LABELED_BLOCK_EXPR, NULL_TREE, label_decl, NULL_TREE);
+  node = build2 (LABELED_BLOCK_EXPR, NULL_TREE, label_decl, NULL_TREE);
   EXPR_WFL_LINECOL (node) = location;
   TREE_SIDE_EFFECTS (node) = 1;
   return node;
@@ -18458,7 +18803,7 @@ finish_labeled_statement (tree lbe, /* Labeled block expr */
 static tree
 build_new_loop (tree loop_body)
 {
-  tree loop =  build (LOOP_EXPR, NULL_TREE, loop_body);
+  tree loop = build1 (LOOP_EXPR, NULL_TREE, loop_body);
   TREE_SIDE_EFFECTS (loop) = 1;
   PUSH_LOOP (loop);
   return loop;
@@ -18489,7 +18834,7 @@ build_loop_body (int location, tree condition, int reversed)
 {
   tree first, second, body;
 
-  condition = build (EXIT_EXPR, NULL_TREE, condition); /* Force walk */
+  condition = build1 (EXIT_EXPR, NULL_TREE, condition); /* Force walk */
   EXPR_WFL_LINECOL (condition) = location; /* For accurate error report */
   condition = build_debugable_stmt (location, condition);
   TREE_SIDE_EFFECTS (condition) = 1;
@@ -18497,9 +18842,9 @@ build_loop_body (int location, tree condition, int reversed)
   body = build_labeled_block (0, continue_identifier_node);
   first = (reversed ? body : condition);
   second = (reversed ? condition : body);
-  return
-    build (COMPOUND_EXPR, NULL_TREE,
-	   build (COMPOUND_EXPR, NULL_TREE, first, second), empty_stmt_node);
+  return build2 (COMPOUND_EXPR, NULL_TREE,
+		 build2 (COMPOUND_EXPR, NULL_TREE, first, second),
+		 build_java_empty_stmt ());
 }
 
 /* Install CONDITION (if any) and loop BODY (using REVERSED to tell
@@ -18517,9 +18862,13 @@ finish_loop_body (int location, tree condition, tree body, int reversed)
       /* We wrapped the EXIT_EXPR around a WFL so we can debug it.
          The real EXIT_EXPR is one operand further. */
       EXPR_WFL_LINECOL (cnode) = location;
-      /* This one is for accurate error reports */
-      EXPR_WFL_LINECOL (TREE_OPERAND (cnode, 0)) = location;
-      TREE_OPERAND (TREE_OPERAND (cnode, 0), 0) = condition;
+      if (TREE_CODE (cnode) == EXPR_WITH_FILE_LOCATION)
+	{
+	  cnode = EXPR_WFL_NODE (cnode);
+	  /* This one is for accurate error reports */
+	  EXPR_WFL_LINECOL (cnode) = location;
+	}
+      TREE_OPERAND (cnode, 0) = condition;
     }
   LOOP_EXPR_BODY_BODY_EXPR (loop_body, reversed) = body;
   POP_LOOP ();
@@ -18539,19 +18888,18 @@ finish_for_loop (int location, tree condition, tree update, tree body)
      this because the (current interpretation of the) JLS requires
      that the update expression be considered reachable even if the
      for loop's body doesn't complete normally.  */
-  if (update != NULL_TREE && update != empty_stmt_node)
+  if (update != NULL_TREE && !IS_EMPTY_STMT (update))
     {
       tree up2 = update;
       if (TREE_CODE (up2) == EXPR_WITH_FILE_LOCATION)
 	up2 = EXPR_WFL_NODE (up2);
       /* It is possible for the update expression to be an
 	 EXPR_WFL_NODE wrapping nothing.  */
-      if (up2 != NULL_TREE && up2 != empty_stmt_node)
+      if (up2 != NULL_TREE && !IS_EMPTY_STMT (up2))
 	{
 	  /* Try to detect constraint violations.  These would be
 	     programming errors somewhere.  */
-	  if (! IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (TREE_CODE (up2)))
-	      || TREE_CODE (up2) == LOOP_EXPR)
+	  if (! EXPR_P (up2) || TREE_CODE (up2) == LOOP_EXPR)
 	    abort ();
 	  SUPPRESS_UNREACHABLE_ERROR (up2) = 1;
 	}
@@ -18647,8 +18995,7 @@ build_bc_statement (int location, int is_break, tree name)
     }
   /* Unlabeled break/continue will be handled during the
      break/continue patch operation */
-  break_continue
-    = build (EXIT_BLOCK_EXPR, NULL_TREE, label_block_expr, NULL_TREE);
+  break_continue = build1 (EXIT_BLOCK_EXPR, NULL_TREE, label_block_expr);
 
   IS_BREAK_STMT_P (break_continue) = is_break;
   TREE_SIDE_EFFECTS (break_continue) = 1;
@@ -18669,7 +19016,7 @@ patch_bc_statement (tree node)
   /* Having an identifier here means that the target is unknown. */
   if (bc_label != NULL_TREE && TREE_CODE (bc_label) == IDENTIFIER_NODE)
     {
-      parse_error_context (wfl_operator, "No label definition found for `%s'",
+      parse_error_context (wfl_operator, "No label definition found for %qs",
 			   IDENTIFIER_POINTER (bc_label));
       return error_mark_node;
     }
@@ -18682,10 +19029,10 @@ patch_bc_statement (tree node)
 	    {
 	      if (bc_label == NULL_TREE)
 		parse_error_context (wfl_operator,
-				     "`continue' must be in loop");
+				     "%<continue%> must be in loop");
 	      else
 		parse_error_context
-		  (wfl_operator, "continue label `%s' does not name a loop",
+		  (wfl_operator, "continue label %qs does not name a loop",
 		   IDENTIFIER_POINTER (bc_label));
 	      return error_mark_node;
 	    }
@@ -18706,7 +19053,7 @@ patch_bc_statement (tree node)
 	  if (labeled_block == NULL_TREE)
 	    {
 	      parse_error_context (wfl_operator,
-				     "`break' must be in loop or switch");
+				     "%<break%> must be in loop or switch");
 	      return error_mark_node;
 	    }
 	  target_stmt = LABELED_BLOCK_BODY (labeled_block);
@@ -18747,7 +19094,7 @@ patch_exit_expr (tree node)
     {
       parse_error_context
 	(wfl_operator,
-    "Incompatible type for loop conditional. Can't convert `%s' to `boolean'",
+    "Incompatible type for loop conditional. Can't convert %qs to %<boolean%>",
 	 lang_printable_name (TREE_TYPE (expression), 0));
       return error_mark_node;
     }
@@ -18785,7 +19132,7 @@ patch_switch_statement (tree node)
     {
       EXPR_WFL_LINECOL (wfl_operator) = EXPR_WFL_LINECOL (node);
       parse_error_context (wfl_operator,
-	  "Incompatible type for `switch'. Can't convert `%s' to `int'",
+	  "Incompatible type for %<switch%>. Can't convert %qs to %<int%>",
 			   lang_printable_name (se_type, 0));
       /* This is what java_complete_tree will check */
       TREE_OPERAND (node, 0) = error_mark_node;
@@ -18816,8 +19163,8 @@ patch_switch_statement (tree node)
 		= EXPR_WFL_LINECOL (TREE_PURPOSE (iter));
 	      /* The case_label_list is in reverse order, so print the
 		 outer label first.  */
-	      parse_error_context (wfl_operator, "duplicate case label: `"
-				   HOST_WIDE_INT_PRINT_DEC "'", subval);
+	      parse_error_context (wfl_operator, "duplicate case label: %<"
+				   HOST_WIDE_INT_PRINT_DEC "%>", subval);
 	      EXPR_WFL_LINECOL (wfl_operator)
 		= EXPR_WFL_LINECOL (TREE_PURPOSE (subiter));
 	      parse_error_context (wfl_operator, "original label is here");
@@ -18848,10 +19195,26 @@ patch_switch_statement (tree node)
 /* Build an assertion expression for `assert CONDITION : VALUE'; VALUE
    might be NULL_TREE.  */
 static tree
-build_assertion (int location, tree condition, tree value)
+build_assertion (
+#ifdef USE_MAPPED_LOCATION
+		 source_location location,
+#else
+		 int location,
+#endif
+		 tree condition, tree value)
 {
   tree node;
   tree klass = GET_CPC ();
+
+  if (! enable_assertions (klass))
+    {
+      condition = build2 (TRUTH_ANDIF_EXPR, NULL_TREE,
+			  boolean_false_node, condition);
+      if (value == NULL_TREE)
+	value = build_java_empty_stmt ();
+      return build_if_else_statement (location, condition,
+				      value, NULL_TREE);
+    }
 
   if (! CLASS_USES_ASSERTIONS (klass))
     {
@@ -18865,13 +19228,11 @@ build_assertion (int location, tree condition, tree value)
       MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC (field);
       FIELD_SYNTHETIC (field) = 1;
 
-      if (!TYPE_DOT_CLASS (class_type))
-	build_dot_class_method (class_type);
-      classdollar = build_dot_class_method_invocation (class_type, class_type);
+      classdollar = build_incomplete_class_ref (location, class_type);
 
       /* Call CLASS.desiredAssertionStatus().  */
       id = build_wfl_node (get_identifier ("desiredAssertionStatus"));
-      call = build (CALL_EXPR, NULL_TREE, id, NULL_TREE, NULL_TREE);
+      call = build3 (CALL_EXPR, NULL_TREE, id, NULL_TREE, NULL_TREE);
       call = make_qualified_primary (classdollar, call, location);
       TREE_SIDE_EFFECTS (call) = 1;
 
@@ -18883,7 +19244,7 @@ build_assertion (int location, tree condition, tree value)
       DECL_INITIAL (field) = call;
 
       /* Record the initializer in the initializer statement list.  */
-      call = build (MODIFY_EXPR, NULL_TREE, field, call);
+      call = build2 (MODIFY_EXPR, NULL_TREE, field, call);
       TREE_CHAIN (call) = CPC_STATIC_INITIALIZER_STMT (ctxp);
       SET_CPC_STATIC_INITIALIZER_STMT (ctxp, call);
       MODIFY_EXPR_FROM_INITIALIZATION_P (call) = 1;
@@ -18900,7 +19261,7 @@ build_assertion (int location, tree condition, tree value)
   node = make_qualified_name (node, build_wfl_node (get_identifier ("AssertionError")),
 			      location);
 
-  node = build (NEW_CLASS_EXPR, NULL_TREE, node, value, NULL_TREE);
+  node = build3 (NEW_CLASS_EXPR, NULL_TREE, node, value, NULL_TREE);
   TREE_SIDE_EFFECTS (node) = 1;
   /* It is too early to use BUILD_THROW.  */
   node = build1 (THROW_EXPR, NULL_TREE, node);
@@ -18911,10 +19272,10 @@ build_assertion (int location, tree condition, tree value)
   condition = build1 (TRUTH_NOT_EXPR, NULL_TREE, condition);
   /* Check $assertionsDisabled.  */
   condition
-    = build (TRUTH_ANDIF_EXPR, NULL_TREE,
-	     build1 (TRUTH_NOT_EXPR, NULL_TREE,
-		     build_wfl_node (get_identifier ("$assertionsDisabled"))),
-	     condition);
+    = build2 (TRUTH_ANDIF_EXPR, NULL_TREE,
+	      build1 (TRUTH_NOT_EXPR, NULL_TREE,
+		      build_wfl_node (get_identifier ("$assertionsDisabled"))),
+	      condition);
   node = build_if_else_statement (location, condition, node, NULL_TREE);
   return node;
 }
@@ -18952,15 +19313,15 @@ encapsulate_with_try_catch (int location, tree type_or_name, tree try_stmts,
   catch_block = build_expr_block (NULL_TREE, catch_clause_param);
 
   /* Initialize the variable and store in the block */
-  catch = build (MODIFY_EXPR, NULL_TREE, catch_clause_param,
-		 build (JAVA_EXC_OBJ_EXPR, ptr_type_node));
+  catch = build2 (MODIFY_EXPR, NULL_TREE, catch_clause_param,
+		  build0 (JAVA_EXC_OBJ_EXPR, ptr_type_node));
   add_stmt_to_block (catch_block, NULL_TREE, catch);
 
   /* Add the catch statements */
   add_stmt_to_block (catch_block, NULL_TREE, catch_stmts);
 
-  /* Now we can build a CATCH_EXPR */
-  catch_block = build1 (CATCH_EXPR, NULL_TREE, catch_block);
+  /* Now we can build a JAVA_CATCH_EXPR */
+  catch_block = build1 (JAVA_CATCH_EXPR, NULL_TREE, catch_block);
 
   return build_try_statement (location, try_block, catch_block);
 }
@@ -18968,7 +19329,7 @@ encapsulate_with_try_catch (int location, tree type_or_name, tree try_stmts,
 static tree
 build_try_statement (int location, tree try_block, tree catches)
 {
-  tree node = build (TRY_EXPR, NULL_TREE, try_block, catches);
+  tree node = build2 (TRY_EXPR, NULL_TREE, try_block, catches);
   EXPR_WFL_LINECOL (node) = location;
   return node;
 }
@@ -18976,7 +19337,7 @@ build_try_statement (int location, tree try_block, tree catches)
 static tree
 build_try_finally_statement (int location, tree try_block, tree finally)
 {
-  tree node = build (TRY_FINALLY_EXPR, NULL_TREE, try_block, finally);
+  tree node = build2 (TRY_FINALLY_EXPR, NULL_TREE, try_block, finally);
   EXPR_WFL_LINECOL (node) = location;
   return node;
 }
@@ -18993,7 +19354,7 @@ patch_try_statement (tree node)
   /* Check catch clauses, if any. Every time we find an error, we try
      to process the next catch clause. We process the catch clause before
      the try block so that when processing the try block we can check thrown
-     exceptions againts the caught type list. */
+     exceptions against the caught type list. */
   for (current = catch; current; current = TREE_CHAIN (current))
     {
       tree carg_decl, carg_type;
@@ -19001,7 +19362,7 @@ patch_try_statement (tree node)
       int unreachable;
 
       /* At this point, the structure of the catch clause is
-	   CATCH_EXPR		(catch node)
+	   JAVA_CATCH_EXPR		(catch node)
 	     BLOCK	        (with the decl of the parameter)
                COMPOUND_EXPR
                  MODIFY_EXPR   (assignment of the catch parameter)
@@ -19023,7 +19384,7 @@ patch_try_statement (tree node)
 	{
 	  EXPR_WFL_LINECOL (wfl_operator) = EXPR_WFL_LINECOL (current);
 	  parse_error_context (wfl_operator,
-			       "Can't catch class `%s'. Catch clause parameter type must be a subclass of class `java.lang.Throwable'",
+			       "Can't catch class %qs. Catch clause parameter type must be a subclass of class %<java.lang.Throwable%>",
 			       lang_printable_name (carg_type, 0));
 	  error_found = 1;
 	  continue;
@@ -19047,7 +19408,7 @@ patch_try_statement (tree node)
 	      EXPR_WFL_LINECOL (wfl_operator) = EXPR_WFL_LINECOL (current);
 	      parse_error_context
 		(wfl_operator,
-		 "`catch' not reached because of the catch clause at line %d",
+		 "%<catch%> not reached because of the catch clause at line %d",
 		 EXPR_WFL_LINENO (sub_current));
 	      unreachable = error_found = 1;
 	      break;
@@ -19114,7 +19475,7 @@ patch_synchronized_statement (tree node, tree wfl_op1)
   if (!JREFERENCE_TYPE_P (TREE_TYPE (expr)))
     {
       SET_WFL_OPERATOR (wfl_operator, node, wfl_op1);
-      parse_error_context (wfl_operator, "Incompatible type for `synchronized'. Can't convert `%s' to `java.lang.Object'",
+      parse_error_context (wfl_operator, "Incompatible type for %<synchronized%>. Can't convert %qs to %<java.lang.Object%>",
 			   lang_printable_name (TREE_TYPE (expr), 0));
       return error_mark_node;
     }
@@ -19149,11 +19510,11 @@ patch_synchronized_statement (tree node, tree wfl_op1)
   BUILD_MONITOR_EXIT (exit, expr_decl);
   CAN_COMPLETE_NORMALLY (enter) = 1;
   CAN_COMPLETE_NORMALLY (exit) = 1;
-  assignment = build (MODIFY_EXPR, NULL_TREE, expr_decl, expr);
+  assignment = build2 (MODIFY_EXPR, NULL_TREE, expr_decl, expr);
   TREE_SIDE_EFFECTS (assignment) = 1;
-  node = build (COMPOUND_EXPR, NULL_TREE,
-		build (COMPOUND_EXPR, NULL_TREE, assignment, enter),
-		build (TRY_FINALLY_EXPR, NULL_TREE, block, exit));
+  node = build2 (COMPOUND_EXPR, NULL_TREE,
+		 build2 (COMPOUND_EXPR, NULL_TREE, assignment, enter),
+		 build2 (TRY_FINALLY_EXPR, NULL_TREE, block, exit));
   node = build_expr_block (node, expr_decl);
 
   return java_complete_tree (node);
@@ -19173,7 +19534,7 @@ patch_throw_statement (tree node, tree wfl_op1)
     {
       SET_WFL_OPERATOR (wfl_operator, node, wfl_op1);
       parse_error_context (wfl_operator,
-    "Can't throw `%s'; it must be a subclass of class `java.lang.Throwable'",
+    "Can't throw %qs; it must be a subclass of class %<java.lang.Throwable%>",
 			   lang_printable_name (type, 0));
       /* If the thrown expression was a reference, we further the
          compile-time check. */
@@ -19202,7 +19563,7 @@ patch_throw_statement (tree node, tree wfl_op1)
 	if (DECL_CONSTRUCTOR_P (current)
 	    && !check_thrown_exceptions_do (TREE_TYPE (expr)))
 	  {
-	    parse_error_context (wfl_operator, "Checked exception `%s' can't be thrown in instance initializer (not all declared constructor are declaring it in their `throws' clause)",
+	    parse_error_context (wfl_operator, "Checked exception %qs can't be thrown in instance initializer (not all declared constructor are declaring it in their %<throws%> clause)",
 				 lang_printable_name (TREE_TYPE (expr), 0));
 	    return error_mark_node;
 	  }
@@ -19223,7 +19584,7 @@ patch_throw_statement (tree node, tree wfl_op1)
 	 only if there is something after the list of checked
 	 exception thrown by the current function (if any). */
       if (IN_TRY_BLOCK_P ())
-	parse_error_context (wfl_operator, "Checked exception `%s' can't be caught by any of the catch clause(s) of the surrounding `try' block",
+	parse_error_context (wfl_operator, "Checked exception %qs can't be caught by any of the catch clause(s) of the surrounding %<try%> block",
 			     lang_printable_name (type, 0));
       /* If we have no surrounding try statement and the method doesn't have
 	 any throws, report it now. FIXME */
@@ -19236,17 +19597,17 @@ patch_throw_statement (tree node, tree wfl_op1)
 	{
 	  if (DECL_CLINIT_P (current_function_decl))
 	    parse_error_context (wfl_operator,
-                   "Checked exception `%s' can't be thrown in initializer",
+                   "Checked exception %qs can't be thrown in initializer",
 				 lang_printable_name (type, 0));
 	  else
 	    parse_error_context (wfl_operator,
-                   "Checked exception `%s' isn't thrown from a `try' block",
+                   "Checked exception %qs isn't thrown from a %<try%> block",
 				 lang_printable_name (type, 0));
 	}
       /* Otherwise, the current method doesn't have the appropriate
          throws declaration */
       else
-	parse_error_context (wfl_operator, "Checked exception `%s' doesn't match any of current method's `throws' declaration(s)",
+	parse_error_context (wfl_operator, "Checked exception %qs doesn't match any of current method's %<throws%> declaration(s)",
 			     lang_printable_name (type, 0));
       return error_mark_node;
     }
@@ -19264,13 +19625,20 @@ patch_throw_statement (tree node, tree wfl_op1)
    effectively caught from where DECL is invoked.  THIS_EXPR is the
    expression that computes `this' for the method call.  */
 static void
-check_thrown_exceptions (int location, tree decl, tree this_expr)
+check_thrown_exceptions (
+#ifdef USE_MAPPED_LOCATION
+			 source_location location,
+#else
+
+			 int location,
+#endif
+			 tree decl, tree this_expr)
 {
   tree throws;
   int is_array_call = 0;
 
   /* Skip check within generated methods, such as access$<n>.  */
-  if (OUTER_FIELD_ACCESS_IDENTIFIER_P (DECL_NAME (current_function_decl)))
+  if (NESTED_FIELD_ACCESS_IDENTIFIER_P (DECL_NAME (current_function_decl)))
     return;
 
   if (this_expr != NULL_TREE
@@ -19287,15 +19655,19 @@ check_thrown_exceptions (int location, tree decl, tree this_expr)
 	if (is_array_call && DECL_NAME (decl) == get_identifier ("clone"))
 	  continue;
 
+#ifdef USE_MAPPED_LOCATION
+	SET_EXPR_LOCATION (wfl_operator, location);
+#else
 	EXPR_WFL_LINECOL (wfl_operator) = location;
+#endif
 	if (DECL_FINIT_P (current_function_decl))
 	  parse_error_context
-            (wfl_operator, "Exception `%s' can't be thrown in initializer",
+            (wfl_operator, "Exception %qs can't be thrown in initializer",
 	     lang_printable_name (TREE_VALUE (throws), 0));
 	else
 	  {
 	    parse_error_context
-	      (wfl_operator, "Exception `%s' must be caught, or it must be declared in the `throws' clause of `%s'",
+	      (wfl_operator, "Exception %qs must be caught, or it must be declared in the %<throws%> clause of %qs",
 	       lang_printable_name (TREE_VALUE (throws), 0),
 	       (DECL_INIT_P (current_function_decl) ?
 		IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (current_class))) :
@@ -19391,8 +19763,10 @@ patch_conditional_expr (tree node, tree wfl_cond, tree wfl_op1)
   tree t1, t2, patched;
   int error_found = 0;
 
-  /* Operands of ?: might be StringBuffers crafted as a result of a
-     string concatenation. Obtain a descent operand here.  */
+  /* The condition and operands of ?: might be StringBuffers crafted
+     as a result of a string concatenation.  Obtain decent ones here.  */
+  if ((patched = patch_string (cond)))
+    TREE_OPERAND (node, 0) = cond = patched;
   if ((patched = patch_string (op1)))
     TREE_OPERAND (node, 1) = op1 = patched;
   if ((patched = patch_string (op2)))
@@ -19406,7 +19780,7 @@ patch_conditional_expr (tree node, tree wfl_cond, tree wfl_op1)
     {
       SET_WFL_OPERATOR (wfl_operator, node, wfl_cond);
       parse_error_context (wfl_operator,
-               "Incompatible type for `?:'. Can't convert `%s' to `boolean'",
+               "Incompatible type for %<?:%>. Can't convert %qs to %<boolean%>",
 			   lang_printable_name (TREE_TYPE (cond), 0));
       error_found = 1;
     }
@@ -19474,7 +19848,7 @@ patch_conditional_expr (tree node, tree wfl_cond, tree wfl_op1)
       char *t = xstrdup (lang_printable_name (t1, 0));
       SET_WFL_OPERATOR (wfl_operator, node, wfl_op1);
       parse_error_context (wfl_operator,
-		 "Incompatible type for `?:'. Can't convert `%s' to `%s'",
+		 "Incompatible type for %<?:%>. Can't convert %qs to %qs",
 			   t, lang_printable_name (t2, 0));
       free (t);
       error_found = 1;
@@ -19562,13 +19936,14 @@ fold_constant_for_init (tree node, tree context)
       if (val == NULL_TREE || ! TREE_CONSTANT (val))
 	return NULL_TREE;
       TREE_OPERAND (node, 1) = val;
-      return patch_binop (node, op0, op1);
+      return patch_binop (node, op0, op1, 1);
 
     case UNARY_PLUS_EXPR:
     case NEGATE_EXPR:
     case TRUTH_NOT_EXPR:
     case BIT_NOT_EXPR:
     case CONVERT_EXPR:
+    case NOP_EXPR:
       op0 = TREE_OPERAND (node, 0);
       val = fold_constant_for_init (op0, context);
       if (val == NULL_TREE || ! TREE_CONSTANT (val))
@@ -19594,8 +19969,8 @@ fold_constant_for_init (tree node, tree context)
       if (val == NULL_TREE || ! TREE_CONSTANT (val))
 	return NULL_TREE;
       TREE_OPERAND (node, 2) = val;
-      return integer_zerop (TREE_OPERAND (node, 0)) ? TREE_OPERAND (node, 1)
-	: TREE_OPERAND (node, 2);
+      return integer_zerop (TREE_OPERAND (node, 0)) ? TREE_OPERAND (node, 2)
+	: TREE_OPERAND (node, 1);
 
     case VAR_DECL:
     case FIELD_DECL:
@@ -19630,16 +20005,16 @@ fold_constant_for_init (tree node, tree context)
 	    }
 	  else
 	    {
-	      /* Install the proper context for the field resolution.
-		 The prior context is restored once the name is
-		 properly qualified. */
+	      tree r = NULL_TREE;
+	      /* Install the proper context for the field resolution.  */
 	      tree saved_current_class = current_class;
 	      /* Wait until the USE_COMPONENT_REF re-write.  FIXME. */
 	      current_class = DECL_CONTEXT (context);
 	      qualify_ambiguous_name (node);
+	      r = resolve_field_access (node, &decl, NULL);
+	      /* Restore prior context.  */
 	      current_class = saved_current_class;
-	      if (resolve_field_access (node, &decl, NULL)
-		  && decl != NULL_TREE)
+	      if (r != error_mark_node && decl != NULL_TREE)
 		return fold_constant_for_init (decl, decl);
 	      return NULL_TREE;
 	    }
@@ -19693,22 +20068,6 @@ init_src_parse (void)
 /* This section deals with the functions that are called when tables
    recording class initialization information are traversed.  */
 
-/* Attach to PTR (a block) the declaration found in ENTRY. */
-
-static int
-attach_init_test_initialization_flags (void **entry, void *ptr)
-{
-  tree block = (tree)ptr;
-  struct treetreehash_entry *ite = (struct treetreehash_entry *) *entry;
-
-  if (block != error_mark_node)
-    {
-      TREE_CHAIN (ite->value) = BLOCK_EXPR_DECLS (block);
-      BLOCK_EXPR_DECLS (block) = ite->value;
-    }
-  return true;
-}
-
 /* This function is called for each class that is known definitely
    initialized when a given static method was called. This function
    augments a compound expression (INFO) storing all assignment to
@@ -19758,13 +20117,30 @@ emit_test_initialization (void **entry_p, void *info)
 
   /* Now simply augment the compound that holds all the assignments
      pertaining to this method invocation. */
-  init = build (MODIFY_EXPR, boolean_type_node, decl, boolean_true_node);
+  init = build2 (MODIFY_EXPR, boolean_type_node, decl, boolean_true_node);
   TREE_SIDE_EFFECTS (init) = 1;
   TREE_VALUE (l) = add_stmt_to_compound (TREE_VALUE (l), void_type_node, init);
   TREE_SIDE_EFFECTS (TREE_VALUE (l)) = 1;
 
   return true;
 }
+
+#ifdef __XGETTEXT__
+/* Depending on the version of Bison used to compile this grammar,
+   it may issue generic diagnostics spelled "syntax error" or
+   "parse error".  To prevent this from changing the translation
+   template randomly, we list all the variants of this particular
+   diagnostic here.  Translators: there is no fine distinction
+   between diagnostics with "syntax error" in them, and diagnostics
+   with "parse error" in them.  It's okay to give them both the same
+   translation.  */
+const char d1[] = N_("syntax error");
+const char d2[] = N_("parse error");
+const char d3[] = N_("syntax error; also virtual memory exhausted");
+const char d4[] = N_("parse error; also virtual memory exhausted");
+const char d5[] = N_("syntax error: cannot back up");
+const char d6[] = N_("parse error: cannot back up");
+#endif
 
 #include "gt-java-parse.h"
 #include "gtype-java.h"

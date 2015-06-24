@@ -42,7 +42,7 @@ package java.awt;
  * Layout manager for laying out containers based on contraints. The
  * constraints control how the layout will proceed.
  *
- * @author Aaron M. Renn <arenn@urbanophile.com>
+ * @author Aaron M. Renn (arenn@urbanophile.com)
  * @see LayoutManager
  * @see Container
  * @since 1.0
@@ -52,12 +52,12 @@ public interface LayoutManager2 extends LayoutManager
 {
   /**
    * Adds the specified component to the layout, with the specified
-   * constraint object.
+   * constraints object.
    *
    * @param component the component to add
-   * @param constraint the constraint to satisfy
+   * @param constraints the constraints to satisfy
    */
-  void addLayoutComponent(Component component, Object contraint);
+  void addLayoutComponent(Component component, Object constraints);
 
   /**
    * Determines the maximum size of the specified target container.

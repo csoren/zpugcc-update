@@ -40,6 +40,7 @@ package java.nio.charset.spi;
 import java.nio.charset.Charset;
 import java.util.Iterator;
 
+
 /**
  * This class allows an implementor to provide additional character sets. The
  * subclass must have a nullary constructor, and be attached to charset
@@ -51,7 +52,7 @@ import java.util.Iterator;
  * ignored, and '#' starts comments. Duplicates are ignored. The
  * implementations must be accessible to the classloader that requests them.
  *
- * @author Eric Blake <ebb9@email.byu.edu>
+ * @author Eric Blake (ebb9@email.byu.edu)
  * @see Charset
  * @since 1.4
  * @status updated to 1.4
@@ -81,6 +82,8 @@ public abstract class CharsetProvider
 
   /**
    * Returns the named charset, by canonical name or alias.
+   *
+   * @param name the name of the character
    *
    * @return the charset, or null if not supported
    */

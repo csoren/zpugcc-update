@@ -1,4 +1,4 @@
-/* Copyright (C) 2003, 2004  Free Software Foundation
+/* Copyright (C) 2003  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -9,6 +9,11 @@ details.  */
 #include <config.h>
 #include <platform.h>
 #include <string.h>
+
+#if HAVE_BSTRING_H
+// Needed for bzero, implicitly used by FD_ZERO on IRIX 5.2
+#include <bstring.h>
+#endif
 
 #include <gnu/java/net/PlainDatagramSocketImpl.h>
 #include <java/io/IOException.h>
@@ -34,7 +39,9 @@ union SockAddr
 
 union McastReq
 {
+#if HAVE_STRUCT_IP_MREQ
   struct ip_mreq mreq;
+#endif
 #if HAVE_STRUCT_IPV6_MREQ
   struct ipv6_mreq mreq6;
 #endif
@@ -266,6 +273,8 @@ gnu::java::net::PlainDatagramSocketImpl::close ()
 void
 gnu::java::net::PlainDatagramSocketImpl::send (::java::net::DatagramPacket *p)
 {
+  JvSynchronize lock (SEND_LOCK);
+
   // FIXME: Deal with Multicast and if the socket is connected.
   jint rport = p->getPort();
   union SockAddr u;
@@ -306,6 +315,8 @@ gnu::java::net::PlainDatagramSocketImpl::send (::java::net::DatagramPacket *p)
 void
 gnu::java::net::PlainDatagramSocketImpl::receive (::java::net::DatagramPacket *p)
 {
+  JvSynchronize lock (RECEIVE_LOCK);
+
   // FIXME: Deal with Multicast and if the socket is connected.
   union SockAddr u;
   socklen_t addrlen = sizeof(u);
@@ -399,13 +410,14 @@ gnu::java::net::PlainDatagramSocketImpl::mcastGrp (::java::net::InetAddress *ine
 					      jboolean join)
 {
   // FIXME: implement use of NetworkInterface
-  union McastReq u;
   jbyteArray haddress = inetaddr->addr;
-  jbyte *bytes = elements (haddress);
   int len = haddress->length;
   int level, opname;
   const char *ptr;
-  if (len == 4)
+  if (0)
+    ;
+#if HAVE_STRUCT_IP_MREQ
+  else if (len == 4)
     {
       level = IPPROTO_IP;
       opname = join ? IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP;
@@ -416,6 +428,7 @@ gnu::java::net::PlainDatagramSocketImpl::mcastGrp (::java::net::InetAddress *ine
       len = sizeof (struct ip_mreq);
       ptr = (const char *) &u.mreq;
     }
+#endif
 #if HAVE_STRUCT_IPV6_MREQ
   else if (len == 16)
     {
