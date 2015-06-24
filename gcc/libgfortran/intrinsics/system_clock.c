@@ -33,7 +33,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* POSIX states that CLOCK_REALTIME must be present if clock_gettime
    is available, others are optional.  */
 #if defined(HAVE_CLOCK_GETTIME) || defined(HAVE_CLOCK_GETTIME_LIBRT)
-#ifdef CLOCK_MONOTONIC
+#if defined(CLOCK_MONOTONIC) && defined(_POSIX_MONOTONIC_CLOCK) \
+  && _POSIX_MONOTONIC_CLOCK >= 0
 #define GF_CLOCK_MONOTONIC CLOCK_MONOTONIC
 #else
 #define GF_CLOCK_MONOTONIC CLOCK_REALTIME
@@ -75,7 +76,7 @@ static int weak_gettime (clockid_t, struct timespec *)
    Return value: 0 for success, -1 for error. In case of error, errno
    is set.
 */
-static inline int
+static int
 gf_gettime_mono (time_t * secs, long * nanosecs)
 {
   int err;

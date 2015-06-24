@@ -32,6 +32,8 @@ along with GCC; see the file COPYING3.  If not see
 
 gfc_expr gfc_bad_expr;
 
+static gfc_expr *simplify_size (gfc_expr *, gfc_expr *, int);
+
 
 /* Note that 'simplification' is not just transforming expressions.
    For functions that are not simplified at compile time, range
@@ -330,13 +332,15 @@ init_result_expr (gfc_expr *e, int init, gfc_expr *array)
 }
 
 
-/* Helper function for gfc_simplify_dot_product() and gfc_simplify_matmul.  */
+/* Helper function for gfc_simplify_dot_product() and gfc_simplify_matmul;
+   if conj_a is true, the matrix_a is complex conjugated.  */
 
 static gfc_expr *
 compute_dot_product (gfc_expr *matrix_a, int stride_a, int offset_a,
-		     gfc_expr *matrix_b, int stride_b, int offset_b)
+		     gfc_expr *matrix_b, int stride_b, int offset_b,
+		     bool conj_a)
 {
-  gfc_expr *result, *a, *b;
+  gfc_expr *result, *a, *b, *c;
 
   result = gfc_get_constant_expr (matrix_a->ts.type, matrix_a->ts.kind,
 				  &matrix_a->where);
@@ -359,9 +363,11 @@ compute_dot_product (gfc_expr *matrix_a, int stride_a, int offset_a,
 	  case BT_INTEGER:
 	  case BT_REAL:
 	  case BT_COMPLEX:
-	    result = gfc_add (result,
-			      gfc_multiply (gfc_copy_expr (a),
-					    gfc_copy_expr (b)));
+	    if (conj_a && a->ts.type == BT_COMPLEX)
+	      c = gfc_simplify_conjg (a);
+	    else
+	      c = gfc_copy_expr (a);
+	    result = gfc_add (result, gfc_multiply (c, gfc_copy_expr (b)));
 	    break;
 
 	  default:
@@ -516,8 +522,9 @@ simplify_transformation_to_array (gfc_expr *result, gfc_expr *array, gfc_expr *d
      linked-list traversal. Masked elements are set to NULL.  */
   gfc_array_size (array, &size);
   arraysize = mpz_get_ui (size);
+  mpz_clear (size);
 
-  arrayvec = (gfc_expr**) gfc_getmem (sizeof (gfc_expr*) * arraysize);
+  arrayvec = XCNEWVEC (gfc_expr*, arraysize);
 
   array_ctor = gfc_constructor_first (array->value.constructor);
   mask_ctor = NULL;
@@ -543,7 +550,7 @@ simplify_transformation_to_array (gfc_expr *result, gfc_expr *array, gfc_expr *d
   resultsize = mpz_get_ui (size);
   mpz_clear (size);
 
-  resultvec = (gfc_expr**) gfc_getmem (sizeof (gfc_expr*) * resultsize);
+  resultvec = XCNEWVEC (gfc_expr*, resultsize);
   result_ctor = gfc_constructor_first (result->value.constructor);
   for (i = 0; i < resultsize; ++i)
     {
@@ -616,8 +623,8 @@ simplify_transformation_to_array (gfc_expr *result, gfc_expr *array, gfc_expr *d
       result_ctor = gfc_constructor_next (result_ctor);
     }
 
-  gfc_free (arrayvec);
-  gfc_free (resultvec);
+  free (arrayvec);
+  free (resultvec);
   return result;
 }
 
@@ -934,6 +941,21 @@ gfc_simplify_dint (gfc_expr *e)
   gfc_free_expr (rtrunc);
 
   return range_check (result, "DINT");
+}
+
+
+gfc_expr *
+gfc_simplify_dreal (gfc_expr *e)
+{
+  gfc_expr *result = NULL;
+
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_get_constant_expr (BT_REAL, e->ts.kind, &e->where);
+  mpc_real (result->value.real, e->value.complex, GFC_RND_MODE);
+
+  return range_check (result, "DREAL");
 }
 
 
@@ -1859,7 +1881,7 @@ gfc_simplify_dot_product (gfc_expr *vector_a, gfc_expr *vector_b)
   gcc_assert (vector_b->rank == 1);
   gcc_assert (gfc_compare_types (&vector_a->ts, &vector_b->ts));
 
-  return compute_dot_product (vector_a, 1, 0, vector_b, 1, 0);
+  return compute_dot_product (vector_a, 1, 0, vector_b, 1, 0, true);
 }
 
 
@@ -1898,13 +1920,7 @@ simplify_dshift (gfc_expr *arg1, gfc_expr *arg2, gfc_expr *shiftarg,
   k = gfc_validate_kind (BT_INTEGER, arg1->ts.kind, false);
   size = gfc_integer_kinds[k].bit_size;
 
-  if (gfc_extract_int (shiftarg, &shift) != NULL)
-    {
-      gfc_error ("Invalid SHIFT argument of DSHIFTL at %L", &shiftarg->where);
-      return &gfc_bad_expr;
-    }
-
-  gcc_assert (shift >= 0 && shift <= size);
+  gfc_extract_int (shiftarg, &shift);
 
   /* DSHIFTR(I,J,SHIFT) = DSHIFTL(I,J,SIZE-SHIFT).  */
   if (right)
@@ -2508,20 +2524,9 @@ gfc_simplify_ibclr (gfc_expr *x, gfc_expr *y)
   if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (y, &pos) != NULL || pos < 0)
-    {
-      gfc_error ("Invalid second argument of IBCLR at %L", &y->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (y, &pos);
 
   k = gfc_validate_kind (x->ts.type, x->ts.kind, false);
-
-  if (pos >= gfc_integer_kinds[k].bit_size)
-    {
-      gfc_error ("Second argument of IBCLR exceeds bit size at %L",
-		 &y->where);
-      return &gfc_bad_expr;
-    }
 
   result = gfc_copy_expr (x);
 
@@ -2550,17 +2555,8 @@ gfc_simplify_ibits (gfc_expr *x, gfc_expr *y, gfc_expr *z)
       || z->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (y, &pos) != NULL || pos < 0)
-    {
-      gfc_error ("Invalid second argument of IBITS at %L", &y->where);
-      return &gfc_bad_expr;
-    }
-
-  if (gfc_extract_int (z, &len) != NULL || len < 0)
-    {
-      gfc_error ("Invalid third argument of IBITS at %L", &z->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (y, &pos);
+  gfc_extract_int (z, &len);
 
   k = gfc_validate_kind (BT_INTEGER, x->ts.kind, false);
 
@@ -2595,7 +2591,7 @@ gfc_simplify_ibits (gfc_expr *x, gfc_expr *y, gfc_expr *z)
 	gfc_internal_error ("IBITS: Bad bit");
     }
 
-  gfc_free (bits);
+  free (bits);
 
   convert_mpz_to_signed (result->value.integer,
 			 gfc_integer_kinds[k].bit_size);
@@ -2613,20 +2609,9 @@ gfc_simplify_ibset (gfc_expr *x, gfc_expr *y)
   if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (y, &pos) != NULL || pos < 0)
-    {
-      gfc_error ("Invalid second argument of IBSET at %L", &y->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (y, &pos);
 
   k = gfc_validate_kind (x->ts.type, x->ts.kind, false);
-
-  if (pos >= gfc_integer_kinds[k].bit_size)
-    {
-      gfc_error ("Second argument of IBSET exceeds bit size at %L",
-		 &y->where);
-      return &gfc_bad_expr;
-    }
 
   result = gfc_copy_expr (x);
 
@@ -3003,11 +2988,8 @@ simplify_shift (gfc_expr *e, gfc_expr *s, const char *name,
 
   if (e->expr_type != EXPR_CONSTANT || s->expr_type != EXPR_CONSTANT)
     return NULL;
-  if (gfc_extract_int (s, &shift) != NULL)
-    {
-      gfc_error ("Invalid second argument of %s at %L", name, &s->where);
-      return &gfc_bad_expr;
-    }
+
+  gfc_extract_int (s, &shift);
 
   k = gfc_validate_kind (BT_INTEGER, e->ts.kind, false);
   bitsize = gfc_integer_kinds[k].bit_size;
@@ -3087,7 +3069,7 @@ simplify_shift (gfc_expr *e, gfc_expr *s, const char *name,
     }
 
   convert_mpz_to_signed (result->value.integer, bitsize);
-  gfc_free (bits);
+  free (bits);
 
   return result;
 }
@@ -3145,11 +3127,7 @@ gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
   if (e->expr_type != EXPR_CONSTANT || s->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (s, &shift) != NULL)
-    {
-      gfc_error ("Invalid second argument of ISHFTC at %L", &s->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (s, &shift);
 
   k = gfc_validate_kind (e->ts.type, e->ts.kind, false);
   isize = gfc_integer_kinds[k].bit_size;
@@ -3159,18 +3137,8 @@ gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
       if (sz->expr_type != EXPR_CONSTANT)
 	return NULL;
 
-      if (gfc_extract_int (sz, &ssize) != NULL || ssize <= 0)
-	{
-	  gfc_error ("Invalid third argument of ISHFTC at %L", &sz->where);
-	  return &gfc_bad_expr;
-	}
+      gfc_extract_int (sz, &ssize);
 
-      if (ssize > isize)
-	{
-	  gfc_error ("Magnitude of third argument of ISHFTC exceeds "
-		     "BIT_SIZE of first argument at %L", &s->where);
-	  return &gfc_bad_expr;
-	}
     }
   else
     ssize = isize;
@@ -3182,10 +3150,7 @@ gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
 
   if (ashift > ssize)
     {
-      if (sz != NULL)
-	gfc_error ("Magnitude of second argument of ISHFTC exceeds "
-		   "third argument at %L", &s->where);
-      else
+      if (sz == NULL)
 	gfc_error ("Magnitude of second argument of ISHFTC exceeds "
 		   "BIT_SIZE of first argument at %L", &s->where);
       return &gfc_bad_expr;
@@ -3246,7 +3211,7 @@ gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
 
   convert_mpz_to_signed (result->value.integer, isize);
 
-  gfc_free (bits);
+  free (bits);
   return result;
 }
 
@@ -3281,7 +3246,7 @@ simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
 	  gfc_expr* dim = result;
 	  mpz_set_si (dim->value.integer, d);
 
-	  result = gfc_simplify_size (array, dim, kind);
+	  result = simplify_size (array, dim, k);
 	  gfc_free_expr (dim);
 	  if (!result)
 	    goto returnNull;
@@ -3301,7 +3266,8 @@ simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
 
   /* The last dimension of an assumed-size array is special.  */
   if ((!coarray && d == as->rank && as->type == AS_ASSUMED_SIZE && !upper)
-      || (coarray && d == as->rank + as->corank))
+      || (coarray && d == as->rank + as->corank
+	  && (!upper || gfc_option.coarray == GFC_FCOARRAY_SINGLE)))
     {
       if (as->lower[d-1]->expr_type == EXPR_CONSTANT)
 	{
@@ -3368,6 +3334,9 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
   gfc_ref *ref;
   gfc_array_spec *as;
   int d;
+
+  if (array->ts.type == BT_CLASS)
+    return NULL;
 
   if (array->expr_type != EXPR_VARIABLE)
     {
@@ -3505,7 +3474,9 @@ simplify_cobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
     return NULL;
 
   /* Follow any component references.  */
-  as = array->symtree->n.sym->as;
+  as = (array->ts.type == BT_CLASS && array->ts.u.derived->components)
+       ? array->ts.u.derived->components->as
+       : array->symtree->n.sym->as;
   for (ref = array->ref; ref; ref = ref->next)
     {
       switch (ref->type)
@@ -3514,11 +3485,9 @@ simplify_cobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 	  switch (ref->u.ar.type)
 	    {
 	    case AR_ELEMENT:
-	      if (ref->next == NULL)
+	      if (ref->u.ar.as->corank > 0)
 		{
-		  gcc_assert (ref->u.ar.as->corank > 0
-			      && ref->u.ar.as->rank == 0);
-		  as = ref->u.ar.as;
+		  gcc_assert (as == ref->u.ar.as);
 		  goto done;
 		}
 	      as = NULL;
@@ -3551,11 +3520,12 @@ simplify_cobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 	}
     }
 
-  gcc_unreachable ();
+  if (!as)
+    gcc_unreachable ();
 
  done:
 
-  if (as->type == AS_DEFERRED || as->type == AS_ASSUMED_SHAPE)
+  if (as->cotype == AS_DEFERRED || as->cotype == AS_ASSUMED_SHAPE)
     return NULL;
 
   if (dim == NULL)
@@ -3568,7 +3538,7 @@ simplify_cobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
       /* Simplify the cobounds for each dimension.  */
       for (d = 0; d < as->corank; d++)
 	{
-	  bounds[d] = simplify_bound_dim (array, kind, d + 1 + array->rank,
+	  bounds[d] = simplify_bound_dim (array, kind, d + 1 + as->rank,
 					  upper, as, ref, true);
 	  if (bounds[d] == NULL || bounds[d] == &gfc_bad_expr)
 	    {
@@ -3620,7 +3590,7 @@ simplify_cobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 	  return &gfc_bad_expr;
 	}
 
-      return simplify_bound_dim (array, kind, d+array->rank, upper, as, ref, true);
+      return simplify_bound_dim (array, kind, d+as->rank, upper, as, ref, true);
     }
 }
 
@@ -3635,16 +3605,7 @@ gfc_simplify_lbound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 gfc_expr *
 gfc_simplify_lcobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
-  gfc_expr *e;
-  /* return simplify_cobound (array, dim, kind, 0);*/
-
-  e = simplify_cobound (array, dim, kind, 0);
-  if (e != NULL)
-    return e;
-
-  gfc_error ("Not yet implemented: LCOBOUND for coarray with non-constant "
-	     "cobounds at %L", &array->where);
-  return &gfc_bad_expr;
+  return simplify_cobound (array, dim, kind, 0);
 }
 
 gfc_expr *
@@ -3926,7 +3887,7 @@ gfc_simplify_matmul (gfc_expr *matrix_a, gfc_expr *matrix_b)
       for (row = 0; row < result_rows; ++row)
 	{
 	  gfc_expr *e = compute_dot_product (matrix_a, stride_a, offset_a,
-					     matrix_b, 1, offset_b);
+					     matrix_b, 1, offset_b, false);
 	  gfc_constructor_append_expr (&result->value.constructor,
 				       e, NULL);
 
@@ -4087,12 +4048,12 @@ min_max_choose (gfc_expr *arg, gfc_expr *extremum, int sign)
 			       LENGTH(arg) - LENGTH(extremum));
 	    STRING(extremum)[LENGTH(arg)] = '\0';  /* For debugger  */
 	    LENGTH(extremum) = LENGTH(arg);
-	    gfc_free (tmp);
+	    free (tmp);
 	  }
 
 	if (gfc_compare_string (arg, extremum) * sign > 0)
 	  {
-	    gfc_free (STRING(extremum));
+	    free (STRING(extremum));
 	    STRING(extremum) = gfc_get_wide_string (LENGTH(extremum) + 1);
 	    memcpy (STRING(extremum), STRING(arg),
 		      LENGTH(arg) * sizeof (gfc_char_t));
@@ -4394,13 +4355,6 @@ gfc_simplify_nearest (gfc_expr *x, gfc_expr *s)
   if (x->expr_type != EXPR_CONSTANT || s->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_sgn (s->value.real) == 0)
-    {
-      gfc_error ("Second argument of NEAREST at %L shall not be zero",
-		 &s->where);
-      return &gfc_bad_expr;
-    }
-
   result = gfc_copy_expr (x);
 
   /* Save current values of emin and emax.  */
@@ -4593,6 +4547,9 @@ gfc_simplify_num_images (void)
       gfc_fatal_error ("Coarrays disabled at %C, use -fcoarray= to enable");
       return &gfc_bad_expr;
     }
+
+  if (gfc_option.coarray != GFC_FCOARRAY_SINGLE)
+    return NULL;
 
   /* FIXME: gfc_current_locus is wrong.  */
   result = gfc_get_constant_expr (BT_INTEGER, gfc_default_integer_kind,
@@ -4826,6 +4783,13 @@ gfc_simplify_range (gfc_expr *e)
     }
 
   return gfc_get_int_expr (gfc_default_integer_kind, &e->where, i);
+}
+
+
+gfc_expr *
+gfc_simplify_rank (gfc_expr *e)
+{
+  return gfc_get_int_expr (gfc_default_integer_kind, &e->where, e->rank);
 }
 
 
@@ -5535,15 +5499,12 @@ gfc_simplify_shape (gfc_expr *source, gfc_expr *kind)
       e = gfc_get_constant_expr (BT_INTEGER, k, &source->where);
 
       if (t == SUCCESS)
-	{
-	  mpz_set (e->value.integer, shape[n]);
-	  mpz_clear (shape[n]);
-	}
+	mpz_set (e->value.integer, shape[n]);
       else
 	{
 	  mpz_set_ui (e->value.integer, n + 1);
 
-	  f = gfc_simplify_size (source, e, NULL);
+	  f = simplify_size (source, e, k);
 	  gfc_free_expr (e);
 	  if (f == NULL)
 	    {
@@ -5554,23 +5515,30 @@ gfc_simplify_shape (gfc_expr *source, gfc_expr *kind)
 	    e = f;
 	}
 
+      if (e == &gfc_bad_expr || range_check (e, "SHAPE") == &gfc_bad_expr)
+	{
+	  gfc_free_expr (result);
+	  if (t == SUCCESS)
+	    gfc_clear_shape (shape, source->rank);
+	  return &gfc_bad_expr;
+	}
+
       gfc_constructor_append_expr (&result->value.constructor, e, NULL);
     }
+
+  if (t == SUCCESS)
+    gfc_clear_shape (shape, source->rank);
 
   return result;
 }
 
 
-gfc_expr *
-gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
+static gfc_expr *
+simplify_size (gfc_expr *array, gfc_expr *dim, int k)
 {
   mpz_t size;
   gfc_expr *return_value;
   int d;
-  int k = get_kind (BT_INTEGER, kind, "SIZE", gfc_default_integer_kind);
-
-  if (k == -1)
-    return &gfc_bad_expr;
 
   /* For unary operations, the size of the result is given by the size
      of the operand.  For binary ones, it's the size of the first operand
@@ -5600,7 +5568,7 @@ gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 	      replacement = array->value.op.op1;
 	    else
 	      {
-		simplified = gfc_simplify_size (array->value.op.op1, dim, kind);
+		simplified = simplify_size (array->value.op.op1, dim, k);
 		if (simplified)
 		  return simplified;
 
@@ -5610,18 +5578,20 @@ gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 	}
 
       /* Try to reduce it directly if possible.  */
-      simplified = gfc_simplify_size (replacement, dim, kind);
+      simplified = simplify_size (replacement, dim, k);
 
       /* Otherwise, we build a new SIZE call.  This is hopefully at least
 	 simpler than the original one.  */
       if (!simplified)
-	simplified = gfc_build_intrinsic_call (gfc_current_ns,
-					       GFC_ISYM_SIZE, "size",
-					       array->where, 3,
-					       gfc_copy_expr (replacement),
-					       gfc_copy_expr (dim),
-					       gfc_copy_expr (kind));
-
+	{
+	  gfc_expr *kind = gfc_get_int_expr (gfc_default_integer_kind, NULL, k);
+	  simplified = gfc_build_intrinsic_call (gfc_current_ns,
+						 GFC_ISYM_SIZE, "size",
+						 array->where, 3,
+						 gfc_copy_expr (replacement),
+						 gfc_copy_expr (dim),
+						 kind);
+	}
       return simplified;
     }
 
@@ -5640,9 +5610,28 @@ gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 	return NULL;
     }
 
-  return_value = gfc_get_int_expr (k, &array->where, mpz_get_si (size));
+  return_value = gfc_get_constant_expr (BT_INTEGER, k, &array->where);
+  mpz_set (return_value->value.integer, size);
   mpz_clear (size);
+
   return return_value;
+}
+
+
+gfc_expr *
+gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
+{
+  gfc_expr *result;
+  int k = get_kind (BT_INTEGER, kind, "SIZE", gfc_default_integer_kind);
+
+  if (k == -1)
+    return &gfc_bad_expr;
+
+  result = simplify_size (array, dim, k);
+  if (result == NULL || result == &gfc_bad_expr)
+    return result;
+
+  return range_check (result, "SIZE");
 }
 
 
@@ -6032,25 +6021,25 @@ gfc_simplify_transfer (gfc_expr *source, gfc_expr *mold, gfc_expr *size)
   gfc_expr *mold_element;
   size_t source_size;
   size_t result_size;
-  size_t result_elt_size;
   size_t buffer_size;
   mpz_t tmp;
   unsigned char *buffer;
+  size_t result_length;
+
 
   if (!gfc_is_constant_expr (source)
 	|| (gfc_init_expr_flag && !gfc_is_constant_expr (mold))
 	|| !gfc_is_constant_expr (size))
     return NULL;
 
-  if (source->expr_type == EXPR_FUNCTION)
+  if (gfc_calculate_transfer_sizes (source, mold, size, &source_size,
+				    &result_size, &result_length) == FAILURE)
     return NULL;
 
   /* Calculate the size of the source.  */
   if (source->expr_type == EXPR_ARRAY
       && gfc_array_size (source, &tmp) == FAILURE)
     gfc_internal_error ("Failure getting length of a constant array.");
-
-  source_size = gfc_target_expr_size (source);
 
   /* Create an empty new expression with the appropriate characteristics.  */
   result = gfc_get_constant_expr (mold->ts.type, mold->ts.kind,
@@ -6068,44 +6057,16 @@ gfc_simplify_transfer (gfc_expr *source, gfc_expr *mold, gfc_expr *size)
     result->value.character.length = mold_element->value.character.length;
   
   /* Set the number of elements in the result, and determine its size.  */
-  result_elt_size = gfc_target_expr_size (mold_element);
-  if (result_elt_size == 0)
-    {
-      gfc_free_expr (result);
-      return NULL;
-    }
 
   if (mold->expr_type == EXPR_ARRAY || mold->rank || size)
     {
-      int result_length;
-
       result->expr_type = EXPR_ARRAY;
       result->rank = 1;
-
-      if (size)
-	result_length = (size_t)mpz_get_ui (size->value.integer);
-      else
-	{
-	  result_length = source_size / result_elt_size;
-	  if (result_length * result_elt_size < source_size)
-	    result_length += 1;
-	}
-
       result->shape = gfc_get_shape (1);
       mpz_init_set_ui (result->shape[0], result_length);
-
-      result_size = result_length * result_elt_size;
     }
   else
-    {
-      result->rank = 0;
-      result_size = result_elt_size;
-    }
-
-  if (gfc_option.warn_surprising && source_size < result_size)
-    gfc_warning("Intrinsic TRANSFER at %L has partly undefined result: "
-		"source size %ld < result size %ld", &source->where,
-		(long) source_size, (long) result_size);
+    result->rank = 0;
 
   /* Allocate the buffer to store the binary version of the source.  */
   buffer_size = MAX (source_size, result_size);
@@ -6116,7 +6077,7 @@ gfc_simplify_transfer (gfc_expr *source, gfc_expr *mold, gfc_expr *size)
   gfc_target_encode_expr (source, buffer, buffer_size);
 
   /* And read the buffer back into the new expression.  */
-  gfc_target_interpret_expr (buffer, buffer_size, result);
+  gfc_target_interpret_expr (buffer, buffer_size, result, false);
 
   return result;
 }
@@ -6200,7 +6161,7 @@ gfc_simplify_image_index (gfc_expr *coarray, gfc_expr *sub)
   int d;
 
   if (!is_constant_array_expr (sub))
-    goto not_implemented; /* return NULL;*/
+    return NULL;
 
   /* Follow any component references.  */
   as = coarray->symtree->n.sym->as;
@@ -6209,7 +6170,7 @@ gfc_simplify_image_index (gfc_expr *coarray, gfc_expr *sub)
       as = ref->u.ar.as;
 
   if (as->type == AS_DEFERRED)
-    goto not_implemented; /* return NULL;*/
+    return NULL;
 
   /* "valid sequence of cosubscripts" are required; thus, return 0 unless
      the cosubscript addresses the first image.  */
@@ -6222,17 +6183,12 @@ gfc_simplify_image_index (gfc_expr *coarray, gfc_expr *sub)
       gfc_expr *ca_bound;
       int cmp;
 
-      if (sub_cons == NULL)
-	{
-	  gfc_error ("Too few elements in expression for SUB= argument at %L",
-		     &sub->where);
-	  return &gfc_bad_expr;
-	}
+      gcc_assert (sub_cons != NULL);
 
       ca_bound = simplify_bound_dim (coarray, NULL, d + as->rank, 0, as,
 				     NULL, true);
       if (ca_bound == NULL)
-	goto not_implemented; /* return NULL */
+	return NULL;
 
       if (ca_bound == &gfc_bad_expr)
 	return ca_bound;
@@ -6289,12 +6245,10 @@ gfc_simplify_image_index (gfc_expr *coarray, gfc_expr *sub)
       sub_cons = gfc_constructor_next (sub_cons);
     }
 
-  if (sub_cons != NULL)
-    {
-      gfc_error ("Too many elements in expression for SUB= argument at %L",
-		 &sub->where);
-      return &gfc_bad_expr;
-    }
+  gcc_assert (sub_cons == NULL);
+
+  if (gfc_option.coarray != GFC_FCOARRAY_SINGLE && !first_image)
+    return NULL;
 
   result = gfc_get_constant_expr (BT_INTEGER, gfc_default_integer_kind,
 				  &gfc_current_locus);
@@ -6304,20 +6258,14 @@ gfc_simplify_image_index (gfc_expr *coarray, gfc_expr *sub)
     mpz_set_si (result->value.integer, 0);
 
   return result;
-
-not_implemented:
-  gfc_error ("Not yet implemented: IMAGE_INDEX for coarray with non-constant "
-	     "cobounds at %L", &coarray->where);
-  return &gfc_bad_expr;
 }
 
 
 gfc_expr *
 gfc_simplify_this_image (gfc_expr *coarray, gfc_expr *dim)
 {
-  gfc_ref *ref;
-  gfc_array_spec *as;
-  int d;
+  if (gfc_option.coarray != GFC_FCOARRAY_SINGLE)
+    return NULL;
 
   if (coarray == NULL)
     {
@@ -6329,85 +6277,8 @@ gfc_simplify_this_image (gfc_expr *coarray, gfc_expr *dim)
       return result;
     }
 
-  gcc_assert (coarray->expr_type == EXPR_VARIABLE);
-
-  /* Follow any component references.  */
-  as = coarray->symtree->n.sym->as;
-  for (ref = coarray->ref; ref; ref = ref->next)
-    if (ref->type == REF_COMPONENT)
-      as = ref->u.ar.as;
-
-  if (as->type == AS_DEFERRED)
-    goto not_implemented; /* return NULL;*/
-
-  if (dim == NULL)
-    {
-      /* Multi-dimensional bounds.  */
-      gfc_expr *bounds[GFC_MAX_DIMENSIONS];
-      gfc_expr *e;
-
-      /* Simplify the bounds for each dimension.  */
-      for (d = 0; d < as->corank; d++)
-	{
-	  bounds[d] = simplify_bound_dim (coarray, NULL, d + as->rank + 1, 0,
-					  as, NULL, true);
-	  if (bounds[d] == NULL || bounds[d] == &gfc_bad_expr)
-	    {
-	      int j;
-
-	      for (j = 0; j < d; j++)
-		gfc_free_expr (bounds[j]);
-	      if (bounds[d] == NULL)
-		goto not_implemented;
-	      return bounds[d];
-	    }
-	}
-
-      /* Allocate the result expression.  */
-      e = gfc_get_expr ();
-      e->where = coarray->where;
-      e->expr_type = EXPR_ARRAY;
-      e->ts.type = BT_INTEGER;
-      e->ts.kind = gfc_default_integer_kind;
-
-      e->rank = 1;
-      e->shape = gfc_get_shape (1);
-      mpz_init_set_ui (e->shape[0], as->corank);
-
-      /* Create the constructor for this array.  */
-      for (d = 0; d < as->corank; d++)
-        gfc_constructor_append_expr (&e->value.constructor,
-                                     bounds[d], &e->where);
-
-      return e;
-    }
-  else
-    {
-      gfc_expr *e;
-      /* A DIM argument is specified.  */
-      if (dim->expr_type != EXPR_CONSTANT)
-	goto not_implemented; /*return NULL;*/
-
-      d = mpz_get_si (dim->value.integer);
-
-      if (d < 1 || d > as->corank)
-	{
-	  gfc_error ("DIM argument at %L is out of bounds", &dim->where);
-	  return &gfc_bad_expr;
-	}
-
-      /*return simplify_bound_dim (coarray, NULL, d + as->rank, 0, as, NULL, true);*/
-      e = simplify_bound_dim (coarray, NULL, d + as->rank, 0, as, NULL, true);
-      if (e != NULL)
-	return e;
-      else
-	goto not_implemented;
-   }
-
-not_implemented:
-  gfc_error ("Not yet implemented: THIS_IMAGE for coarray with non-constant "
-	     "cobounds at %L", &coarray->where);
-  return &gfc_bad_expr;
+  /* For -fcoarray=single, this_image(A) is the same as lcobound(A).  */
+  return simplify_cobound (coarray, dim, NULL, 0);
 }
 
 
@@ -6420,16 +6291,7 @@ gfc_simplify_ubound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 gfc_expr *
 gfc_simplify_ucobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
-  gfc_expr *e;
-  /* return simplify_cobound (array, dim, kind, 1);*/
-
-  e = simplify_cobound (array, dim, kind, 1);
-  if (e != NULL)
-    return e;
-
-  gfc_error ("Not yet implemented: UCOBOUND for coarray with non-constant "
-	     "cobounds at %L", &array->where);
-  return &gfc_bad_expr;
+  return simplify_cobound (array, dim, kind, 1);
 }
 
 
@@ -6839,7 +6701,7 @@ gfc_simplify_compiler_options (void)
   str = gfc_get_option_string ();
   result = gfc_get_character_expr (gfc_default_character_kind,
 				   &gfc_current_locus, str, strlen (str));
-  gfc_free (str);
+  free (str);
   return result;
 }
 

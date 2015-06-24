@@ -1,5 +1,5 @@
 // -*- C++ -*- Allocate exception objects.
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011
 // Free Software Foundation, Inc.
 //
 // This file is part of GCC.
@@ -94,7 +94,7 @@ namespace
 }
 
 extern "C" void *
-__cxxabiv1::__cxa_allocate_exception(std::size_t thrown_size) throw()
+__cxxabiv1::__cxa_allocate_exception(std::size_t thrown_size) _GLIBCXX_NOTHROW
 {
   void *ret;
 
@@ -126,12 +126,6 @@ __cxxabiv1::__cxa_allocate_exception(std::size_t thrown_size) throw()
 	std::terminate ();
     }
 
-  // We have an uncaught exception as soon as we allocate memory.  This
-  // yields uncaught_exception() true during the copy-constructor that
-  // initializes the exception object.  See Issue 475.
-  __cxa_eh_globals *globals = __cxa_get_globals ();
-  globals->uncaughtExceptions += 1;
-
   memset (ret, 0, sizeof (__cxa_refcounted_exception));
 
   return (void *)((char *)ret + sizeof (__cxa_refcounted_exception));
@@ -139,7 +133,7 @@ __cxxabiv1::__cxa_allocate_exception(std::size_t thrown_size) throw()
 
 
 extern "C" void
-__cxxabiv1::__cxa_free_exception(void *vptr) throw()
+__cxxabiv1::__cxa_free_exception(void *vptr) _GLIBCXX_NOTHROW
 {
   char *base = (char *) emergency_buffer;
   char *ptr = (char *) vptr;
@@ -158,7 +152,7 @@ __cxxabiv1::__cxa_free_exception(void *vptr) throw()
 
 
 extern "C" __cxa_dependent_exception*
-__cxxabiv1::__cxa_allocate_dependent_exception() throw()
+__cxxabiv1::__cxa_allocate_dependent_exception() _GLIBCXX_NOTHROW
 {
   __cxa_dependent_exception *ret;
 
@@ -188,12 +182,6 @@ __cxxabiv1::__cxa_allocate_dependent_exception() throw()
 	std::terminate ();
     }
 
-  // We have an uncaught exception as soon as we allocate memory.  This
-  // yields uncaught_exception() true during the copy-constructor that
-  // initializes the exception object.  See Issue 475.
-  __cxa_eh_globals *globals = __cxa_get_globals ();
-  globals->uncaughtExceptions += 1;
-
   memset (ret, 0, sizeof (__cxa_dependent_exception));
 
   return ret;
@@ -202,7 +190,7 @@ __cxxabiv1::__cxa_allocate_dependent_exception() throw()
 
 extern "C" void
 __cxxabiv1::__cxa_free_dependent_exception
-  (__cxa_dependent_exception *vptr) throw()
+  (__cxa_dependent_exception *vptr) _GLIBCXX_NOTHROW
 {
   char *base = (char *) dependents_buffer;
   char *ptr = (char *) vptr;

@@ -25,7 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Convert a BOZ to REAL or COMPLEX.  */
 bool gfc_convert_boz (gfc_expr *, gfc_typespec *);
 
-/* Return the size of an expression in its target representation.  */
+size_t gfc_element_size (gfc_expr *);
 size_t gfc_target_expr_size (gfc_expr *);
 
 /* Write a constant expression in binary form to a target buffer.  */
@@ -41,7 +41,7 @@ int gfc_interpret_complex (int, unsigned char *, size_t, mpc_t);
 int gfc_interpret_logical (int, unsigned char *, size_t, int *);
 int gfc_interpret_character (unsigned char *, size_t, gfc_expr *);
 int gfc_interpret_derived (unsigned char *, size_t, gfc_expr *);
-int gfc_target_interpret_expr (unsigned char *, size_t, gfc_expr *);
+int gfc_target_interpret_expr (unsigned char *, size_t, gfc_expr *, bool);
 
 /* Merge overlapping equivalence initializers for trans-common.c. */
 size_t gfc_merge_initializers (gfc_typespec, gfc_expr *,

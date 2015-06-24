@@ -1,6 +1,6 @@
 /* Output sdb-format symbol table information from GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -339,10 +339,6 @@ const struct gcc_debug_hooks sdb_debug_hooks =
   debug_nothing_int,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
-  debug_nothing_tree,		         /* direct_call */
-  debug_nothing_tree_int,		 /* virtual_call_token */
-  debug_nothing_rtx_rtx,	         /* copy_call_info */
-  debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,		 /* set_name */
   0,                                     /* start_end_main_source_file */
   TYPE_SYMTAB_IS_POINTER                 /* tree_type_symtab_field */
@@ -1268,7 +1264,10 @@ static void
 sdbout_parms (tree parms)
 {
   for (; parms; parms = TREE_CHAIN (parms))
-    if (DECL_NAME (parms))
+    if (DECL_NAME (parms)
+	&& TREE_TYPE (parms) != error_mark_node
+	&& DECL_RTL_SET_P (parms)
+	&& DECL_INCOMING_RTL (parms))
       {
 	int current_sym_value = 0;
 	const char *name = IDENTIFIER_POINTER (DECL_NAME (parms));
@@ -1400,7 +1399,10 @@ static void
 sdbout_reg_parms (tree parms)
 {
   for (; parms; parms = TREE_CHAIN (parms))
-    if (DECL_NAME (parms))
+    if (DECL_NAME (parms)
+        && TREE_TYPE (parms) != error_mark_node
+        && DECL_RTL_SET_P (parms)
+        && DECL_INCOMING_RTL (parms))
       {
 	const char *name = IDENTIFIER_POINTER (DECL_NAME (parms));
 

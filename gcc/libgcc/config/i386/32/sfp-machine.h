@@ -107,6 +107,7 @@ typedef int __gcc_CMPtype __attribute__ ((mode (__libgcc_cmp_return__)));
     R##_c = FP_CLS_NAN;						\
   } while (0)
 
+#ifndef _SOFT_FLOAT
 #define FP_EX_INVALID		0x01
 #define FP_EX_DENORM		0x02
 #define FP_EX_DIVZERO		0x04
@@ -137,6 +138,14 @@ struct fenv
       {									\
 	float f = 0.0;							\
 	__asm__ __volatile__ ("fdiv {%y0, %0|%0, %y0}" : "+t" (f));	\
+	__asm__ __volatile__ ("fwait");					\
+      }									\
+    if (_fex & FP_EX_DENORM)						\
+      {									\
+	struct fenv temp;						\
+	__asm__ __volatile__ ("fnstenv %0" : "=m" (temp));		\
+	temp.__status_word |= FP_EX_DENORM;				\
+	__asm__ __volatile__ ("fldenv %0" : : "m" (temp));		\
 	__asm__ __volatile__ ("fwait");					\
       }									\
     if (_fex & FP_EX_DIVZERO)						\
@@ -187,6 +196,7 @@ struct fenv
   } while (0)
 
 #define FP_ROUNDMODE		(_fcw & 0xc00)
+#endif
 
 #define	__LITTLE_ENDIAN	1234
 #define	__BIG_ENDIAN	4321
