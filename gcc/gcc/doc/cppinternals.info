@@ -1,7 +1,7 @@
 This is doc/cppinternals.info, produced by makeinfo version 4.8 from
-/scratch/mitchell/gcc-releases/gcc-4.1.2/gcc-4.1.2/gcc/doc/cppinternals.texi.
+/scratch/joseph/4.2.4/gcc-4.2.4/gcc-4.2.4/gcc/doc/cppinternals.texi.
 
-INFO-DIR-SECTION Programming
+INFO-DIR-SECTION Software development
 START-INFO-DIR-ENTRY
 * Cpplib: (cppinternals).      Cpplib internals.
 END-INFO-DIR-ENTRY
