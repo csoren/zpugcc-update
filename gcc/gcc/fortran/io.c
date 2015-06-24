@@ -17,8 +17,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 #include "config.h"
 #include "system.h"
@@ -53,6 +53,7 @@ static const io_tag
 	tag_advance	= {"ADVANCE", " advance = %e", BT_CHARACTER},
 	tag_rec		= {"REC", " rec = %e", BT_INTEGER},
 	tag_format	= {"FORMAT", NULL, BT_CHARACTER},
+	tag_iomsg	= {"IOMSG", " iomsg = %e", BT_CHARACTER},
 	tag_iostat	= {"IOSTAT", " iostat = %v", BT_INTEGER},
 	tag_size	= {"SIZE", " size = %v", BT_INTEGER},
 	tag_exist	= {"EXIST", " exist = %v", BT_LOGICAL},
@@ -77,6 +78,7 @@ static const io_tag
 	tag_s_delim	= {"DELIM", " delim = %v", BT_CHARACTER},
 	tag_s_pad	= {"PAD", " pad = %v", BT_CHARACTER},
 	tag_iolength	= {"IOLENGTH", " iolength = %v", BT_INTEGER},
+	tag_convert     = {"CONVERT", " convert = %e", BT_CHARACTER},
 	tag_err		= {"ERR", " err = %l", BT_UNKNOWN},
 	tag_end		= {"END", " end = %l", BT_UNKNOWN},
 	tag_eor		= {"EOR", " eor = %l", BT_UNKNOWN};
@@ -133,10 +135,51 @@ next_char (int in_string)
       c = gfc_next_char_literal (in_string);
       if (c == '\n')
 	c = '\0';
-
-      if (mode == MODE_COPY)
-	*format_string++ = c;
     }
+
+  if (gfc_option.flag_backslash && c == '\\')
+    {
+      locus old_locus = gfc_current_locus;
+
+      switch (gfc_next_char_literal (1))
+	{
+	case 'a':
+	  c = '\a';
+	  break;
+	case 'b':
+	  c = '\b';
+	  break;
+	case 't':
+	  c = '\t';
+	  break;
+	case 'f':
+	  c = '\f';
+	  break;
+	case 'n':
+	  c = '\n';
+	  break;
+	case 'r':
+	  c = '\r';
+	  break;
+	case 'v':
+	  c = '\v';
+	  break;
+	case '\\':
+	  c = '\\';
+	  break;
+
+	default:
+	  /* Unknown backslash codes are simply not expanded.  */
+	  gfc_current_locus = old_locus;
+	  break;
+	}
+
+      if (!(gfc_option.allow_std & GFC_STD_GNU) && !inhibit_warnings)
+	gfc_warning ("Extension: backslash character at %C");
+    }
+
+  if (mode == MODE_COPY)
+    *format_string++ = c;
 
   c = TOUPPER (c);
   return c;
@@ -150,6 +193,20 @@ unget_char (void)
 {
 
   use_last_char = 1;
+}
+
+/* Eat up the spaces and return a character. */
+
+static char
+next_char_not_space(void)
+{
+  char c;
+  do
+    {
+      c = next_char (0);
+    }
+  while (gfc_is_whitespace (c));
+  return c;
 }
 
 static int value = 0;
@@ -172,19 +229,15 @@ format_lex (void)
       return token;
     }
 
-  do
-    {
-      c = next_char (0);
-    }
-  while (gfc_is_whitespace (c));
-
+  c = next_char_not_space ();
+  
   negative_flag = 0;
   switch (c)
     {
     case '-':
       negative_flag = 1;
     case '+':
-      c = next_char (0);
+      c = next_char_not_space ();
       if (!ISDIGIT (c))
 	{
 	  token = FMT_UNKNOWN;
@@ -195,11 +248,11 @@ format_lex (void)
 
       do
 	{
-	  c = next_char (0);
+	  c = next_char_not_space ();
           if(ISDIGIT (c))
             value = 10 * value + c - '0';
 	}
-      while (ISDIGIT (c));
+      while (ISDIGIT (c) || gfc_is_whitespace(c));
 
       unget_char ();
 
@@ -225,7 +278,7 @@ format_lex (void)
 
       do
 	{
-	  c = next_char (0);
+	  c = next_char_not_space ();
 	  if (c != '0')
 	    zflag = 0;
           if (ISDIGIT (c))
@@ -258,7 +311,7 @@ format_lex (void)
       break;
 
     case 'T':
-      c = next_char (0);
+      c = next_char_not_space ();
       if (c != 'L' && c != 'R')
 	unget_char ();
 
@@ -278,7 +331,7 @@ format_lex (void)
       break;
 
     case 'S':
-      c = next_char (0);
+      c = next_char_not_space ();
       if (c != 'P' && c != 'S')
 	unget_char ();
 
@@ -286,7 +339,7 @@ format_lex (void)
       break;
 
     case 'B':
-      c = next_char (0);
+      c = next_char_not_space ();
       if (c == 'N' || c == 'Z')
 	token = FMT_BLANK;
       else
@@ -348,7 +401,7 @@ format_lex (void)
       break;
 
     case 'E':
-      c = next_char (0);
+      c = next_char_not_space ();
       if (c == 'N' || c == 'S')
 	token = FMT_EXT;
       else
@@ -400,11 +453,11 @@ format_lex (void)
 static try
 check_format (void)
 {
-  const char *posint_required	  = "Positive width required";
-  const char *period_required	  = "Period required";
-  const char *nonneg_required	  = "Nonnegative width required";
-  const char *unexpected_element  = "Unexpected element";
-  const char *unexpected_end	  = "Unexpected end of format string";
+  const char *posint_required	  = _("Positive width required");
+  const char *period_required	  = _("Period required");
+  const char *nonneg_required	  = _("Nonnegative width required");
+  const char *unexpected_element  = _("Unexpected element");
+  const char *unexpected_end	  = _("Unexpected end of format string");
 
   const char *error;
   format_token t, u;
@@ -421,7 +474,7 @@ check_format (void)
   t = format_lex ();
   if (t != FMT_LPAREN)
     {
-      error = "Missing leading left parenthesis";
+      error = _("Missing leading left parenthesis");
       goto syntax;
     }
 
@@ -459,7 +512,7 @@ format_item_1:
       t = format_lex ();
       if (t != FMT_P)
 	{
-	  error = "Expected P edit descriptor";
+	  error = _("Expected P edit descriptor");
 	  goto syntax;
 	}
 
@@ -467,7 +520,7 @@ format_item_1:
 
     case FMT_P:
       /* P requires a prior number.  */
-      error = "P descriptor requires leading scale factor";
+      error = _("P descriptor requires leading scale factor");
       goto syntax;
 
     case FMT_X:
@@ -497,7 +550,7 @@ format_item_1:
         return FAILURE;
       if (t != FMT_RPAREN || level > 0)
 	{
-	  error = "$ must the last specifier";
+	  error = _("$ must be the last specifier");
 	  goto syntax;
 	}
 
@@ -542,7 +595,7 @@ data_desc:
 	  t = format_lex ();
 	  if (t == FMT_POSINT)
 	    {
-	      error = "Repeat count cannot follow P descriptor";
+	      error = _("Repeat count cannot follow P descriptor");
 	      goto syntax;
 	    }
 
@@ -557,8 +610,26 @@ data_desc:
       if (t == FMT_POSINT)
 	break;
 
-      error = posint_required;
-      goto syntax;
+      switch (gfc_notification_std (GFC_STD_GNU))
+	{
+	  case WARNING:
+	    gfc_warning
+	      ("Extension: Missing positive width after L descriptor at %C");
+	    saved_token = t;
+	    break;
+
+	  case ERROR:
+	    error = posint_required;
+	    goto syntax;
+
+	  case SILENT:
+	    saved_token = t;
+	    break;
+
+	  default:
+	    gcc_unreachable ();
+	}
+      break;
 
     case FMT_A:
       t = format_lex ();
@@ -605,7 +676,7 @@ data_desc:
 	  u = format_lex ();
 	  if (u != FMT_POSINT)
 	    {
-	      error = "Positive exponent width required";
+	      error = _("Positive exponent width required");
 	      goto syntax;
 	    }
 	}
@@ -814,6 +885,13 @@ gfc_match_format (void)
   gfc_expr *e;
   locus start;
 
+  if (gfc_current_ns->proc_name
+	&& gfc_current_ns->proc_name->attr.flavor == FL_MODULE)
+    {
+      gfc_error ("Format statement in module main block at %C.");
+      return MATCH_ERROR;
+    }
+
   if (gfc_statement_label == NULL)
     {
       gfc_error ("Missing format label at %C");
@@ -953,6 +1031,10 @@ match_ltag (const io_tag * tag, gfc_st_label ** label)
       return MATCH_ERROR;
     }
 
+  if (m == MATCH_YES 
+      && gfc_reference_st_label (*label, ST_LABEL_TARGET) == FAILURE)
+    return MATCH_ERROR;
+
   return m;
 }
 
@@ -978,6 +1060,15 @@ resolve_tag (const io_tag * tag, gfc_expr * e)
 
   if (tag == &tag_format)
     {
+      if (e->expr_type == EXPR_CONSTANT
+	  && (e->ts.type != BT_CHARACTER
+	      || e->ts.kind != gfc_default_character_kind))
+	{
+	  gfc_error ("Constant expression in FORMAT tag at %L must be "
+		     "of type default CHARACTER", &e->where);
+	  return FAILURE;
+	}
+
       /* If e's rank is zero and e is not an element of an array, it should be
 	 of integer or character type.  The integer variable should be
 	 ASSIGNED.  */
@@ -1004,6 +1095,13 @@ resolve_tag (const io_tag * tag, gfc_expr * e)
 		  return FAILURE;
 		}
 	    }
+	  else if (e->ts.type == BT_INTEGER)
+	    {
+	      gfc_error ("scalar '%s' FORMAT tag at %L is not an ASSIGNED "
+			 "variable", gfc_basic_typename (e->ts.type), &e->where);
+	      return FAILURE;
+	    }
+
 	  return SUCCESS;
 	}
       else
@@ -1035,8 +1133,37 @@ resolve_tag (const io_tag * tag, gfc_expr * e)
 	  gfc_error ("%s tag at %L must be scalar", tag->name, &e->where);
 	  return FAILURE;
 	}
-    }
 
+      if (tag == &tag_iomsg)
+	{
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: IOMSG tag at %L",
+			      &e->where) == FAILURE)
+	    return FAILURE;
+	}
+
+      if (tag == &tag_iostat && e->ts.kind != gfc_default_integer_kind)
+	{
+	  if (gfc_notify_std (GFC_STD_GNU, "Fortran 95 requires default "
+			      "INTEGER in IOSTAT tag at %L",
+			      &e->where) == FAILURE)
+	    return FAILURE;
+	}
+
+      if (tag == &tag_size && e->ts.kind != gfc_default_integer_kind)
+	{
+	  if (gfc_notify_std (GFC_STD_GNU, "Fortran 95 requires default "
+			      "INTEGER in SIZE tag at %L",
+			      &e->where) == FAILURE)
+	    return FAILURE;
+	}
+
+      if (tag == &tag_convert)
+	{
+	  if (gfc_notify_std (GFC_STD_GNU, "Extension: CONVERT tag at %L",
+			      &e->where) == FAILURE)
+	    return FAILURE;
+	}
+    }
   return SUCCESS;
 }
 
@@ -1049,6 +1176,9 @@ match_open_element (gfc_open * open)
   match m;
 
   m = match_etag (&tag_unit, &open->unit);
+  if (m != MATCH_NO)
+    return m;
+  m = match_out_tag (&tag_iomsg, &open->iomsg);
   if (m != MATCH_NO)
     return m;
   m = match_out_tag (&tag_iostat, &open->iostat);
@@ -1087,6 +1217,9 @@ match_open_element (gfc_open * open)
   m = match_ltag (&tag_err, &open->err);
   if (m != MATCH_NO)
     return m;
+  m = match_etag (&tag_convert, &open->convert);
+  if (m != MATCH_NO)
+    return m;
 
   return MATCH_NO;
 }
@@ -1102,6 +1235,7 @@ gfc_free_open (gfc_open * open)
     return;
 
   gfc_free_expr (open->unit);
+  gfc_free_expr (open->iomsg);
   gfc_free_expr (open->iostat);
   gfc_free_expr (open->file);
   gfc_free_expr (open->status);
@@ -1113,6 +1247,7 @@ gfc_free_open (gfc_open * open)
   gfc_free_expr (open->action);
   gfc_free_expr (open->delim);
   gfc_free_expr (open->pad);
+  gfc_free_expr (open->convert);
 
   gfc_free (open);
 }
@@ -1125,6 +1260,7 @@ gfc_resolve_open (gfc_open * open)
 {
 
   RESOLVE_TAG (&tag_unit, open->unit);
+  RESOLVE_TAG (&tag_iomsg, open->iomsg);
   RESOLVE_TAG (&tag_iostat, open->iostat);
   RESOLVE_TAG (&tag_file, open->file);
   RESOLVE_TAG (&tag_status, open->status);
@@ -1137,6 +1273,7 @@ gfc_resolve_open (gfc_open * open)
   RESOLVE_TAG (&tag_e_action, open->action);
   RESOLVE_TAG (&tag_e_delim, open->delim);
   RESOLVE_TAG (&tag_e_pad, open->pad);
+  RESOLVE_TAG (&tag_convert, open->convert);
 
   if (gfc_reference_st_label (open->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
@@ -1218,6 +1355,7 @@ gfc_free_close (gfc_close * close)
     return;
 
   gfc_free_expr (close->unit);
+  gfc_free_expr (close->iomsg);
   gfc_free_expr (close->iostat);
   gfc_free_expr (close->status);
 
@@ -1236,6 +1374,9 @@ match_close_element (gfc_close * close)
   if (m != MATCH_NO)
     return m;
   m = match_etag (&tag_status, &close->status);
+  if (m != MATCH_NO)
+    return m;
+  m = match_out_tag (&tag_iomsg, &close->iomsg);
   if (m != MATCH_NO)
     return m;
   m = match_out_tag (&tag_iostat, &close->iostat);
@@ -1319,6 +1460,7 @@ gfc_resolve_close (gfc_close * close)
 {
 
   RESOLVE_TAG (&tag_unit, close->unit);
+  RESOLVE_TAG (&tag_iomsg, close->iomsg);
   RESOLVE_TAG (&tag_iostat, close->iostat);
   RESOLVE_TAG (&tag_status, close->status);
 
@@ -1336,12 +1478,13 @@ gfc_free_filepos (gfc_filepos * fp)
 {
 
   gfc_free_expr (fp->unit);
+  gfc_free_expr (fp->iomsg);
   gfc_free_expr (fp->iostat);
   gfc_free (fp);
 }
 
 
-/* Match elements of a REWIND, BACKSPACE or ENDFILE statement.  */
+/* Match elements of a REWIND, BACKSPACE, ENDFILE, or FLUSH statement.  */
 
 static match
 match_file_element (gfc_filepos * fp)
@@ -1349,6 +1492,9 @@ match_file_element (gfc_filepos * fp)
   match m;
 
   m = match_etag (&tag_unit, &fp->unit);
+  if (m != MATCH_NO)
+    return m;
+  m = match_out_tag (&tag_iomsg, &fp->iomsg);
   if (m != MATCH_NO)
     return m;
   m = match_out_tag (&tag_iostat, &fp->iostat);
@@ -1363,7 +1509,7 @@ match_file_element (gfc_filepos * fp)
 
 
 /* Match the second half of the file-positioning statements, REWIND,
-   BACKSPACE or ENDFILE.  */
+   BACKSPACE, ENDFILE, or the FLUSH statement.  */
 
 static match
 match_filepos (gfc_statement st, gfc_exec_op op)
@@ -1441,6 +1587,7 @@ gfc_resolve_filepos (gfc_filepos * fp)
 
   RESOLVE_TAG (&tag_unit, fp->unit);
   RESOLVE_TAG (&tag_iostat, fp->iostat);
+  RESOLVE_TAG (&tag_iomsg, fp->iomsg);
   if (gfc_reference_st_label (fp->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
 
@@ -1448,8 +1595,8 @@ gfc_resolve_filepos (gfc_filepos * fp)
 }
 
 
-/* Match the file positioning statements: ENDFILE, BACKSPACE or
-   REWIND.  */
+/* Match the file positioning statements: ENDFILE, BACKSPACE, REWIND,
+   and the FLUSH statement.  */
 
 match
 gfc_match_endfile (void)
@@ -1472,6 +1619,14 @@ gfc_match_rewind (void)
   return match_filepos (ST_REWIND, EXEC_REWIND);
 }
 
+match
+gfc_match_flush (void)
+{
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: FLUSH statement at %C") == FAILURE)
+    return MATCH_ERROR;
+
+  return match_filepos (ST_FLUSH, EXEC_FLUSH);
+}
 
 /******************** Data Transfer Statements *********************/
 
@@ -1552,7 +1707,7 @@ match_dt_format (gfc_dt * dt)
       return MATCH_YES;
     }
 
-  if (gfc_match_st_label (&label, 0) == MATCH_YES)
+  if (gfc_match_st_label (&label) == MATCH_YES)
     {
       if (dt->format_expr != NULL || dt->format_label != NULL)
 	{
@@ -1660,10 +1815,15 @@ match_dt_element (io_kind k, gfc_dt * dt)
   m = match_etag (&tag_rec, &dt->rec);
   if (m != MATCH_NO)
     return m;
+  m = match_out_tag (&tag_iomsg, &dt->iomsg);
+  if (m != MATCH_NO)
+    return m;
   m = match_out_tag (&tag_iostat, &dt->iostat);
   if (m != MATCH_NO)
     return m;
   m = match_ltag (&tag_err, &dt->err);
+  if (m == MATCH_YES)
+    dt->err_where = gfc_current_locus;
   if (m != MATCH_NO)
     return m;
   m = match_etag (&tag_advance, &dt->advance);
@@ -1709,6 +1869,7 @@ gfc_free_dt (gfc_dt * dt)
   gfc_free_expr (dt->format_expr);
   gfc_free_expr (dt->rec);
   gfc_free_expr (dt->advance);
+  gfc_free_expr (dt->iomsg);
   gfc_free_expr (dt->iostat);
   gfc_free_expr (dt->size);
 
@@ -1726,6 +1887,7 @@ gfc_resolve_dt (gfc_dt * dt)
   RESOLVE_TAG (&tag_format, dt->format_expr);
   RESOLVE_TAG (&tag_rec, dt->rec);
   RESOLVE_TAG (&tag_advance, dt->advance);
+  RESOLVE_TAG (&tag_iomsg, dt->iomsg);
   RESOLVE_TAG (&tag_iostat, dt->iostat);
   RESOLVE_TAG (&tag_size, dt->size);
 
@@ -1741,7 +1903,6 @@ gfc_resolve_dt (gfc_dt * dt)
       return FAILURE;
     }
 
-  /* Sanity checks on data transfer statements.  */
   if (e->ts.type == BT_CHARACTER)
     {
       if (gfc_has_vector_index (e))
@@ -1750,84 +1911,49 @@ gfc_resolve_dt (gfc_dt * dt)
 		     &e->where);
 	  return FAILURE;
 	}
-
-      if (dt->rec != NULL)
-	{
-	  gfc_error ("REC tag at %L is incompatible with internal file",
-		     &dt->rec->where);
-	  return FAILURE;
-	}
-
-      if (dt->namelist != NULL)
-	{
-	  gfc_error ("Internal file at %L is incompatible with namelist",
-		     &dt->io_unit->where);
-	  return FAILURE;
-	}
-
-      if (dt->advance != NULL)
-	{
-	  gfc_error ("ADVANCE tag at %L is incompatible with internal file",
-		     &dt->advance->where);
-	  return FAILURE;
-	}
     }
 
-  if (dt->rec != NULL)
+  if (e->rank && e->ts.type != BT_CHARACTER)
     {
-      if (dt->end != NULL)
-	{
-	  gfc_error ("REC tag at %L is incompatible with END tag",
-		     &dt->rec->where);
-	  return FAILURE;
-	}
-
-      if (dt->format_label == &format_asterisk)
-	{
-	  gfc_error
-	    ("END tag at %L is incompatible with list directed format (*)",
-	     &dt->end_where);
-	  return FAILURE;
-	}
-
-      if (dt->namelist != NULL)
-	{
-	  gfc_error ("REC tag at %L is incompatible with namelist",
-		     &dt->rec->where);
-	  return FAILURE;
-	}
-    }
-
-  if (dt->advance != NULL && dt->format_label == &format_asterisk)
-    {
-      gfc_error ("ADVANCE tag at %L is incompatible with list directed "
-		 "format (*)", &dt->advance->where);
+      gfc_error ("External IO UNIT cannot be an array at %L", &e->where);
       return FAILURE;
     }
 
-  if (dt->eor != 0 && dt->advance == NULL)
+  if (dt->err)
     {
-      gfc_error ("EOR tag at %L requires an ADVANCE tag", &dt->eor_where);
-      return FAILURE;
+      if (gfc_reference_st_label (dt->err, ST_LABEL_TARGET) == FAILURE)
+	return FAILURE;
+      if (dt->err->defined == ST_LABEL_UNKNOWN)
+	{
+	  gfc_error ("ERR tag label %d at %L not defined",
+		      dt->err->value, &dt->err_where);
+	  return FAILURE;
+	}
     }
 
-  if (dt->size != NULL && dt->advance == NULL)
+  if (dt->end)
     {
-      gfc_error ("SIZE tag at %L requires an ADVANCE tag", &dt->size->where);
-      return FAILURE;
+      if (gfc_reference_st_label (dt->end, ST_LABEL_TARGET) == FAILURE)
+	return FAILURE;
+      if (dt->end->defined == ST_LABEL_UNKNOWN)
+	{
+	  gfc_error ("END tag label %d at %L not defined",
+		      dt->end->value, &dt->end_where);
+	  return FAILURE;
+	}
     }
 
-  /* TODO: Make sure the ADVANCE tag is 'yes' or 'no' if it is a string
-     constant.  */
-
-  if (gfc_reference_st_label (dt->err, ST_LABEL_TARGET) == FAILURE)
-    return FAILURE;
-
-  if (gfc_reference_st_label (dt->end, ST_LABEL_TARGET) == FAILURE)
-    return FAILURE;
-
-  if (gfc_reference_st_label (dt->eor, ST_LABEL_TARGET) == FAILURE)
-    return FAILURE;
+  if (dt->eor)
+    {
+      if (gfc_reference_st_label (dt->eor, ST_LABEL_TARGET) == FAILURE)
+	return FAILURE;
+      if (dt->eor->defined == ST_LABEL_UNKNOWN)
+	{
+	  gfc_error ("EOR tag label %d at %L not defined",
+		      dt->eor->value, &dt->eor_where);
+	  return FAILURE;
+	}
+    }
 
   /* Check the format label actually exists.  */
   if (dt->format_label && dt->format_label != &format_asterisk
@@ -2104,7 +2230,7 @@ terminate_io (gfc_code * io_code)
   gfc_code *c;
 
   if (io_code == NULL)
-    io_code = &new_st;
+    io_code = new_st.block;
 
   c = gfc_get_code ();
   c->op = EXEC_DT_END;
@@ -2115,6 +2241,175 @@ terminate_io (gfc_code * io_code)
 }
 
 
+/* Check the constraints for a data transfer statement.  The majority of the
+   constraints appearing in 9.4 of the standard appear here.  Some are handled
+   in resolve_tag and others in gfc_resolve_dt.  */
+
+static match
+check_io_constraints (io_kind k, gfc_dt *dt, gfc_code * io_code, locus * spec_end)
+{
+#define io_constraint(condition,msg,arg)\
+if (condition) \
+  {\
+    gfc_error(msg,arg);\
+    m = MATCH_ERROR;\
+  }
+
+  match m;
+  gfc_expr * expr;
+  gfc_symbol * sym = NULL;
+
+  m = MATCH_YES;
+
+  expr = dt->io_unit;
+  if (expr && expr->expr_type == EXPR_VARIABLE
+	&& expr->ts.type == BT_CHARACTER)
+    {
+      sym = expr->symtree->n.sym;
+
+      io_constraint (k == M_WRITE && sym->attr.intent == INTENT_IN,
+		     "Internal file at %L must not be INTENT(IN)",
+		     &expr->where);
+
+      io_constraint (gfc_has_vector_index (dt->io_unit),
+		     "Internal file incompatible with vector subscript at %L",
+		     &expr->where);
+
+      io_constraint (dt->rec != NULL,
+		     "REC tag at %L is incompatible with internal file",
+		     &dt->rec->where);
+
+      io_constraint (dt->namelist != NULL,
+		     "Internal file at %L is incompatible with namelist",
+		     &expr->where);
+
+      io_constraint (dt->advance != NULL,
+		     "ADVANCE tag at %L is incompatible with internal file",
+		     &dt->advance->where);
+    }
+
+  if (expr && expr->ts.type != BT_CHARACTER)
+    {
+
+      io_constraint (gfc_pure (NULL)
+		       && (k == M_READ || k == M_WRITE),
+		     "IO UNIT in %s statement at %C must be "
+		     "an internal file in a PURE procedure",
+		     io_kind_name (k));
+    }
+
+
+  if (k != M_READ)
+    {
+      io_constraint (dt->end,
+		     "END tag not allowed with output at %L",
+		     &dt->end_where);
+
+      io_constraint (dt->eor,
+		     "EOR tag not allowed with output at %L",
+		     &dt->eor_where);
+
+      io_constraint (k != M_READ && dt->size,
+		     "SIZE=specifier not allowed with output at %L",
+		     &dt->size->where);
+    }
+  else
+    {
+      io_constraint (dt->size && dt->advance == NULL,
+		     "SIZE tag at %L requires an ADVANCE tag",
+		     &dt->size->where);
+
+      io_constraint (dt->eor && dt->advance == NULL,
+		     "EOR tag at %L requires an ADVANCE tag",
+		     &dt->eor_where);
+    }
+
+
+
+  if (dt->namelist)
+    {
+      io_constraint (io_code && dt->namelist,
+		     "NAMELIST cannot be followed by IO-list at %L",
+		     &io_code->loc);
+
+      io_constraint (dt->format_expr,
+		     "IO spec-list cannot contain both NAMELIST group name "
+		     "and format specification at %L.",
+		     &dt->format_expr->where);
+
+      io_constraint (dt->format_label,
+		     "IO spec-list cannot contain both NAMELIST group name "
+		     "and format label at %L", spec_end);
+
+      io_constraint (dt->rec,
+		     "NAMELIST IO is not allowed with a REC=specifier "
+		     "at %L.", &dt->rec->where);
+
+      io_constraint (dt->advance,
+		     "NAMELIST IO is not allowed with a ADVANCE=specifier "
+		     "at %L.", &dt->advance->where);
+    }
+
+  if (dt->rec)
+    {
+      io_constraint (dt->end,
+		     "An END tag is not allowed with a "
+		     "REC=specifier at %L.", &dt->end_where);
+
+
+      io_constraint (dt->format_label == &format_asterisk,
+		     "FMT=* is not allowed with a REC=specifier "
+		     "at %L.", spec_end);
+    }
+
+  if (dt->advance)
+    {
+      int not_yes, not_no;
+      expr = dt->advance;
+
+      io_constraint (dt->format_label == &format_asterisk,
+		     "List directed format(*) is not allowed with a "
+		     "ADVANCE=specifier at %L.", &expr->where);
+
+      io_constraint (dt->format_expr == NULL
+		       && dt->format_label == NULL
+		       && dt->namelist == NULL,
+		     "the ADVANCE=specifier at %L must appear with an "
+		     "explicit format expression", &expr->where);
+
+      if (expr->expr_type == EXPR_CONSTANT && expr->ts.type == BT_CHARACTER)
+	{
+	  const char * advance = expr->value.character.string;
+	  not_no = strncasecmp (advance, "no", 2) != 0;
+	  not_yes = strncasecmp (advance, "yes", 2) != 0;
+	}
+      else
+	{
+	  not_no = 0;
+	  not_yes = 0;
+	}
+
+      io_constraint (not_no && not_yes,
+		     "ADVANCE=specifier at %L must have value = "
+		     "YES or NO.", &expr->where);
+
+      io_constraint (dt->size && not_no && k == M_READ,
+		     "SIZE tag at %L requires an ADVANCE = 'NO'",
+		     &dt->size->where);
+
+      io_constraint (dt->eor && not_no && k == M_READ,
+		     "EOR tag at %L requires an ADVANCE = 'NO'",
+		     &dt->eor_where);      
+    }
+
+  expr = dt->format_expr;
+  if (expr != NULL && expr->expr_type == EXPR_CONSTANT)
+    check_format_string (expr);
+
+  return m;
+}
+#undef io_constraint
+
 /* Match a READ, WRITE or PRINT statement.  */
 
 static match
@@ -2123,59 +2418,55 @@ match_io (io_kind k)
   char name[GFC_MAX_SYMBOL_LEN + 1];
   gfc_code *io_code;
   gfc_symbol *sym;
-  gfc_expr *expr;
   int comma_flag, c;
   locus where;
+  locus spec_end;
   gfc_dt *dt;
   match m;
 
+  where = gfc_current_locus;
   comma_flag = 0;
   current_dt = dt = gfc_getmem (sizeof (gfc_dt));
-
-  if (gfc_match_char ('(') == MATCH_NO)
+  m = gfc_match_char ('(');
+  if (m == MATCH_NO)
     {
+      where = gfc_current_locus;
       if (k == M_WRITE)
 	goto syntax;
-      else if (k == M_PRINT 
-	       && (gfc_current_form == FORM_FIXED
-		   || gfc_peek_char () == ' '))
+      else if (k == M_PRINT)
 	{
 	  /* Treat the non-standard case of PRINT namelist.  */
-	  where = gfc_current_locus;
-	  if ((gfc_match_name (name) == MATCH_YES)
-	      && !gfc_find_symbol (name, NULL, 1, &sym)
-	      && sym->attr.flavor == FL_NAMELIST)
+	  if ((gfc_current_form == FORM_FIXED || gfc_peek_char () == ' ')
+	      && gfc_match_name (name) == MATCH_YES)
 	    {
-	      if (gfc_notify_std (GFC_STD_GNU, "PRINT namelist at "
-				  "%C is an extension") == FAILURE)
+	      gfc_find_symbol (name, NULL, 1, &sym);
+	      if (sym && sym->attr.flavor == FL_NAMELIST)
 		{
-		  m = MATCH_ERROR;
-		  goto cleanup;
-		}
-	      if (gfc_match_eos () == MATCH_NO)
-		{
-		  gfc_error ("Namelist followed by I/O list at %C");
-		  m = MATCH_ERROR;
-		  goto cleanup;
-		}
+		  if (gfc_notify_std (GFC_STD_GNU, "PRINT namelist at "
+				      "%C is an extension") == FAILURE)
+		    {
+		      m = MATCH_ERROR;
+		      goto cleanup;
+		    }
 
-	      dt->io_unit = default_unit (k);
-	      dt->namelist = sym;
-	      goto get_io_list;
+		  dt->io_unit = default_unit (k);
+		  dt->namelist = sym;
+		  goto get_io_list;
+		}
+	      else
+		gfc_current_locus = where;
 	    }
-	  else
-	    gfc_current_locus = where;
 	}
 
       if (gfc_current_form == FORM_FREE)
-       {
-         c = gfc_peek_char();
-         if (c != ' ' && c != '*' && c != '\'' && c != '"')
-           {
-             m = MATCH_NO;
-             goto cleanup;
-           }
-       }
+	{
+	  c = gfc_peek_char();
+	  if (c != ' ' && c != '*' && c != '\'' && c != '"')
+	    {
+	      m = MATCH_NO;
+	      goto cleanup;
+	    }
+	}
 
       m = match_dt_format (dt);
       if (m == MATCH_ERROR)
@@ -2186,6 +2477,28 @@ match_io (io_kind k)
       comma_flag = 1;
       dt->io_unit = default_unit (k);
       goto get_io_list;
+    }
+  else
+    {
+      /* Before issuing an error for a malformed 'print (1,*)' type of
+	 error, check for a default-char-expr of the form ('(I0)').  */
+
+      if (k == M_PRINT && m == MATCH_YES)
+	{
+	  /* Reset current locus to get the initial '(' in an expression.  */
+	  gfc_current_locus = where;
+	  dt->format_expr = NULL;
+	  m = match_dt_format (dt);
+
+	  if (m == MATCH_ERROR)
+	    goto cleanup;
+	  if (m == MATCH_NO || dt->format_expr == NULL)
+	    goto syntax;
+
+	  comma_flag = 1;
+	  dt->io_unit = default_unit (k);
+	  goto get_io_list;
+	}
     }
 
   /* Match a control list */
@@ -2213,17 +2526,20 @@ match_io (io_kind k)
 
   where = gfc_current_locus;
 
-  if (gfc_match_name (name) == MATCH_YES
-      && !gfc_find_symbol (name, NULL, 1, &sym)
-      && sym->attr.flavor == FL_NAMELIST)
+  m = gfc_match_name (name);
+  if (m == MATCH_YES)
     {
-      dt->namelist = sym;
-      if (k == M_READ && check_namelist (sym))
+      gfc_find_symbol (name, NULL, 1, &sym);
+      if (sym && sym->attr.flavor == FL_NAMELIST)
 	{
-	  m = MATCH_ERROR;
-	  goto cleanup;
+	  dt->namelist = sym;
+	  if (k == M_READ && check_namelist (sym))
+	    {
+	      m = MATCH_ERROR;
+	      goto cleanup;
+	    }
+	  goto next;
 	}
-      goto next;
     }
 
   gfc_current_locus = where;
@@ -2252,6 +2568,10 @@ loop:
     }
 
 get_io_list:
+
+  /* Used in check_io_constraints, where no locus is available.  */
+  spec_end = gfc_current_locus;
+
   /* Optional leading comma (non-standard).  */
   if (!comma_flag
       && gfc_match_char (',') == MATCH_YES
@@ -2277,37 +2597,18 @@ get_io_list:
 	goto syntax;
     }
 
-  /* A full IO statement has been matched.  */
-  if (dt->io_unit->expr_type == EXPR_VARIABLE
-      && k == M_WRITE
-      && dt->io_unit->ts.type == BT_CHARACTER
-      && dt->io_unit->symtree->n.sym->attr.intent == INTENT_IN)
-    {
-      gfc_error ("Internal file '%s' at %L is INTENT(IN)",
-		 dt->io_unit->symtree->n.sym->name, &dt->io_unit->where);
-      m = MATCH_ERROR;
-      goto cleanup;
-    }
+  /* A full IO statement has been matched.  Check the constraints.  spec_end is
+     supplied for cases where no locus is supplied.  */
+  m = check_io_constraints (k, dt, io_code, &spec_end);
 
-  expr = dt->format_expr;
-
-  if (expr != NULL && expr->expr_type == EXPR_CONSTANT)
-    check_format_string (expr);
-
-  if (gfc_pure (NULL)
-      && (k == M_READ || k == M_WRITE)
-      && dt->io_unit->ts.type != BT_CHARACTER)
-    {
-      gfc_error
-	("io-unit in %s statement at %C must be an internal file in a "
-	 "PURE procedure", io_kind_name (k));
-      m = MATCH_ERROR;
-      goto cleanup;
-    }
+  if (m == MATCH_ERROR)
+    goto cleanup;
 
   new_st.op = (k == M_READ) ? EXEC_READ : EXEC_WRITE;
   new_st.ext.dt = dt;
-  new_st.next = io_code;
+  new_st.block = gfc_get_code ();
+  new_st.block->op = new_st.op;
+  new_st.block->next = io_code;
 
   terminate_io (io_code);
 
@@ -2365,6 +2666,7 @@ gfc_free_inquire (gfc_inquire * inquire)
 
   gfc_free_expr (inquire->unit);
   gfc_free_expr (inquire->file);
+  gfc_free_expr (inquire->iomsg);
   gfc_free_expr (inquire->iostat);
   gfc_free_expr (inquire->exist);
   gfc_free_expr (inquire->opened);
@@ -2388,6 +2690,7 @@ gfc_free_inquire (gfc_inquire * inquire)
   gfc_free_expr (inquire->delim);
   gfc_free_expr (inquire->pad);
   gfc_free_expr (inquire->iolength);
+  gfc_free_expr (inquire->convert);
 
   gfc_free (inquire);
 }
@@ -2405,6 +2708,7 @@ match_inquire_element (gfc_inquire * inquire)
   m = match_etag (&tag_unit, &inquire->unit);
   RETM m = match_etag (&tag_file, &inquire->file);
   RETM m = match_ltag (&tag_err, &inquire->err);
+  RETM m = match_out_tag (&tag_iomsg, &inquire->iomsg);
   RETM m = match_out_tag (&tag_iostat, &inquire->iostat);
   RETM m = match_vtag (&tag_exist, &inquire->exist);
   RETM m = match_vtag (&tag_opened, &inquire->opened);
@@ -2428,6 +2732,7 @@ match_inquire_element (gfc_inquire * inquire)
   RETM m = match_vtag (&tag_s_delim, &inquire->delim);
   RETM m = match_vtag (&tag_s_pad, &inquire->pad);
   RETM m = match_vtag (&tag_iolength, &inquire->iolength);
+  RETM m = match_vtag (&tag_convert, &inquire->convert);
   RETM return MATCH_NO;
 }
 
@@ -2474,8 +2779,6 @@ gfc_match_inquire (void)
       if (m == MATCH_NO)
 	goto syntax;
 
-      terminate_io (code);
-
       new_st.op = EXEC_IOLENGTH;
       new_st.expr = inquire->iolength;
       new_st.ext.inquire = inquire;
@@ -2487,7 +2790,10 @@ gfc_match_inquire (void)
 	  return MATCH_ERROR;
 	}
 
-      new_st.next = code;
+      new_st.block = gfc_get_code ();
+      new_st.block->op = EXEC_IOLENGTH;
+      terminate_io (code);
+      new_st.block->next = code;
       return MATCH_YES;
     }
 
@@ -2556,6 +2862,7 @@ gfc_resolve_inquire (gfc_inquire * inquire)
 
   RESOLVE_TAG (&tag_unit, inquire->unit);
   RESOLVE_TAG (&tag_file, inquire->file);
+  RESOLVE_TAG (&tag_iomsg, inquire->iomsg);
   RESOLVE_TAG (&tag_iostat, inquire->iostat);
   RESOLVE_TAG (&tag_exist, inquire->exist);
   RESOLVE_TAG (&tag_opened, inquire->opened);
@@ -2579,6 +2886,7 @@ gfc_resolve_inquire (gfc_inquire * inquire)
   RESOLVE_TAG (&tag_s_delim, inquire->delim);
   RESOLVE_TAG (&tag_s_pad, inquire->pad);
   RESOLVE_TAG (&tag_iolength, inquire->iolength);
+  RESOLVE_TAG (&tag_convert, inquire->convert);
 
   if (gfc_reference_st_label (inquire->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;

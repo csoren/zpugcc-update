@@ -14,6 +14,8 @@ void foo (char *dst, const char *src)
 {
   printf ("\n");
   printf ("hello world\n");
+  printf ("%s", "\n");
+  printf ("%s", "hello world\n");
   printf ("%c", '\n');
   printf ("%s\n", "hello world");
   printf ("%s\n", src);

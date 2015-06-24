@@ -17,8 +17,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* trans-types.c -- gfortran backend types */
 
@@ -51,10 +51,11 @@ static tree gfc_get_derived_type (gfc_symbol * derived);
 
 tree gfc_array_index_type;
 tree gfc_array_range_type;
+tree gfc_character1_type_node;
 tree pvoid_type_node;
 tree ppvoid_type_node;
 tree pchar_type_node;
-tree gfc_character1_type_node;
+
 tree gfc_charlen_type_node;
 
 static GTY(()) tree gfc_desc_dim_type;
@@ -70,7 +71,7 @@ gfc_logical_info gfc_logical_kinds[MAX_INT_KINDS + 1];
 static GTY(()) tree gfc_integer_types[MAX_INT_KINDS + 1];
 static GTY(()) tree gfc_logical_types[MAX_INT_KINDS + 1];
 
-#define MAX_REAL_KINDS 4
+#define MAX_REAL_KINDS 5
 gfc_real_info gfc_real_kinds[MAX_REAL_KINDS + 1];
 static GTY(()) tree gfc_real_types[MAX_REAL_KINDS + 1];
 static GTY(()) tree gfc_complex_types[MAX_REAL_KINDS + 1];
@@ -151,10 +152,12 @@ gfc_init_kinds (void)
       if (!targetm.scalar_mode_supported_p (mode))
 	continue;
 
-      /* Only let float/double go through since the library does not
-         support other floating point types.  */
+      /* Only let float/double/long double go through because the fortran
+	 library assumes these are the only floating point types.  */
+
       if (mode != TYPE_MODE (float_type_node)
-	  && mode != TYPE_MODE (double_type_node))
+	  && (mode != TYPE_MODE (double_type_node))
+          && (mode != TYPE_MODE (long_double_type_node)))
 	continue;
 
       /* Let the kind equal the precision divided by 8, rounding up.  Again,
@@ -189,6 +192,15 @@ gfc_init_kinds (void)
       gfc_real_kinds[r_index].digits = fmt->p;
       gfc_real_kinds[r_index].min_exponent = fmt->emin;
       gfc_real_kinds[r_index].max_exponent = fmt->emax;
+      if (fmt->pnan < fmt->p)
+	/* This is an IBM extended double format (or the MIPS variant)
+	   made up of two IEEE doubles.  The value of the long double is
+	   the sum of the values of the two parts.  The most significant
+	   part is required to be the value of the long double rounded
+	   to the nearest double.  If we use emax of 1024 then we can't
+	   represent huge(x) = (1 - b**(-p)) * b**(emax-1) * b, because
+	   rounding will make the most significant part overflow.  */
+	gfc_real_kinds[r_index].max_exponent = fmt->emax - 1;
       gfc_real_kinds[r_index].mode_precision = GET_MODE_PRECISION (mode);
       r_index += 1;
     }
@@ -536,6 +548,8 @@ gfc_init_types (void)
   pchar_type_node = build_pointer_type (gfc_character1_type_node);
 
   gfc_array_index_type = gfc_get_int_type (gfc_index_integer_kind);
+  /* We cannot use gfc_index_zero_node in definition of gfc_array_range_type,
+     since this function is called before gfc_init_constants.  */
   gfc_array_range_type
 	  = build_range_type (gfc_array_index_type,
 			      build_int_cst (gfc_array_index_type, 0),
@@ -569,29 +583,29 @@ gfc_init_types (void)
 tree
 gfc_get_int_type (int kind)
 {
-  int index = gfc_validate_kind (BT_INTEGER, kind, false);
-  return gfc_integer_types[index];
+  int index = gfc_validate_kind (BT_INTEGER, kind, true);
+  return index < 0 ? 0 : gfc_integer_types[index];
 }
 
 tree
 gfc_get_real_type (int kind)
 {
-  int index = gfc_validate_kind (BT_REAL, kind, false);
-  return gfc_real_types[index];
+  int index = gfc_validate_kind (BT_REAL, kind, true);
+  return index < 0 ? 0 : gfc_real_types[index];
 }
 
 tree
 gfc_get_complex_type (int kind)
 {
-  int index = gfc_validate_kind (BT_COMPLEX, kind, false);
-  return gfc_complex_types[index];
+  int index = gfc_validate_kind (BT_COMPLEX, kind, true);
+  return index < 0 ? 0 : gfc_complex_types[index];
 }
 
 tree
 gfc_get_logical_type (int kind)
 {
-  int index = gfc_validate_kind (BT_LOGICAL, kind, false);
-  return gfc_logical_types[index];
+  int index = gfc_validate_kind (BT_LOGICAL, kind, true);
+  return index < 0 ? 0 : gfc_logical_types[index];
 }
 
 /* Create a character type with the given kind and length.  */
@@ -942,8 +956,8 @@ gfc_get_dtype (tree type)
   if (size && !INTEGER_CST_P (size))
     {
       tmp = build_int_cst (gfc_array_index_type, GFC_DTYPE_SIZE_SHIFT);
-      tmp  = fold (build2 (LSHIFT_EXPR, gfc_array_index_type, size, tmp));
-      dtype = fold (build2 (PLUS_EXPR, gfc_array_index_type, tmp, dtype));
+      tmp  = fold_build2 (LSHIFT_EXPR, gfc_array_index_type, size, tmp);
+      dtype = fold_build2 (PLUS_EXPR, gfc_array_index_type, tmp, dtype);
     }
   /* If we don't know the size we leave it as zero.  This should never happen
      for anything that is actually used.  */
@@ -1221,11 +1235,11 @@ gfc_get_array_type_bounds (tree etype, int dimen, tree * lbound,
 
       if (upper != NULL_TREE && lower != NULL_TREE && stride != NULL_TREE)
 	{
-	  tmp = fold (build2 (MINUS_EXPR, gfc_array_index_type, upper, lower));
-	  tmp = fold (build2 (PLUS_EXPR, gfc_array_index_type, tmp,
-			      gfc_index_one_node));
+	  tmp = fold_build2 (MINUS_EXPR, gfc_array_index_type, upper, lower);
+	  tmp = fold_build2 (PLUS_EXPR, gfc_array_index_type, tmp,
+			     gfc_index_one_node);
 	  stride =
-	    fold (build2 (MULT_EXPR, gfc_array_index_type, tmp, stride));
+	    fold_build2 (MULT_EXPR, gfc_array_index_type, tmp, stride);
 	  /* Check the folding worked.  */
 	  gcc_assert (INTEGER_CST_P (stride));
 	}
@@ -1283,11 +1297,6 @@ gfc_sym_type (gfc_symbol * sym)
 	return TREE_TYPE (sym->backend_decl);
     }
 
-  /* The frontend doesn't set all the attributes for a function with an
-     explicit result value, so we use that instead when present.  */
-  if (sym->attr.function && sym->result)
-    sym = sym->result;
-
   type = gfc_typenode_for_spec (&sym->ts);
   if (gfc_option.flag_f2c
       && sym->attr.function
@@ -1314,7 +1323,7 @@ gfc_sym_type (gfc_symbol * sym)
 	  /* If this is a character argument of unknown length, just use the
 	     base type.  */
 	  if (sym->ts.type != BT_CHARACTER
-	      || !(sym->attr.dummy || sym->attr.function || sym->attr.result)
+	      || !(sym->attr.dummy || sym->attr.function)
 	      || sym->ts.cl->backend_decl)
 	    {
 	      type = gfc_get_nodesc_array_type (type, sym->as,
@@ -1386,13 +1395,57 @@ gfc_add_field_to_struct (tree *fieldlist, tree context,
 }
 
 
-/* Build a tree node for a derived type.  */
+/* Copy the backend_decl and component backend_decls if
+   the two derived type symbols are "equal", as described
+   in 4.4.2 and resolved by gfc_compare_derived_types.  */
+
+static int
+copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to)
+{
+  gfc_component *to_cm;
+  gfc_component *from_cm;
+
+  if (from->backend_decl == NULL
+	|| !gfc_compare_derived_types (from, to))
+    return 0;
+
+  to->backend_decl = from->backend_decl;
+
+  to_cm = to->components;
+  from_cm = from->components;
+
+  /* Copy the component declarations.  If a component is itself
+     a derived type, we need a copy of its component declarations.
+     This is done by recursing into gfc_get_derived_type and
+     ensures that the component's component declarations have
+     been built.  If it is a character, we need the character 
+     length, as well.  */
+  for (; to_cm; to_cm = to_cm->next, from_cm = from_cm->next)
+    {
+      to_cm->backend_decl = from_cm->backend_decl;
+      if (from_cm->ts.type == BT_DERIVED)
+	gfc_get_derived_type (to_cm->ts.derived);
+
+      else if (from_cm->ts.type == BT_CHARACTER)
+	to_cm->ts.cl->backend_decl = from_cm->ts.cl->backend_decl;
+    }
+
+  return 1;
+}
+
+
+/* Build a tree node for a derived type.  If there are equal
+   derived types, with different local names, these are built
+   at the same time.  If an equal derived type has been built
+   in a parent namespace, this is used.  */
 
 static tree
 gfc_get_derived_type (gfc_symbol * derived)
 {
   tree typenode, field, field_type, fieldlist;
   gfc_component *c;
+  gfc_dt_list *dt;
+  gfc_namespace * ns;
 
   gcc_assert (derived && derived->attr.flavor == FL_DERIVED);
 
@@ -1408,6 +1461,37 @@ gfc_get_derived_type (gfc_symbol * derived)
     }
   else
     {
+      /* If an equal derived type is already available in the parent namespace,
+	 use its backend declaration and those of its components, rather than
+	 building anew so that potential dummy and actual arguments use the
+	 same TREE_TYPE.  If an equal type is found without a backend_decl,
+	 build the parent version and use it in the current namespace.  */
+      if (derived->ns->parent)
+	ns = derived->ns->parent;
+      else if (derived->ns->proc_name
+		 && derived->ns->proc_name->ns != derived->ns)
+	/* Derived types in an interface body obtain their parent reference
+	   through the proc_name symbol.  */
+	ns = derived->ns->proc_name->ns;
+      else
+	/* Sometimes there isn't a parent reference!  */
+	ns = NULL;
+
+      for (; ns; ns = ns->parent)
+	{
+	  for (dt = ns->derived_types; dt; dt = dt->next)
+	    {
+	      if (dt->derived->backend_decl == NULL
+		    && gfc_compare_derived_types (dt->derived, derived))
+		gfc_get_derived_type (dt->derived);
+
+	      if (copy_dt_decls_ifequal (dt->derived, derived))
+		break;
+	    }
+	  if (derived->backend_decl)
+	    goto other_equal_dts;
+	}
+
       /* We see this derived type first time, so build the type node.  */
       typenode = make_node (RECORD_TYPE);
       TYPE_NAME (typenode) = get_identifier (derived->name);
@@ -1486,23 +1570,31 @@ gfc_get_derived_type (gfc_symbol * derived)
 
   derived->backend_decl = typenode;
 
-  return typenode;
+other_equal_dts:
+  /* Add this backend_decl to all the other, equal derived types and
+     their components in this and sibling namespaces.  */
+
+  for (dt = derived->ns->derived_types; dt; dt = dt->next)
+    copy_dt_decls_ifequal (derived, dt->derived);
+
+  for (ns = derived->ns->sibling; ns; ns = ns->sibling)
+    for (dt = ns->derived_types; dt; dt = dt->next)
+      copy_dt_decls_ifequal (derived, dt->derived);
+
+  return derived->backend_decl;
 }
-
+
+
 int
 gfc_return_by_reference (gfc_symbol * sym)
 {
-  gfc_symbol *result;
-
   if (!sym->attr.function)
     return 0;
 
-  result = sym->result ? sym->result : sym;
-
-  if (result->attr.dimension)
+  if (sym->attr.dimension)
     return 1;
 
-  if (result->ts.type == BT_CHARACTER)
+  if (sym->ts.type == BT_CHARACTER)
     return 1;
 
   /* Possibly return complex numbers by reference for g77 compatibility.
@@ -1511,7 +1603,7 @@ gfc_return_by_reference (gfc_symbol * sym)
      require an explicit interface, as no compatibility problems can
      arise there.  */
   if (gfc_option.flag_f2c
-      && result->ts.type == BT_COMPLEX
+      && sym->ts.type == BT_COMPLEX
       && !sym->attr.intrinsic && !sym->attr.always_explicit)
     return 1;
   
@@ -1636,7 +1728,7 @@ gfc_get_function_type (gfc_symbol * sym)
 	     The problem arises if a function is called via an implicit
 	     prototype. In this situation the INTENT is not known.
 	     For this reason all parameters to global functions must be
-	     passed by reference.  Passing by value would potentialy
+	     passed by reference.  Passing by value would potentially
 	     generate bad code.  Worse there would be no way of telling that
 	     this code was bad, except that it would give incorrect results.
 

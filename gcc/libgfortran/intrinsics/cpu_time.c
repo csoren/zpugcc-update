@@ -24,8 +24,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public
 License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include <sys/types.h>
@@ -170,6 +170,30 @@ void cpu_time_8 (GFC_REAL_8 *time)
   __cpu_time_1 (&sec, &usec);
   *time = sec + usec * (GFC_REAL_8)1.e-6;
 }
+
+#ifdef HAVE_GFC_REAL_10
+extern void cpu_time_10 (GFC_REAL_10 *);
+export_proto(cpu_time_10);
+
+void cpu_time_10 (GFC_REAL_10 *time)
+{
+  long sec, usec;
+  __cpu_time_1 (&sec, &usec);
+  *time = sec + usec * (GFC_REAL_10)1.e-6;
+}
+#endif
+
+#ifdef HAVE_GFC_REAL_16
+extern void cpu_time_16 (GFC_REAL_16 *);
+export_proto(cpu_time_16);
+
+void cpu_time_16 (GFC_REAL_16 *time)
+{
+  long sec, usec;
+  __cpu_time_1 (&sec, &usec);
+  *time = sec + usec * (GFC_REAL_16)1.e-6;
+}
+#endif
 
 extern void second_sub (GFC_REAL_4 *);
 export_proto(second_sub);

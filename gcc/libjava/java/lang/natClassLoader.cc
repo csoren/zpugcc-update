@@ -1,6 +1,6 @@
 // natClassLoader.cc - Implementation of java.lang.ClassLoader native methods.
 
-/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation
+/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -43,6 +43,7 @@ details.  */
 #include <java/lang/Cloneable.h>
 #include <java/util/HashMap.h>
 #include <gnu/gcj/runtime/BootClassLoader.h>
+#include <gnu/gcj/runtime/SystemClassLoader.h>
 
 // Size of local hash table.
 #define HASH_LEN 1013
@@ -51,6 +52,15 @@ details.  */
 #define HASH_UTF(Utf) ((Utf)->hash16() % HASH_LEN)
 
 static jclass loaded_classes[HASH_LEN];
+
+// This records classes which will be registered with the system class
+// loader when it is initialized.
+static jclass system_class_list;
+
+// This is used as the value of system_class_list after we have
+// initialized the system class loader; it lets us know that we should
+// no longer pay attention to the system abi flag.
+#define SYSTEM_LOADER_INITIALIZED ((jclass) -1)
 
 // This is the root of a linked list of classes
 static jclass stack_head;
@@ -71,7 +81,10 @@ java::lang::ClassLoader::loadClassFromSig(jstring name)
   int len = _Jv_GetStringUTFLength (name);
   char sig[len + 1];
   _Jv_GetStringUTFRegion (name, 0, name->length(), sig);
-  return _Jv_FindClassFromSignature(sig, this);
+  jclass result = _Jv_FindClassFromSignature(sig, this);
+  if (result == NULL)
+    throw new ClassNotFoundException(name);
+  return result;
 }
 
 
@@ -98,6 +111,10 @@ _Jv_FindClassInCache (_Jv_Utf8Const *name)
 void
 _Jv_UnregisterClass (jclass the_class)
 {
+  // This can happen if the class could not be defined properly.
+  if (! the_class->name)
+    return;
+
   JvSynchronize sync (&java::lang::Class::class$);
   jint hash = HASH_UTF(the_class->name);
 
@@ -117,7 +134,15 @@ void
 _Jv_RegisterInitiatingLoader (jclass klass, java::lang::ClassLoader *loader)
 {
   if (! loader)
-    loader = java::lang::ClassLoader::systemClassLoader;
+    loader = java::lang::VMClassLoader::bootLoader;
+  if (! loader)
+    {
+      // Very early in the bootstrap process, the Bootstrap classloader may 
+      // not exist yet.
+      // FIXME: We could maintain a list of these and come back and register
+      // them later.
+      return;
+    }
   loader->loadedClasses->put(klass->name->toString(), klass);
 }
 
@@ -127,7 +152,7 @@ void
 _Jv_UnregisterInitiatingLoader (jclass klass, java::lang::ClassLoader *loader)
 {
   if (! loader)
-    loader = java::lang::ClassLoader::systemClassLoader;
+    loader = java::lang::VMClassLoader::bootLoader;
   loader->loadedClasses->remove(klass->name->toString());
 }
 
@@ -165,6 +190,22 @@ _Jv_RegisterClasses_Counted (const jclass * classes, size_t count)
 void
 _Jv_RegisterClassHookDefault (jclass klass)
 {
+  // This is bogus, but there doesn't seem to be a better place to do
+  // it.
+  if (! klass->engine)
+    klass->engine = &_Jv_soleCompiledEngine;
+
+  if (system_class_list != SYSTEM_LOADER_INITIALIZED)
+    {
+      unsigned long abi = (unsigned long) klass->next_or_version;
+      if (! _Jv_ClassForBootstrapLoader (abi))
+	{
+	  klass->next_or_version = system_class_list;
+	  system_class_list = klass;
+	  return;
+	}
+    }
+
   jint hash = HASH_UTF (klass->name);
 
   // If the class is already registered, don't re-register it.
@@ -193,9 +234,6 @@ _Jv_RegisterClassHookDefault (jclass klass)
 	}
     }
 
-  // FIXME: this is really bogus!
-  if (! klass->engine)
-    klass->engine = &_Jv_soleCompiledEngine;
   klass->next_or_version = loaded_classes[hash];
   loaded_classes[hash] = klass;
 }
@@ -216,6 +254,21 @@ _Jv_RegisterClass (jclass klass)
   _Jv_RegisterClasses (classes);
 }
 
+// This is used during initialization to register all compiled-in
+// classes that are not part of the core with the system class loader.
+void
+_Jv_CopyClassesToSystemLoader (gnu::gcj::runtime::SystemClassLoader *loader)
+{
+  for (jclass klass = system_class_list;
+       klass;
+       klass = klass->next_or_version)
+    {
+      klass->loader = loader;
+      loader->addClass(klass);
+    }
+  system_class_list = SYSTEM_LOADER_INITIALIZED;
+}
+
 jclass
 _Jv_FindClass (_Jv_Utf8Const *name, java::lang::ClassLoader *loader)
 {
@@ -223,8 +276,7 @@ _Jv_FindClass (_Jv_Utf8Const *name, java::lang::ClassLoader *loader)
   // initiating loader checks, as we register classes with their
   // initiating loaders.
 
-  // Note: this is incorrect, but compatible with older GCJ usage.
-  java::lang::ClassLoader *boot = java::lang::ClassLoader::systemClassLoader;
+  java::lang::ClassLoader *boot = java::lang::VMClassLoader::bootLoader;
   java::lang::ClassLoader *real = loader;
   if (! real)
     real = boot;
@@ -253,9 +305,7 @@ _Jv_FindClass (_Jv_Utf8Const *name, java::lang::ClassLoader *loader)
       else if (boot)
 	{
 	  // Load using the bootstrap loader jvmspec 5.3.1.
-	  // klass = java::lang::VMClassLoader::loadClass (sname, false); 
-	  // Note again that we're actually using the system loader here.
-	  klass = boot->loadClass (sname);
+	  klass = java::lang::VMClassLoader::loadClass (sname, false); 
 
 	  // Register that we're an initiating loader.
 	  if (klass)
@@ -286,12 +336,6 @@ _Jv_FindClass (_Jv_Utf8Const *name, java::lang::ClassLoader *loader)
 	    }
 	}
     }
-  else
-    {
-      // We need classes to be in the hash while we're loading, so
-      // that they can refer to themselves.
-      _Jv_Linker::wait_for_state (klass, JV_STATE_LOADED);
-    }
 
   return klass;
 }
@@ -312,7 +356,7 @@ _Jv_NewClass (_Jv_Utf8Const *name, jclass superclass,
   ret->superclass = superclass;
   ret->loader = loader;
 
-  _Jv_RegisterClass (ret);
+  _Jv_RegisterInitiatingLoader (ret, loader);
 
   return ret;
 }
@@ -375,8 +419,6 @@ _Jv_NewArrayClass (jclass element, java::lang::ClassLoader *loader,
 
   // Note that `vtable_method_count' doesn't include the initial
   // gc_descr slot.
-  JvAssert (java::lang::Object::class$.vtable_method_count
-	    == NUM_OBJECT_METHODS);
   int dm_count = java::lang::Object::class$.vtable_method_count;
 
   // Create a new vtable by copying Object's vtable.

@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 #include "config.h"
 #include "system.h"
@@ -44,6 +44,10 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
    gfc_get_*	get a backend tree representation of a decl or type  */
 
 static gfc_file *gfc_current_backend_file;
+
+char gfc_msg_bounds[] = N_("Array bound mismatch");
+char gfc_msg_fault[] = N_("Array reference out of bounds");
+char gfc_msg_wrong_return[] = N_("Incorrect function return value");
 
 
 /* Advance along TREE_CHAIN n times.  */
@@ -152,7 +156,7 @@ gfc_add_modify_expr (stmtblock_t * pblock, tree lhs, tree rhs)
 	      || AGGREGATE_TYPE_P (TREE_TYPE (lhs)));
 #endif
 
-  tmp = fold (build2_v (MODIFY_EXPR, lhs, rhs));
+  tmp = fold_build2 (MODIFY_EXPR, void_type_node, lhs, rhs);
   gfc_add_expr_to_block (pblock, tmp);
 }
 
@@ -314,7 +318,7 @@ gfc_build_array_ref (tree base, tree offset)
 }
 
 
-/* Given a funcion declaration FNDECL and an argument list ARGLIST,
+/* Given a function declaration FNDECL and an argument list ARGLIST,
    build a CALL_EXPR.  */
 
 tree
@@ -335,12 +339,15 @@ gfc_build_function_call (tree fndecl, tree arglist)
 /* Generate a runtime error if COND is true.  */
 
 void
-gfc_trans_runtime_check (tree cond, tree msg, stmtblock_t * pblock)
+gfc_trans_runtime_check (tree cond, const char * msgid, stmtblock_t * pblock,
+			 locus * where)
 {
   stmtblock_t block;
   tree body;
   tree tmp;
   tree args;
+  char * message;
+  int line;
 
   cond = fold (cond);
 
@@ -350,18 +357,23 @@ gfc_trans_runtime_check (tree cond, tree msg, stmtblock_t * pblock)
   /* The code to generate the error.  */
   gfc_start_block (&block);
 
-  gcc_assert (TREE_CODE (msg) == STRING_CST);
+  if (where)
+    {
+#ifdef USE_MAPPED_LOCATION
+      line = LOCATION_LINE (where->lb->location);
+#else 
+      line = where->lb->linenum;
+#endif
+      asprintf (&message, "%s (in file '%s', at line %d)", _(msgid),
+		where->lb->file->filename, line);
+    }
+  else
+    asprintf (&message, "%s (in file '%s', around line %d)", _(msgid),
+	      gfc_source_file, input_line + 1);
 
-  TREE_USED (msg) = 1;
-
-  tmp = gfc_build_addr_expr (pchar_type_node, msg);
+  tmp = gfc_build_addr_expr (pchar_type_node, gfc_build_cstring_const(message));
+  gfc_free(message);
   args = gfc_chainon_list (NULL_TREE, tmp);
-
-  tmp = gfc_build_addr_expr (pchar_type_node, gfc_strconst_current_filename);
-  args = gfc_chainon_list (args, tmp);
-
-  tmp = build_int_cst (NULL_TREE, input_line);
-  args = gfc_chainon_list (args, tmp);
 
   tmp = gfc_build_function_call (gfor_fndecl_runtime_error, args);
   gfc_add_expr_to_block (&block, tmp);
@@ -501,6 +513,10 @@ gfc_trans_code (gfc_code * code)
 	  res = gfc_trans_pointer_assign (code);
 	  break;
 
+	case EXEC_INIT_ASSIGN:
+	  res = gfc_trans_init_assign (code);
+	  break;
+
 	case EXEC_CONTINUE:
 	  res = NULL_TREE;
 	  break;
@@ -530,7 +546,11 @@ gfc_trans_code (gfc_code * code)
 	  break;
 
 	case EXEC_CALL:
-	  res = gfc_trans_call (code);
+	  res = gfc_trans_call (code, false);
+	  break;
+
+	case EXEC_ASSIGN_CALL:
+	  res = gfc_trans_call (code, true);
 	  break;
 
 	case EXEC_RETURN:
@@ -555,6 +575,10 @@ gfc_trans_code (gfc_code * code)
 
 	case EXEC_SELECT:
 	  res = gfc_trans_select (code);
+	  break;
+
+	case EXEC_FLUSH:
+	  res = gfc_trans_flush (code);
 	  break;
 
 	case EXEC_FORALL:

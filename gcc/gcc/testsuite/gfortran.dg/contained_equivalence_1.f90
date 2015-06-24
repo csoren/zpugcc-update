@@ -16,4 +16,3 @@ contains
     b = 2.0
   end subroutine foo
 end program contained_equiv
-

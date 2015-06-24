@@ -25,13 +25,16 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public
 License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include <stdlib.h>
 #include <assert.h>
 #include "libgfortran.h"
+
+
+#if defined (HAVE_GFC_COMPLEX_4) && defined (HAVE_GFC_COMPLEX_4)
 
 
 extern void sum_c4 (gfc_array_c4 *, gfc_array_c4 *, index_type *);
@@ -92,7 +95,7 @@ sum_c4 (gfc_array_c4 *retarray, gfc_array_c4 *array, index_type *pdim)
 	 = internal_malloc_size (sizeof (GFC_COMPLEX_4)
 		 		 * retarray->dim[rank-1].stride
 				 * extent[rank-1]);
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
     }
   else
@@ -237,7 +240,7 @@ msum_c4 (gfc_array_c4 * retarray, gfc_array_c4 * array,
 	 = internal_malloc_size (sizeof (GFC_COMPLEX_4)
 		 		 * retarray->dim[rank-1].stride
 				 * extent[rank-1]);
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
     }
   else
@@ -327,3 +330,59 @@ msum_c4 (gfc_array_c4 * retarray, gfc_array_c4 * array,
         }
     }
 }
+
+
+extern void ssum_c4 (gfc_array_c4 * const restrict, 
+	gfc_array_c4 * const restrict, const index_type * const restrict,
+	GFC_LOGICAL_4 *);
+export_proto(ssum_c4);
+
+void
+ssum_c4 (gfc_array_c4 * const restrict retarray, 
+	gfc_array_c4 * const restrict array, 
+	const index_type * const restrict pdim, 
+	GFC_LOGICAL_4 * mask)
+{
+  index_type rank;
+  index_type n;
+  index_type dstride;
+  GFC_COMPLEX_4 *dest;
+
+  if (*mask)
+    {
+      sum_c4 (retarray, array, pdim);
+      return;
+    }
+    rank = GFC_DESCRIPTOR_RANK (array);
+  if (rank <= 0)
+    runtime_error ("Rank of array needs to be > 0");
+
+  if (retarray->data == NULL)
+    {
+      retarray->dim[0].lbound = 0;
+      retarray->dim[0].ubound = rank-1;
+      retarray->dim[0].stride = 1;
+      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->offset = 0;
+      retarray->data = internal_malloc_size (sizeof (GFC_COMPLEX_4) * rank);
+    }
+  else
+    {
+      if (GFC_DESCRIPTOR_RANK (retarray) != 1)
+	runtime_error ("rank of return array does not equal 1");
+
+      if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
+        runtime_error ("dimension of return array incorrect");
+
+      if (retarray->dim[0].stride == 0)
+	retarray->dim[0].stride = 1;
+    }
+
+    dstride = retarray->dim[0].stride;
+    dest = retarray->data;
+
+    for (n = 0; n < rank; n++)
+      dest[n * dstride] = 0 ;
+}
+
+#endif

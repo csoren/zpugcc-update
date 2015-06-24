@@ -17,8 +17,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -61,11 +61,16 @@ static tree create_primitive_vtable (const char *);
 static tree check_local_unnamed_variable (tree, tree, tree);
 static void parse_version (void);
 
+
 /* The following ABI flags are used in the high-order bits of the version
    ID field. The version ID number itself should never be larger than 
    0xfffff, so it should be safe to use top 12 bits for these flags. */
 
 #define FLAG_BINARYCOMPAT_ABI (1<<31)  /* Class is built with the BC-ABI. */
+
+#define FLAG_BOOTSTRAP_LOADER (1<<30)  /* Used when defining a class that 
+					  should be loaded by the bootstrap
+					  loader.  */
 
 /* If an ABI change is made within a GCC release series, rendering current
    binaries incompatible with the old runtimes, this number can be set to
@@ -81,7 +86,6 @@ static void parse_version (void);
    this must change).  */
 #define GCJ_CURRENT_BC_ABI_VERSION \
   (4 * 100000 + 0 * 1000 + MINOR_BINARYCOMPAT_ABI_VERSION)
-
 
 /* The ABI version number.  */
 tree gcj_abi_version;
@@ -566,7 +570,6 @@ builtin_function (const char *name,
   TREE_PUBLIC (decl) = 1;
   if (library_name)
     SET_DECL_ASSEMBLER_NAME (decl, get_identifier (library_name));
-  make_decl_rtl (decl);
   pushdecl (decl);
   DECL_BUILT_IN_CLASS (decl) = cl;
   DECL_FUNCTION_CODE (decl) = function_code;
@@ -630,10 +633,12 @@ parse_version (void)
   else /* C++ ABI */
     {
       /* Implicit in this computation is the idea that we won't break the
-       old-style binary ABI in a sub-minor release (e.g., from 4.0.0 to
-       4.0.1).  */
-      abi_version = 10000 * major + 10 * minor;
+	 old-style binary ABI in a sub-minor release (e.g., from 4.0.0 to
+	 4.0.1).  */
+      abi_version = 100000 * major + 1000 * minor;
     }
+  if (flag_bootstrap_classes)
+    abi_version |= FLAG_BOOTSTRAP_LOADER;
 
   gcj_abi_version = build_int_cstu (ptr_type_node, abi_version);
 }
@@ -1102,6 +1107,24 @@ java_init_decl_processing (void)
   TREE_THIS_VOLATILE (soft_nullpointer_node) = 1;
   TREE_SIDE_EFFECTS (soft_nullpointer_node) = 1;
 
+  soft_abstractmethod_node
+    = builtin_function ("_Jv_ThrowAbstractMethodError",
+			build_function_type (void_type_node, endlink),
+			0, NOT_BUILT_IN, NULL, NULL_TREE);
+  /* Mark soft_abstractmethod_node as a `noreturn' function with side
+     effects.  */
+  TREE_THIS_VOLATILE (soft_abstractmethod_node) = 1;
+  TREE_SIDE_EFFECTS (soft_abstractmethod_node) = 1;
+
+  soft_nosuchfield_node
+    = builtin_function ("_Jv_ThrowNoSuchFieldError",
+			build_function_type (void_type_node, endlink),
+			0, NOT_BUILT_IN, NULL, NULL_TREE);
+  /* Mark soft_nosuchfield_node as a `noreturn' function with side
+     effects.  */
+  TREE_THIS_VOLATILE (soft_nosuchfield_node) = 1;
+  TREE_SIDE_EFFECTS (soft_nosuchfield_node) = 1;
+
   t = tree_cons (NULL_TREE, class_ptr_type,
 		 tree_cons (NULL_TREE, object_ptr_type_node, endlink));
   soft_checkcast_node
@@ -1189,6 +1212,7 @@ java_init_decl_processing (void)
   eh_personality_libfunc = init_one_libfunc (USING_SJLJ_EXCEPTIONS
                                              ? "__gcj_personality_sj0"
                                              : "__gcj_personality_v0");
+  default_init_unwind_resume_libfunc ();
 
   lang_eh_runtime_type = do_nothing;
 
@@ -1222,7 +1246,7 @@ lookup_name (tree name)
 }
 
 /* Similar to `lookup_name' but look only at current binding level and
-   the previous one if its the parameter level.  */
+   the previous one if it's the parameter level.  */
 
 static tree
 lookup_name_current_level (tree name)
@@ -1301,7 +1325,7 @@ pushdecl (tree x)
 	/* error_mark_node is 0 for a while during initialization!  */
 	{
 	  t = 0;
-	  error ("%J'%D' used prior to declaration", x, x);
+	  error ("%q+D used prior to declaration", x);
 	}
 
       /* If we're naming a hitherto-unnamed type, set its TYPE_NAME
@@ -1375,7 +1399,7 @@ pushdecl (tree x)
 		warnstring = "declaration of %qs shadows global declaration";
 
 	      if (warnstring)
-		warning (warnstring, IDENTIFIER_POINTER (name));
+		warning (0, warnstring, IDENTIFIER_POINTER (name));
 	    }
 #endif
 
@@ -1673,12 +1697,12 @@ poplevel (int keep, int reverse, int functionbody)
 
 	  if (DECL_INITIAL (label) == 0)
 	    {
-	      error ("%Jlabel '%D' used but not defined", label, label);
+	      error ("label %q+D used but not defined", label);
 	      /* Avoid crashing later.  */
 	      define_label (input_location, DECL_NAME (label));
 	    }
 	  else if (warn_unused[UNUSED_LABEL] && !TREE_USED (label))
-	    warning ("%Jlabel '%D' defined but not used", label, label);
+	    warning (0, "label %q+D defined but not used", label);
 	  IDENTIFIER_LABEL_VALUE (DECL_NAME (label)) = 0;
 
 	  /* Put the labels into the "variables" of the
@@ -1790,7 +1814,7 @@ maybe_poplevels (int pc)
      terminate a range if the current pc is equal to the end of the
      range, and this is *before* we have generated code for the
      instruction at end_pc.  We're closing a binding level one
-     instruction too early.  */
+     instruction too early.*/
   while (current_binding_level->end_pc <= pc)
     poplevel (1, 0, 0);
 }
@@ -1806,8 +1830,8 @@ force_poplevels (int start_pc)
   while (current_binding_level->start_pc > start_pc)
     {
       if (pedantic && current_binding_level->start_pc > start_pc)
-	warning ("%JIn %D: overlapped variable and exception ranges at %d",
-                 current_function_decl, current_function_decl,
+	warning (0, "In %+D: overlapped variable and exception ranges at %d",
+                 current_function_decl,
 		 current_binding_level->start_pc);
       poplevel (1, 0, 0);
     }
@@ -1868,9 +1892,8 @@ give_name_to_locals (JCF *jcf)
 	{
 	  tree decl = TREE_VEC_ELT (decl_map, slot);
 	  DECL_NAME (decl) = name;
-	  SET_DECL_ASSEMBLER_NAME (decl, name);
 	  if (TREE_CODE (decl) != PARM_DECL || TREE_TYPE (decl) != type)
-	    warning ("bad type in parameter debug info");
+	    warning (0, "bad type in parameter debug info");
 	}
       else
 	{
@@ -1879,8 +1902,8 @@ give_name_to_locals (JCF *jcf)
 	  tree decl = build_decl (VAR_DECL, name, type);
 	  if (end_pc > DECL_CODE_LENGTH (current_function_decl))
 	    {
-	      warning ("%Jbad PC range for debug info for local '%D'",
-                       decl, decl);
+	      warning (0, "bad PC range for debug info for local %q+D",
+                       decl);
 	      end_pc = DECL_CODE_LENGTH (current_function_decl);
 	    }
 
@@ -1935,7 +1958,6 @@ give_name_to_locals (JCF *jcf)
 	      sprintf (buffer, "ARG_%d", arg_i);
 	      DECL_NAME (parm) = get_identifier (buffer);
 	    }
-	  SET_DECL_ASSEMBLER_NAME (parm, DECL_NAME (parm));
 	}
     }
 }
@@ -2141,9 +2163,38 @@ java_mark_decl_local (tree decl)
 
   /* If we've already constructed DECL_RTL, give encode_section_info
      a second chance, now that we've changed the flags.  */
+  /* ??? Ideally, we'd have flag_unit_at_a_time set, and not have done
+     anything that would have referenced DECL_RTL so far.  But at the
+     moment we force flag_unit_at_a_time off due to excessive memory
+     consumption when compiling large jar files.  Which probably means
+     that we need to re-order how we process jar files...  */
   if (DECL_RTL_SET_P (decl))
     make_decl_rtl (decl);
 }
+
+/* Given appropriate target support, G++ will emit hidden aliases for native
+   methods.  Using this hidden name is required for proper operation of
+   _Jv_Method::ncode, but it doesn't hurt to use it everywhere.  Look for
+   proper target support, then mark the method for aliasing.  */
+
+static void
+java_mark_cni_decl_local (tree decl)
+{
+  /* Setting DECL_LOCAL_CNI_METHOD_P changes the behavior of the mangler.
+     We expect that we should not yet have referenced this decl in a 
+     context that requires it.  Check this invariant even if we don't have
+     support for hidden aliases.  */
+  gcc_assert (!DECL_ASSEMBLER_NAME_SET_P (decl));
+
+#if !defined(HAVE_GAS_HIDDEN) || !defined(ASM_OUTPUT_DEF)
+  return;
+#endif
+
+  DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+  DECL_LOCAL_CNI_METHOD_P (decl) = 1;
+}
+
+/* Use the preceding two functions and mark all members of the class.  */
 
 void
 java_mark_class_local (tree class)
@@ -2155,8 +2206,13 @@ java_mark_class_local (tree class)
       java_mark_decl_local (t);
 
   for (t = TYPE_METHODS (class); t ; t = TREE_CHAIN (t))
-    if (!METHOD_ABSTRACT (t) && (!METHOD_NATIVE (t) || flag_jni))
-      java_mark_decl_local (t);
+    if (!METHOD_ABSTRACT (t))
+      {
+	if (METHOD_NATIVE (t) && !flag_jni)
+	  java_mark_cni_decl_local (t);
+        else
+	  java_mark_decl_local (t);
+      }
 }
 
 /* Add a statement to a compound_expr.  */

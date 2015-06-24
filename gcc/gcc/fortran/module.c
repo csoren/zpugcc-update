@@ -182,6 +182,9 @@ static gfc_use_rename *gfc_rename_list;
 static pointer_info *pi_root;
 static int symbol_number;	/* Counter for assigning symbol numbers */
 
+/* Tells mio_expr_ref not to load unused equivalence members.  */
+static bool in_load_equiv;
+
 
 
 /*****************************************************************/
@@ -827,27 +830,25 @@ static char *atom_string, atom_name[MAX_ATOM_SIZE];
 static void bad_module (const char *) ATTRIBUTE_NORETURN;
 
 static void
-bad_module (const char *message)
+bad_module (const char *msgid)
 {
-  const char *p;
+  fclose (module_fp);
 
   switch (iomode)
     {
     case IO_INPUT:
-      p = "Reading";
+      gfc_fatal_error ("Reading module %s at line %d column %d: %s",
+	  	       module_name, module_line, module_column, msgid);
       break;
     case IO_OUTPUT:
-      p = "Writing";
+      gfc_fatal_error ("Writing module %s at line %d column %d: %s",
+	  	       module_name, module_line, module_column, msgid);
       break;
     default:
-      p = "???";
+      gfc_fatal_error ("Module %s at line %d column %d: %s",
+	  	       module_name, module_line, module_column, msgid);
       break;
     }
-
-  fclose (module_fp);
-
-  gfc_fatal_error ("%s module %s at line %d column %d: %s", p,
-		   module_name, module_line, module_column, message);
 }
 
 
@@ -1154,19 +1155,19 @@ require_atom (atom_type type)
       switch (type)
 	{
 	case ATOM_NAME:
-	  p = "Expected name";
+	  p = _("Expected name");
 	  break;
 	case ATOM_LPAREN:
-	  p = "Expected left parenthesis";
+	  p = _("Expected left parenthesis");
 	  break;
 	case ATOM_RPAREN:
-	  p = "Expected right parenthesis";
+	  p = _("Expected right parenthesis");
 	  break;
 	case ATOM_INTEGER:
-	  p = "Expected integer";
+	  p = _("Expected integer");
 	  break;
 	case ATOM_STRING:
-	  p = "Expected string";
+	  p = _("Expected string");
 	  break;
 	default:
 	  gfc_internal_error ("require_atom(): bad atom type required");
@@ -1433,7 +1434,8 @@ typedef enum
   AB_POINTER, AB_SAVE, AB_TARGET, AB_DUMMY, AB_RESULT,
   AB_DATA, AB_IN_NAMELIST, AB_IN_COMMON, 
   AB_FUNCTION, AB_SUBROUTINE, AB_SEQUENCE, AB_ELEMENTAL, AB_PURE,
-  AB_RECURSIVE, AB_GENERIC, AB_ALWAYS_EXPLICIT
+  AB_RECURSIVE, AB_GENERIC, AB_ALWAYS_EXPLICIT, AB_CRAY_POINTER,
+  AB_CRAY_POINTEE
 }
 ab_attribute;
 
@@ -1460,6 +1462,8 @@ static const mstring attr_bits[] =
     minit ("RECURSIVE", AB_RECURSIVE),
     minit ("GENERIC", AB_GENERIC),
     minit ("ALWAYS_EXPLICIT", AB_ALWAYS_EXPLICIT),
+    minit ("CRAY_POINTER", AB_CRAY_POINTER),
+    minit ("CRAY_POINTEE", AB_CRAY_POINTEE),
     minit (NULL, -1)
 };
 
@@ -1544,6 +1548,10 @@ mio_symbol_attribute (symbol_attribute * attr)
 	MIO_NAME(ab_attribute) (AB_RECURSIVE, attr_bits);
       if (attr->always_explicit)
         MIO_NAME(ab_attribute) (AB_ALWAYS_EXPLICIT, attr_bits);
+      if (attr->cray_pointer)
+	MIO_NAME(ab_attribute) (AB_CRAY_POINTER, attr_bits);
+      if (attr->cray_pointee)
+	MIO_NAME(ab_attribute) (AB_CRAY_POINTEE, attr_bits);
 
       mio_rparen ();
 
@@ -1624,6 +1632,12 @@ mio_symbol_attribute (symbol_attribute * attr)
             case AB_ALWAYS_EXPLICIT:
               attr->always_explicit = 1;
               break;
+	    case AB_CRAY_POINTER:
+	      attr->cray_pointer = 1;
+	      break;
+	    case AB_CRAY_POINTEE:
+	      attr->cray_pointee = 1;
+	      break;
 	    }
 	}
     }
@@ -1875,6 +1889,12 @@ mio_component_ref (gfc_component ** cp, gfc_symbol * sym)
     {
       mio_internal_string (name);
 
+      /* It can happen that a component reference can be read before the
+	 associated derived type symbol has been loaded. Return now and
+	 wait for a later iteration of load_needed.  */
+      if (sym == NULL)
+	return;
+
       if (sym->components != NULL && p->u.pointer == NULL)
 	{
 	  /* Symbol already loaded, so search by name.  */
@@ -2112,6 +2132,11 @@ mio_symtree_ref (gfc_symtree ** stp)
     {
       require_atom (ATOM_INTEGER);
       p = get_integer (atom_int);
+
+      /* An unused equivalence member; bail out.  */
+      if (in_load_equiv && p->u.rsym.symtree == NULL)
+	return;
+      
       if (p->type == P_UNKNOWN)
         p->type = P_SYMBOL;
 
@@ -2438,6 +2463,7 @@ static const mstring intrinsics[] =
     minit ("LT", INTRINSIC_LT),
     minit ("LE", INTRINSIC_LE),
     minit ("NOT", INTRINSIC_NOT),
+    minit ("PARENTHESES", INTRINSIC_PARENTHESES),
     minit (NULL, -1)
 };
 
@@ -2496,6 +2522,7 @@ mio_expr (gfc_expr ** ep)
 	case INTRINSIC_UPLUS:
 	case INTRINSIC_UMINUS:
 	case INTRINSIC_NOT:
+	case INTRINSIC_PARENTHESES:
 	  mio_expr (&e->value.op.op1);
 	  break;
 
@@ -2819,6 +2846,9 @@ mio_symbol (gfc_symbol * sym)
 
   mio_symbol_ref (&sym->result);
 
+  if (sym->attr.cray_pointee)
+    mio_symbol_ref (&sym->cp_pointer);
+
   /* Note that components are always saved, even if they are supposed
      to be private.  Component access is checked during searching.  */
 
@@ -2975,14 +3005,18 @@ load_commons(void)
   mio_rparen();
 }
 
-/* load_equiv()-- Load equivalences. */
+/* load_equiv()-- Load equivalences. The flag in_load_equiv informs
+   mio_expr_ref of this so that unused variables are not loaded and
+   so that the expression can be safely freed.*/
 
 static void
 load_equiv(void)
 {
-  gfc_equiv *head, *tail, *end;
+  gfc_equiv *head, *tail, *end, *eq;
+  bool unused;
 
   mio_lparen();
+  in_load_equiv = true;
 
   end = gfc_current_ns->equiv;
   while(end != NULL && end->next != NULL)
@@ -3006,16 +3040,40 @@ load_equiv(void)
 	mio_expr(&tail->expr);
       }
 
+    /* Unused variables have no symtree.  */
+    unused = false;
+    for (eq = head; eq; eq = eq->eq)
+      {
+	if (!eq->expr->symtree)
+	  {
+	    unused = true;
+	    break;
+	  }
+      }
+
+    if (unused)
+      {
+	for (eq = head; eq; eq = head)
+	  {
+	    head = eq->eq;
+	    gfc_free_expr (eq->expr);
+	    gfc_free (eq);
+	  }
+      }
+
     if (end == NULL)
       gfc_current_ns->equiv = head;
     else
       end->next = head;
 
-    end = head;
+    if (head != NULL)
+      end = head;
+
     mio_rparen();
   }
 
   mio_rparen();
+  in_load_equiv = false;
 }
 
 /* Recursive function to traverse the pointer_info tree and load a
@@ -3232,8 +3290,8 @@ read_module (void)
 	      if (sym == NULL)
 		{
 		  sym = info->u.rsym.sym =
-		      gfc_new_symbol (info->u.rsym.true_name
-				      , gfc_current_ns);
+		      gfc_new_symbol (info->u.rsym.true_name,
+				      gfc_current_ns);
 
 		  sym->module = gfc_get_string (info->u.rsym.module);
 		}
@@ -3714,7 +3772,7 @@ gfc_use_module (void)
 {
   char *filename;
   gfc_state_data *p;
-  int c, line;
+  int c, line, start;
 
   filename = (char *) alloca(strlen(module_name) + strlen(MODULE_EXTENSION)
 			     + 1);
@@ -3729,15 +3787,23 @@ gfc_use_module (void)
   iomode = IO_INPUT;
   module_line = 1;
   module_column = 1;
+  start = 0;
 
-  /* Skip the first two lines of the module.  */
-  /* FIXME: Could also check for valid two lines here, instead.  */
+  /* Skip the first two lines of the module, after checking that this is
+     a gfortran module file.  */
   line = 0;
   while (line < 2)
     {
       c = module_char ();
       if (c == EOF)
 	bad_module ("Unexpected end of module");
+      if (start++ < 2)
+	parse_name (c);
+      if ((start == 1 && strcmp (atom_name, "GFORTRAN") != 0)
+	    || (start == 2 && strcmp (atom_name, " module") != 0))
+	gfc_fatal_error ("File '%s' opened at %C is not a GFORTRAN module "
+			  "file", filename);
+
       if (c == '\n')
 	line++;
     }

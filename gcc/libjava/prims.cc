@@ -1,6 +1,6 @@
 // prims.cc - Code for core of runtime environment.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -55,6 +55,7 @@ details.  */
 #include <java/lang/OutOfMemoryError.h>
 #include <java/lang/System.h>
 #include <java/lang/VMThrowable.h>
+#include <java/lang/VMClassLoader.h>
 #include <java/lang/reflect/Modifier.h>
 #include <java/io/PrintStream.h>
 #include <java/lang/UnsatisfiedLinkError.h>
@@ -63,7 +64,6 @@ details.  */
 #include <gnu/gcj/runtime/FinalizerThread.h>
 #include <execution.h>
 #include <gnu/java/lang/MainThread.h>
-#include <java/lang/VMClassLoader.h>
 
 #ifdef USE_LTDL
 #include <ltdl.h>
@@ -145,10 +145,10 @@ unblock_signal (int signum __attribute__ ((__unused__)))
 #ifdef HANDLE_SEGV
 SIGNAL_HANDLER (catch_segv)
 {
-  java::lang::NullPointerException *nullp 
-    = new java::lang::NullPointerException;
   unblock_signal (SIGSEGV);
   MAKE_THROW_FRAME (nullp);
+  java::lang::NullPointerException *nullp 
+    = new java::lang::NullPointerException;
   throw nullp;
 }
 #endif
@@ -156,14 +156,14 @@ SIGNAL_HANDLER (catch_segv)
 #ifdef HANDLE_FPE
 SIGNAL_HANDLER (catch_fpe)
 {
-  java::lang::ArithmeticException *arithexception 
-    = new java::lang::ArithmeticException (JvNewStringLatin1 ("/ by zero"));
   unblock_signal (SIGFPE);
 #ifdef HANDLE_DIVIDE_OVERFLOW
   HANDLE_DIVIDE_OVERFLOW;
 #else
   MAKE_THROW_FRAME (arithexception);
 #endif
+  java::lang::ArithmeticException *arithexception 
+    = new java::lang::ArithmeticException (JvNewStringLatin1 ("/ by zero"));
   throw arithexception;
 }
 #endif
@@ -691,46 +691,79 @@ _Jv_InitPrimClass (jclass cl, char *cname, char sig, int len)
 }
 
 jclass
-_Jv_FindClassFromSignature (char *sig, java::lang::ClassLoader *loader)
+_Jv_FindClassFromSignature (char *sig, java::lang::ClassLoader *loader,
+			    char **endp)
 {
+  // First count arrays.
+  int array_count = 0;
+  while (*sig == '[')
+    {
+      ++sig;
+      ++array_count;
+    }
+
+  jclass result = NULL;
   switch (*sig)
     {
     case 'B':
-      return JvPrimClass (byte);
+      result = JvPrimClass (byte);
+      break;
     case 'S':
-      return JvPrimClass (short);
+      result = JvPrimClass (short);
+      break;
     case 'I':
-      return JvPrimClass (int);
+      result = JvPrimClass (int);
+      break;
     case 'J':
-      return JvPrimClass (long);
+      result = JvPrimClass (long);
+      break;
     case 'Z':
-      return JvPrimClass (boolean);
+      result = JvPrimClass (boolean);
+      break;
     case 'C':
-      return JvPrimClass (char);
+      result = JvPrimClass (char);
+      break;
     case 'F':
-      return JvPrimClass (float);
+      result = JvPrimClass (float);
+      break;
     case 'D':
-      return JvPrimClass (double);
+      result = JvPrimClass (double);
+      break;
     case 'V':
-      return JvPrimClass (void);
+      result = JvPrimClass (void);
+      break;
     case 'L':
       {
-	int i;
-	for (i = 1; sig[i] && sig[i] != ';'; ++i)
-	  ;
-	_Jv_Utf8Const *name = _Jv_makeUtf8Const (&sig[1], i - 1);
-	return _Jv_FindClass (name, loader);
+	char *save = ++sig;
+	while (*sig && *sig != ';')
+	  ++sig;
+	// Do nothing if signature appears to be malformed.
+	if (*sig == ';')
+	  {
+	    _Jv_Utf8Const *name = _Jv_makeUtf8Const (save, sig - save);
+	    result = _Jv_FindClass (name, loader);
+	  }
+	break;
       }
-    case '[':
-      {
-	jclass klass = _Jv_FindClassFromSignature (&sig[1], loader);
-	if (! klass)
-	  return NULL;
-	return _Jv_GetArrayClass (klass, loader);
-      }
+    default:
+      // Do nothing -- bad signature.
+      break;
     }
 
-  return NULL;			// Placate compiler.
+  if (endp)
+    {
+      // Not really the "end", but the last valid character that we
+      // looked at.
+      *endp = sig;
+    }
+
+  if (! result)
+    return NULL;
+
+  // Find arrays.
+  while (array_count-- > 0)
+    result = _Jv_GetArrayClass (result, loader);
+  return result;
 }
 
 
@@ -824,10 +857,6 @@ next_property_value (char *s, size_t *length)
   while (isspace (*s))
     s++;
 
-  // If we've reached the end, return NULL.
-  if (*s == 0)
-    return NULL;
-
   // Determine the length of the property value.
   while (s[l] != 0
 	 && ! isspace (s[l])
@@ -850,12 +879,17 @@ static void
 process_gcj_properties ()
 {
   char *props = getenv("GCJ_PROPERTIES");
-  char *p = props;
-  size_t length;
-  size_t property_count = 0;
 
   if (NULL == props)
     return;
+
+  // Later on we will write \0s into this string.  It is simplest to
+  // just duplicate it here.
+  props = strdup (props);
+
+  char *p = props;
+  size_t length;
+  size_t property_count = 0;
 
   // Whip through props quickly in order to count the number of
   // property values.
@@ -1347,17 +1381,17 @@ _Jv_RunMain (JvVMInitArgs *vm_args, jclass klass, const char *name, int argc,
         ("Exception during runtime initialization"));
       t->printStackTrace();
       if (runtime)
-	runtime->exit (1);
+	java::lang::Runtime::exitNoChecksAccessor (1);
       // In case the runtime creation failed.
       ::exit (1);
     }
 
   _Jv_AttachCurrentThread (main_thread);
   _Jv_ThreadRun (main_thread);
-  _Jv_ThreadWait ();
 
-  int status = (int) java::lang::ThreadGroup::had_uncaught_exception;
-  runtime->exit (status);
+  // If we got here then something went wrong, as MainThread is not
+  // supposed to terminate.
+  ::exit (1);
 }
 
 void
@@ -1532,7 +1566,7 @@ _Jv_CheckAccess (jclass self_klass, jclass other_klass, jint flags)
   return ((self_klass == other_klass)
 	  || ((flags & Modifier::PUBLIC) != 0)
 	  || (((flags & Modifier::PROTECTED) != 0)
-	      && _Jv_IsAssignableFromSlow (other_klass, self_klass))
+	      && _Jv_IsAssignableFromSlow (self_klass, other_klass))
 	  || (((flags & Modifier::PRIVATE) == 0)
 	      && _Jv_ClassNameSamePackage (self_klass->name,
 					   other_klass->name)));

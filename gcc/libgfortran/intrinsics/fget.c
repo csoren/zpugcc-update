@@ -44,20 +44,20 @@ export_proto_np(PREFIX(fgetc));
 int
 PREFIX(fgetc) (const int * unit, char * c, gfc_charlen_type c_len)
 {
-  int s;
+  int ret;
+  size_t s;
   gfc_unit * u = find_unit (*unit);
-  char *source;
 
   if (u == NULL)
     return -1;
 
   s = 1;
   memset (c, ' ', c_len);
-  source = salloc_r (u->s, &s);
-  if (source == NULL)
-    return -1;
+  ret = sread (u->s, c, &s);
+  unlock_unit (u);
 
-  *c = *source;
+  if (ret != 0)
+    return ret;
 
   if (s != 1)
     return -1;
@@ -118,20 +118,17 @@ int
 PREFIX(fputc) (const int * unit, char * c,
 	       gfc_charlen_type c_len __attribute__((unused)))
 {
-  int s;
-  char *dest;
+  size_t s;
+  int ret;
   gfc_unit * u = find_unit (*unit);
 
   if (u == NULL)
     return -1;
 
   s = 1;
-  dest = salloc_w (u->s, &s);
-  if (dest == NULL)
-    return -1;
-
-  *dest = *c;
-  return 0;
+  ret = swrite (u->s, c, &s);
+  unlock_unit (u);
+  return ret;
 }
 
 

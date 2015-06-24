@@ -1,14 +1,16 @@
-2007-01-31  Release Manager
+2007-02-13  Release Manager
 
-	* GCC 4.0.4 released.
+	* GCC 4.1.2 released.
 
-2006-03-09  Release Manager
+2006-05-24  Release Manager
 
-	* GCC 4.0.3 released.
+	* GCC 4.1.1 released.
 
-2005-11-06  James A. Morrison  <phython@gcc.gnu.org>
-	Backport:
-	2005-08-06  James A. Morrison  <phython@gcc.gnu.org>
+2006-02-28  Release Manager
+
+	* GCC 4.1.0 released.
+
+2005-08-06  James A. Morrison  <phython@gcc.gnu.org>
 
 	* treetests.exp: Remove.
 	* a01gcco01runpgm: Move to...
@@ -19,30 +21,28 @@
 	* output/output-1.tree: here.
 	* output/output.exp: New.
 
-2005-09-20  Release Manager
+2005-07-23  James A. Morrison  <phython@gcc.gnu.org>
 
-	* GCC 4.0.2 released.
+	* compile/var_defs.tree: Remove extra lines.
 
-2005-07-07  Release Manager
+2005-07-19  James A. Morrison  <phython@gcc.gnu.org>
 
-	* GCC 4.0.1 released.
+	* compile/var_defs.tree: Remove duplicate variable.
+	* compile/var_defs-2.tree: Add duplicate variable test.
 
-2005-04-20  Release Manager
+2005-03-22  James A. Morrison  <phython@gcc.gnu.org>
 
-	* GCC 4.0.0 released.
+	* compile/memory.tree: New test.
 
-2005-03-11  James A. Morrison  <phython@gcc.gnu.org>
-
-	Backport recent test cases added to mainline:
-	2005-02-26  James A. Morrison  <phython@gcc.gnu.org>
+2005-02-26  James A. Morrison  <phython@gcc.gnu.org>
 
 	* compile/var_defs: Add uninitialized variables.
 
-	2005-02-26  James A. Morrison  <phython@gcc.gnu.org>
+2005-02-26  James A. Morrison  <phython@gcc.gnu.org>
 
 	* compile/extrafunc.tree, compile/extravar.tree: New tests.
 
-	2005-02-26  James A. Morrison  <phython@gcc.gnu.org>
+2005-02-26  James A. Morrison  <phython@gcc.gnu.org>
 
 	* compile/unsigned.tree: New test.
 

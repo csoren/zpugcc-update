@@ -16,7 +16,7 @@
 
 // You should have received a copy of the GNU General Public License along
 // with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
 // As a special exception, you may use this file as part of a free software
@@ -308,6 +308,7 @@ namespace std
 
       // Next, look for leading zeros.
       bool __found_mantissa = false;
+      int __sep_pos = 0;
       while (!__testeof)
 	{
 	  if (__lc->_M_use_grouping && __c == __lc->_M_thousands_sep
@@ -320,6 +321,8 @@ namespace std
 		  __xtrc += '0';
 		  __found_mantissa = true;
 		}
+	      ++__sep_pos;
+
 	      if (++__beg != __end)
 		__c = *__beg;
 	      else
@@ -335,7 +338,6 @@ namespace std
       string __found_grouping;
       if (__lc->_M_use_grouping)
 	__found_grouping.reserve(32);
-      int __sep_pos = 0;
       const char_type* __q;
       const char_type* __lit_zero = __lit + __num_base::_S_izero;
       while (!__testeof)
@@ -355,7 +357,9 @@ namespace std
 		    }
 		  else
 		    {
-		      __err |= ios_base::failbit;
+		      // NB: __convert_to_v will not assign __v and will
+		      // set the failbit.
+		      __xtrc.clear();
 		      break;
 		    }
 		}
@@ -385,7 +389,7 @@ namespace std
 	    }
 	  else if ((__c == __lit[__num_base::_S_ie] 
 		    || __c == __lit[__num_base::_S_iE])
-		   && __found_mantissa && !__found_sci)
+		   && !__found_sci && __found_mantissa)
 	    {
 	      // Scientific notation.
 	      if (__found_grouping.size() && !__found_dec)
@@ -502,6 +506,7 @@ namespace std
 	// Next, look for leading zeros and check required digits
 	// for base formats.
 	bool __found_zero = false;
+	int __sep_pos = 0;
 	while (!__testeof)
 	  {
 	    if (__lc->_M_use_grouping && __c == __lc->_M_thousands_sep
@@ -509,25 +514,27 @@ namespace std
 	      break;
 	    else if (__c == __lit[__num_base::_S_izero] 
 		     && (!__found_zero || __base == 10))
-	      __found_zero = true;
-	    else if (__found_zero)
 	      {
-		if (__c == __lit[__num_base::_S_ix] 
-		    || __c == __lit[__num_base::_S_iX])
+		__found_zero = true;
+		++__sep_pos;
+		if (__basefield == 0)
+		  __base = 8;
+		if (__base == 8)
+		  __sep_pos = 0;
+	      }
+	    else if (__found_zero
+		     && (__c == __lit[__num_base::_S_ix]
+			 || __c == __lit[__num_base::_S_iX]))
+	      {
+		if (__basefield == 0)
+		  __base = 16;
+		if (__base == 16)
 		  {
-		    if (__basefield == 0)
-		      __base = 16;
-		    if (__base == 16)
-		      __found_zero = false;
-		    else
-		      break;
+		    __found_zero = false;
+		    __sep_pos = 0;
 		  }
 		else
-		  {
-		    if (__basefield == 0)
-		      __base = 8;
-		    break;
-		  }
+		  break;
 	      }
 	    else
 	      break;
@@ -551,8 +558,7 @@ namespace std
 	string __found_grouping;
 	if (__lc->_M_use_grouping)
 	  __found_grouping.reserve(32);
-	int __sep_pos = 0;
-	bool __overflow = false;
+	bool __testfail = false;
 	const __unsigned_type __max = __negative ?
 	  -numeric_limits<_ValueT>::min() : numeric_limits<_ValueT>::max();
 	const __unsigned_type __smax = __max / __base;
@@ -574,7 +580,7 @@ namespace std
 		  }
 		else
 		  {
-		    __err |= ios_base::failbit;
+		    __testfail = true;
 		    break;
 		  }
 	      }
@@ -586,11 +592,11 @@ namespace std
 		if (__digit > 15)
 		  __digit -= 6;
 		if (__result > __smax)
-		  __overflow = true;
+		  __testfail = true;
 		else
 		  {
 		    __result *= __base;
-		    __overflow |= __result > __max - __digit;
+		    __testfail |= __result > __max - __digit;
 		    __result += __digit;
 		    ++__sep_pos;
 		  }
@@ -618,8 +624,8 @@ namespace std
 	      __err |= ios_base::failbit;
 	  }
 
-	if (!(__err & ios_base::failbit) && !__overflow
-	    && (__sep_pos || __found_zero || __found_grouping.size()))
+	if (!__testfail && (__sep_pos || __found_zero 
+			    || __found_grouping.size()))
 	  __v = __negative ? -__result : __result;
 	else
 	  __err |= ios_base::failbit;
@@ -816,15 +822,19 @@ namespace std
       __len = static_cast<int>(__w);
     }
 
-  // Forwarding functions to peel signed from unsigned integer types.
+  // Forwarding functions to peel signed from unsigned integer types and
+  // either cast or compute the absolute value for the former, depending
+  // on __basefield.
   template<typename _CharT>
     inline int
     __int_to_char(_CharT* __bufend, long __v, const _CharT* __lit,
 		  ios_base::fmtflags __flags)
     {
-      unsigned long __ul = static_cast<unsigned long>(__v);
-      if (__v < 0)
-	__ul = -__ul;
+      unsigned long __ul = __v;
+      const ios_base::fmtflags __basefield = __flags & ios_base::basefield;
+      if (__builtin_expect(__basefield != ios_base::oct
+			   && __basefield != ios_base::hex, true))
+	__ul = __v < 0 ? -__v : __ul;
       return __int_to_char(__bufend, __ul, __lit, __flags, false);
     }
 
@@ -840,9 +850,11 @@ namespace std
     __int_to_char(_CharT* __bufend, long long __v, const _CharT* __lit,
 		  ios_base::fmtflags __flags)
     {
-      unsigned long long __ull = static_cast<unsigned long long>(__v);
-      if (__v < 0)
-	__ull = -__ull;
+      unsigned long long __ull = __v;
+      const ios_base::fmtflags __basefield = __flags & ios_base::basefield;
+      if (__builtin_expect(__basefield != ios_base::oct
+			   && __basefield != ios_base::hex, true))
+	__ull = __v < 0 ? -__v : __ull;
       return __int_to_char(__bufend, __ull, __lit, __flags, false);
     }
 
@@ -962,16 +974,11 @@ namespace std
 	    else if (__v)
 	      *--__cs = __lit[__num_base::_S_ominus], ++__len;
 	  }
-	else if (__basefield == ios_base::oct)
+	else if (__flags & ios_base::showbase && __v)
 	  {
-	    // Octal.
-	    if (__flags & ios_base::showbase && __v)
+	    if (__basefield == ios_base::oct)
 	      *--__cs = __lit[__num_base::_S_odigits], ++__len;
-	  }
-	else
-	  {
-	    // Hex.
-	    if (__flags & ios_base::showbase && __v)
+	    else
 	      {
 		// 'x' or 'X'
 		const bool __uppercase = __flags & ios_base::uppercase;
@@ -1209,8 +1216,8 @@ namespace std
   template<typename _CharT, typename _OutIter>
     _OutIter
     num_put<_CharT, _OutIter>::
-    do_put(iter_type __s, ios_base& __b, char_type __fill, long long __v) const
-    { return _M_insert_int(__s, __b, __fill, __v); }
+    do_put(iter_type __s, ios_base& __io, char_type __fill, long long __v) const
+    { return _M_insert_int(__s, __io, __fill, __v); }
 
   template<typename _CharT, typename _OutIter>
     _OutIter
@@ -1446,7 +1453,7 @@ namespace std
 		if (!std::__verify_grouping(__lc->_M_grouping,
 					    __lc->_M_grouping_size,
 					    __grouping_tmp))
-		  __testvalid = false;
+		  __err |= ios_base::failbit;
 	      }
 	    
 	    // Iff not enough digits were supplied after the decimal-point.

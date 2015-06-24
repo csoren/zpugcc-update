@@ -16,18 +16,24 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* Generate code to free an array.  */
 tree gfc_array_deallocate (tree, tree);
 
 /* Generate code to initialize an allocate an array.  Statements are added to
    se, which should contain an expression for the array descriptor.  */
-void gfc_array_allocate (gfc_se *, gfc_ref *, tree);
+bool gfc_array_allocate (gfc_se *, gfc_expr *, tree);
+
+/* Allow the bounds of a loop to be set from a callee's array spec.  */
+void gfc_set_loop_bounds_from_array_spec (gfc_interface_mapping *,
+					  gfc_se *, gfc_array_spec *);
 
 /* Generate code to allocate a temporary array.  */
-tree gfc_trans_allocate_temp_array (gfc_loopinfo *, gfc_ss_info *, tree);
+tree gfc_trans_allocate_temp_array (stmtblock_t *, stmtblock_t *,
+                                    gfc_loopinfo *, gfc_ss_info *, tree, bool,
+                                    bool, bool);
 
 /* Generate function entry code for allocation of compiler allocated array
    variables.  */
@@ -43,11 +49,14 @@ void gfc_trans_static_array_pointer (gfc_symbol *);
 
 /* Generate scalarization information for an expression.  */
 gfc_ss *gfc_walk_expr (gfc_expr *);
-/* Walk the arguments of an intrinsic function.  */
-gfc_ss *gfc_walk_elemental_function_args (gfc_ss *, gfc_expr *, gfc_ss_type);
+/* Walk the arguments of an elemental function.  */
+gfc_ss *gfc_walk_elemental_function_args (gfc_ss *, gfc_actual_arglist *,
+					  gfc_ss_type);
 /* Walk an intrinsic function.  */
 gfc_ss *gfc_walk_intrinsic_function (gfc_ss *, gfc_expr *,
 				     gfc_intrinsic_sym *);
+/* Reverse the order of an SS chain.  */
+gfc_ss *gfc_reverse_ss (gfc_ss *);
 
 /* Free the SS associated with a loop.  */
 void gfc_cleanup_loop (gfc_loopinfo *);
@@ -72,11 +81,11 @@ void gfc_trans_scalarized_loop_boundary (gfc_loopinfo *, stmtblock_t *);
 void gfc_conv_loop_setup (gfc_loopinfo *);
 /* Resolve array assignment dependencies.  */
 void gfc_conv_resolve_dependencies (gfc_loopinfo *, gfc_ss *, gfc_ss *);
-/* Build an null array descriptor constructor.  */
+/* Build a null array descriptor constructor.  */
 tree gfc_build_null_descriptor (tree);
 
 /* Get a single array element.  */
-void gfc_conv_array_ref (gfc_se *, gfc_array_ref *);
+void gfc_conv_array_ref (gfc_se *, gfc_array_ref *, gfc_symbol *, locus *);
 /* Translate a reference to a temporary array.  */
 void gfc_conv_tmp_array_ref (gfc_se * se);
 /* Translate a reference to an array temporary.  */

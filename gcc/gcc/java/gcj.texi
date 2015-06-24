@@ -2,6 +2,13 @@
 @setfilename gcj.info
 @settitle Guide to GNU gcj
 
+@c Merge the standard indexes into a single one.
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
 @include gcc-common.texi
 
 @c Note: When reading this manual you'll find lots of strange
@@ -89,8 +96,8 @@ man page gfdl(7).
 For the @value{which-gcj} Version*
 @sp 1
 Published by the Free Software Foundation @*
-59 Temple Place - Suite 330@*
-Boston, MA 02111-1307, USA@*
+51 Franklin Street, Fifth Floor@*
+Boston, MA 02110-1301, USA@*
 @sp 1
 @insertcopying
 @end titlepage
@@ -124,6 +131,7 @@ files and object files, and it can read both Java source code and
 * About CNI::           Description of the Compiled Native Interface
 * System properties::   Modifying runtime behavior of the libgcj library
 * Resources::		Where to look for more information
+* Index::               Index.
 @end menu
 
 
@@ -514,6 +522,15 @@ ABI.  These restrictions will be lifted in some future release.
 
 However, if you compile CNI code with the standard ABI, you can call
 it from code built with the binary compatibility ABI.
+
+@item -fbootstrap-classes
+This option can be use to tell @code{libgcj} that the compiled classes
+should be loaded by the bootstrap loader, not the system class loader.
+By default, if you compile a class and link it into an executable, it
+will be treated as if it was loaded using the system class loader.
+This is convenient, as it means that things like
+@code{Class.forName()} will search @samp{CLASSPATH} to find the
+desired class.
 
 @end table
 
@@ -1417,7 +1434,8 @@ alternative to the standard JNI (Java Native Interface).
 @menu
 * Basic concepts::              Introduction to using CNI@.
 * Packages::                    How packages are mapped to C++.
-* Primitive types::             Handling Java types in C++.
+* Primitive types::             Handling primitive Java types in C++.
+* Reference types::             Handling Java reference types in C++.
 * Interfaces::                  How Java interfaces map to C++.
 * Objects and Classes::         C++ and Java classes.
 * Class Initialization::        How objects are initialized.
@@ -1614,7 +1632,7 @@ to avoid disappointment.
 @subsection Reference types associated with primitive types
 
 In Java each primitive type has an associated reference type, 
-e.g.: @code{boolean} has an associated @code{java.lang.Boolean} class.
+e.g.: @code{boolean} has an associated @code{java.lang.Boolean.TYPE} class.
 In order to make working with such classes easier GCJ provides the macro
 @code{JvPrimClass}:
 
@@ -1626,6 +1644,41 @@ JvPrimClass(void) @result{} java.lang.Void.TYPE
 @end example
 
 @end deffn
+
+
+@node Reference types
+@section Reference types
+
+A Java reference type is treated as a class in C++.  Classes and
+interfaces are handled this way.  A Java reference is translated to a
+C++ pointer, so for instance a Java @code{java.lang.String} becomes,
+in C++, @code{java::lang::String *}.
+
+CNI provides a few built-in typedefs for the most common classes:
+@multitable @columnfractions .30 .25 .60
+@item @strong{Java type} @tab @strong{C++ typename} @tab @strong{Description}
+@item @code{java.lang.Object} @tab @code{jobject} @tab Object type
+@item @code{java.lang.String} @tab @code{jstring} @tab String type
+@item @code{java.lang.Class} @tab @code{jclass} @tab Class type
+@end multitable
+@cindex jobject
+@cindex jstring
+@cindex jclass
+
+Every Java class or interface has a corresponding @code{Class}
+instance.  These can be accessed in CNI via the static @code{class$}
+field of a class.  The @code{class$} field is of type @code{Class}
+(and not @code{Class *}), so you will typically take the address of
+it.
+@cindex class$
+
+Here is how you can refer to the class of @code{String}, which in
+Java would be written @code{String.class}:
+
+@example
+using namespace java::lang;
+doSomething (&String::class$);
+@end example
 
 
 @node Interfaces
@@ -1687,7 +1740,7 @@ management, but this is invisible to the application, and the
 reference to the object points to the dispatch table pointer.)
 
 The fields are laid out in the same order, alignment, and size as in
-C++.  Specifically, 8-bite and 16-bit native types (@code{byte},
+C++.  Specifically, 8-bit and 16-bit native types (@code{byte},
 @code{short}, @code{char}, and @code{boolean}) are @emph{not} widened
 to 32 bits.  Note that the Java VM does extend 8-bit and 16-bit types
 to 32 bits when on the VM stack or temporary registers.
@@ -1700,8 +1753,8 @@ way.  For example, given the following Java class:
 public class Int
 @{
   public int i;
-  public Integer (int i) @{ this.i = i; @}
-  public static zero = new Integer(0);
+  public Int (int i) @{ this.i = i; @}
+  public static Int zero = new Int(0);
 @}
 @end example
 
@@ -1771,7 +1824,7 @@ it is safe to leave it out).
 
 Accessing a static field also requires the class of the
 field to be initialized.  The Java compiler will generate code
-to call @code{Jv_InitClass} before getting or setting the field.
+to call @code{JvInitClass} before getting or setting the field.
 However, the C++ compiler will not generate this extra code,
 so it is your responsibility to make sure the class is
 initialized before you access a static field from C++.
@@ -1806,7 +1859,7 @@ java::util::Hashtable *ht = new java::util::Hashtable(120);
 @node Memory allocation
 @section Memory allocation
 
-When allocting memory in @acronym{CNI} methods it is best to handle
+When allocating memory in @acronym{CNI} methods it is best to handle
 out-of-memory conditions by throwing a Java exception.  These
 functions are provided for that purpose:
 
@@ -1887,9 +1940,16 @@ The name of this function may change in the future.
 
 
 @deftypefun jobjectArray JvNewObjectArray (jsize @var{length}, jclass @var{klass}, jobject @var{init})
-Here @code{klass} is the type of elements of the array and
+This creates a new array whose elements have reference type.
+@code{klass} is the type of elements of the array and
 @code{init} is the initial value put into every slot in the array.
 @end deftypefun
+
+@example
+using namespace java::lang;
+JArray<String *> *array
+  = (JArray<String *> *) JvNewObjectArray(length, &String::class$, NULL);
+@end example
 
 
 @subsection Creating arrays
@@ -2643,7 +2703,7 @@ Enables printing serialization debugging by the @code{java.io.ObjectInput} and
 string.  Only used when running a debug build of the library.
 
 @item gnu.classpath.vm.shortname
-This is a succint name of the virtual machine.  For @code{libgcj},
+This is a succinct name of the virtual machine.  For @code{libgcj},
 this will always be @samp{libgcj}.
 
 @item gnu.classpath.home.url
@@ -2674,32 +2734,18 @@ try to load a class @code{java.net.[impl.prefix]DatagramSocketImpl} instead of
 the normal @code{java.net.PlainDatagramSocketImpl}.
 
 @item gnu.gcj.progname
-The name that was used to invoked the program.
-
-@item gnu.gcj.runtime.NameFinder.demangle
-Whether names in a stack trace should be demangled.  Defaults to @code{true}.
-
-@item gnu.gcj.runtime.NameFinder.sanitize
-Whether calls to initialize exceptions and starting the runtime system
-should be removed from the stack trace.  Only done when names are
-demangled.  Defaults to @code{true}.
-
-@item gnu.gcj.runtime.NameFinder.remove_unknown
-Whether calls to unknown functions (class and method names are unknown)
-should be removed from the stack trace.  Only done when the stack is
-sanitized.  Ignored if this means no stack trace information would be
-available anymore.  Defaults to @code{true}.
-
-@item gnu.gcj.runtime.NameFinder.remove_interpreter
-Whether runtime interpreter calls (methods in the @code{_Jv_InterpMethod} class
-and functions starting with @samp{ffi_}) should be removed from the stack
-trace.  Only done when the stack is sanitized.  Defaults to @code{true}.
-
+The class or binary name that was used to invoke the program. This will be
+the name of the "main" class in the case where the @code{gij} front end is
+used, or the program binary name in the case where an application is compiled 
+to a native binary.
 
 @item gnu.gcj.runtime.NameFinder.use_addr2line
-Whether an external process (@command{addr2line} or @command{addr2name.awk})
-should be used as fallback to convert the addresses to function names when
-the runtime is unable to do it through @code{dladdr}.
+Whether an external process, @command{addr2line}, should be used to determine
+line number information when tracing the stack. Setting this to @code{false} 
+may suppress line numbers when printing stack traces and when using
+the java.util.logging infrastructure. However, performance may improve
+significantly for applications that print stack traces or make logging calls
+frequently.
 
 @item gnu.gcj.runtime.VMClassLoader.library_control
 This controls how shared libraries are automatically loaded by the
@@ -2765,5 +2811,11 @@ Some @code{libgcj} testing is done using the Mauve test suite.  This is
 a free software Java class library test suite which is being written
 because the JCK is not free.  See
 @uref{http://sources.redhat.com/mauve/} for more information.
+
+
+@node Index
+@unnumbered Index
+
+@printindex cp
 
 @bye

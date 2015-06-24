@@ -1,11 +1,11 @@
-//PR c++/28051
+// PR c++/22136
 
-template<int> struct A {};
-
-template<int N> struct B : A<N>
-{
-    using A<N>::operator typename A<N>::X; // { dg-error "no type named|members matching" }
-};
-
-B<0> b;
+struct B { 
+  void foo(); 
+}; 
  
+template <typename T> class I : public B {}; 
+ 
+template <typename T> class D : private I<T> { 
+  I<T>::B::foo; 
+}; 

@@ -24,11 +24,21 @@
 !
 !You should have received a copy of the GNU General Public
 !License along with libgfortran; see the file COPYING.  If not,
-!write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-!Boston, MA 02111-1307, USA.
+!write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+!Boston, MA 02110-1301, USA.
 !
 !This file is machine generated.
 
+
+
+
+
+#include "config.h"
+#include "kinds.inc"
+#include "c99_protos.inc"
+
+#if defined (HAVE_GFC_COMPLEX_4)
+#ifdef HAVE_CSQRTF
 
 elemental function specific__sqrt_c4 (parm)
    complex (kind=4), intent (in) :: parm
@@ -36,3 +46,6 @@ elemental function specific__sqrt_c4 (parm)
 
    specific__sqrt_c4 = sqrt (parm)
 end function
+
+#endif
+#endif

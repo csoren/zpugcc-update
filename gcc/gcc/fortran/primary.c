@@ -17,8 +17,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 
 #include "config.h"
@@ -40,8 +40,10 @@ match_kind_param (int *kind)
   gfc_symbol *sym;
   const char *p;
   match m;
+  int cnt;
 
-  m = gfc_match_small_literal_int (kind);
+  /* cnt is unused, here.  */
+  m = gfc_match_small_literal_int (kind, &cnt);
   if (m != MATCH_NO)
     return m;
 
@@ -271,7 +273,7 @@ match_hollerith_constant (gfc_expr ** result)
 	}
       else
 	{
-	  buffer = (char *)gfc_getmem (sizeof(char)*num+1);
+	  buffer = (char *) gfc_getmem (sizeof(char) * num + 1);
 	  for (i = 0; i < num; i++)
 	    {
 	      buffer[i] = gfc_next_char_literal (1);
@@ -281,6 +283,7 @@ match_hollerith_constant (gfc_expr ** result)
 		gfc_default_character_kind, &gfc_current_locus);
 	  e->value.character.string = gfc_getmem (num+1);
 	  memcpy (e->value.character.string, buffer, num);
+	  e->value.character.string[num] = '\0';
 	  e->value.character.length = num;
 	  *result = e;
 	  return MATCH_YES;
@@ -298,37 +301,46 @@ cleanup:
 
 
 /* Match a binary, octal or hexadecimal constant that can be found in
-   a DATA statement.  */
+   a DATA statement.  The standard permits b'010...', o'73...', and
+   z'a1...' where b, o, and z can be capital letters.  This function
+   also accepts postfixed forms of the constants: '01...'b, '73...'o,
+   and 'a1...'z.  An additional extension is the use of x for z.  */
 
 static match
 match_boz_constant (gfc_expr ** result)
 {
-  int radix, delim, length, x_hex, kind;
-  locus old_loc;
+  int post, radix, delim, length, x_hex, kind;
+  locus old_loc, start_loc;
   char *buffer;
   gfc_expr *e;
-  const char *rname;
 
-  old_loc = gfc_current_locus;
+  start_loc = old_loc = gfc_current_locus;
   gfc_gobble_whitespace ();
 
   x_hex = 0;
-  switch (gfc_next_char ())
+  switch (post = gfc_next_char ())
     {
     case 'b':
       radix = 2;
-      rname = "binary";
+      post = 0;
       break;
     case 'o':
       radix = 8;
-      rname = "octal";
+      post = 0;
       break;
     case 'x':
       x_hex = 1;
       /* Fall through.  */
     case 'z':
       radix = 16;
-      rname = "hexadecimal";
+      post = 0;
+      break;
+    case '\'':
+      /* Fall through.  */
+    case '\"':
+      delim = post;
+      post = 1;
+      radix = 16;  /* Set to accept any valid digit string.  */
       break;
     default:
       goto backup;
@@ -336,7 +348,9 @@ match_boz_constant (gfc_expr ** result)
 
   /* No whitespace allowed here.  */
 
-  delim = gfc_next_char ();
+  if (post == 0)
+    delim = gfc_next_char ();
+
   if (delim != '\'' && delim != '\"')
     goto backup;
 
@@ -351,14 +365,36 @@ match_boz_constant (gfc_expr ** result)
   length = match_digits (0, radix, NULL);
   if (length == -1)
     {
-      gfc_error ("Empty set of digits in %s constants at %C", rname);
+      gfc_error ("Empty set of digits in BOZ constant at %C");
       return MATCH_ERROR;
     }
 
   if (gfc_next_char () != delim)
     {
-      gfc_error ("Illegal character in %s constant at %C.", rname);
+      gfc_error ("Illegal character in BOZ constant at %C");
       return MATCH_ERROR;
+    }
+
+  if (post == 1)
+    {
+      switch (gfc_next_char ())
+	{
+	case 'b':
+	  radix = 2;
+	  break;
+	case 'o':
+	  radix = 8;
+	  break;
+	case 'x':
+	  /* Fall through.  */
+	case 'z':
+	  radix = 16;
+	  break;
+	default:
+	  goto backup;
+	}
+	gfc_notify_std (GFC_STD_GNU, "Extension: BOZ constant "
+			"at %C uses non-standard postfix syntax.");
     }
 
   gfc_current_locus = old_loc;
@@ -367,8 +403,9 @@ match_boz_constant (gfc_expr ** result)
   memset (buffer, '\0', length + 1);
 
   match_digits (0, radix, buffer);
-  gfc_next_char ();  /* Eat delimiter.  */
-
+  gfc_next_char ();    /* Eat delimiter.  */
+  if (post == 1)
+    gfc_next_char ();  /* Eat postfixed b, o, z, or x.  */
 
   /* In section 5.2.5 and following C567 in the Fortran 2003 standard, we find
      "If a data-stmt-constant is a boz-literal-constant, the corresponding
@@ -383,7 +420,6 @@ match_boz_constant (gfc_expr ** result)
   if (gfc_range_check (e) != ARITH_OK)
     {
       gfc_error ("Integer too big for integer kind %i at %C", kind);
-
       gfc_free_expr (e);
       return MATCH_ERROR;
     }
@@ -392,7 +428,7 @@ match_boz_constant (gfc_expr ** result)
   return MATCH_YES;
 
 backup:
-  gfc_current_locus = old_loc;
+  gfc_current_locus = start_loc;
   return MATCH_NO;
 }
 
@@ -742,6 +778,9 @@ next_string_char (char delimiter)
 	  gfc_current_locus = old_locus;
 	  break;
 	}
+
+      if (!(gfc_option.allow_std & GFC_STD_GNU) && !inhibit_warnings)
+	gfc_warning ("Extension: backslash character at %C");
     }
 
   if (c != delimiter)
@@ -760,7 +799,7 @@ next_string_char (char delimiter)
 
 /* Special case of gfc_match_name() that matches a parameter kind name
    before a string constant.  This takes case of the weird but legal
-   case of: weird case of:
+   case of:
 
      kind_____'string'
 
@@ -932,6 +971,13 @@ got_delim:
 
       length++;
     }
+
+  /* Peek at the next character to see if it is a b, o, z, or x for the
+     postfixed BOZ literal constants.  */
+  c = gfc_peek_char ();
+  if (c == 'b' || c == 'o' || c =='z' || c == 'x')
+    goto no_match;
+
 
   e = gfc_get_expr ();
 
@@ -1434,7 +1480,7 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist ** argp)
 
       if (sub_flag && gfc_match_char ('*') == MATCH_YES)
 	{
-	  m = gfc_match_st_label (&label, 0);
+	  m = gfc_match_st_label (&label);
 	  if (m == MATCH_NO)
 	    gfc_error ("Expected alternate return label at %C");
 	  if (m != MATCH_YES)
@@ -1872,6 +1918,8 @@ gfc_match_rvalue (gfc_expr ** result)
   gfc_expr *e;
   match m, m2;
   int i;
+  gfc_typespec *ts;
+  bool implicit_char;
 
   m = gfc_match_name (name);
   if (m != MATCH_YES)
@@ -1893,6 +1941,21 @@ gfc_match_rvalue (gfc_expr ** result)
 
   if (sym->attr.function && sym->result == sym)
     {
+      /* See if this is a directly recursive function call.  */
+      gfc_gobble_whitespace ();
+      if (sym->attr.recursive
+	    && gfc_peek_char () == '('
+	    && gfc_current_ns->proc_name == sym)
+	{
+	  if (!sym->attr.dimension)
+	    goto function0;
+
+	  gfc_error ("'%s' is array valued and directly recursive "
+		     "at %C , so the keyword RESULT must be specified "
+		     "in the FUNCTION statement", sym->name);
+	  return MATCH_ERROR;
+	}
+	
       if (gfc_current_ns->proc_name == sym
 	  || (gfc_current_ns->parent != NULL
 	      && gfc_current_ns->parent->proc_name == sym))
@@ -2101,10 +2164,22 @@ gfc_match_rvalue (gfc_expr ** result)
 
       if (m2 != MATCH_YES)
 	{
+	  /* Try to figure out whether we're dealing with a character type.
+	     We're peeking ahead here, because we don't want to call 
+	     match_substring if we're dealing with an implicitly typed
+	     non-character variable.  */
+	  implicit_char = false;
+	  if (sym->ts.type == BT_UNKNOWN)
+	    {
+	      ts = gfc_get_default_type (sym,NULL);
+	      if (ts->type == BT_CHARACTER)
+		implicit_char = true;
+	    }
+
 	  /* See if this could possibly be a substring reference of a name
 	     that we're not sure is a variable yet.  */
 
-	  if ((sym->ts.type == BT_UNKNOWN || sym->ts.type == BT_CHARACTER)
+	  if ((implicit_char || sym->ts.type == BT_CHARACTER)
 	      && match_substring (sym->ts.cl, 0, &e->ref) == MATCH_YES)
 	    {
 
@@ -2224,6 +2299,10 @@ match_variable (gfc_expr ** result, int equiv_flag, int host_flag)
   switch (sym->attr.flavor)
     {
     case FL_VARIABLE:
+      break;
+
+    case FL_PROGRAM:
+      return MATCH_NO;
       break;
 
     case FL_UNKNOWN:

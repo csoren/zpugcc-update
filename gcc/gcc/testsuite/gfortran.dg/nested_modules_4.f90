@@ -9,7 +9,7 @@ module string
   interface
     function  lc(string )
       character(len=*), intent(in)  :: string 
-      character(len=20)    :: lc
+      character(len=len(string ))    :: lc
     end function lc
   end interface
 end module string

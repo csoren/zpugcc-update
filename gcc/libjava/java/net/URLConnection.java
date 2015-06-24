@@ -1,5 +1,5 @@
 /* URLConnection.java -- Abstract superclass for reading from URL's
-   Copyright (C) 1998, 2002, 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 1998, 2002, 2003, 2004, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -15,8 +15,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GNU Classpath; see the file COPYING.  If not, write to the
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-02111-1307 USA.
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
 
 Linking this library statically or dynamically with other modules is
 making a combined work based on this library.  Thus, the terms and
@@ -432,6 +432,8 @@ public abstract class URLConnection
    * <code>UnknownServiceException</code> so subclasses are encouraged
    * to override this method.</p>
    *
+   * @return the content
+   *
    * @exception IOException If an error with the connection occurs.
    * @exception UnknownServiceException If the protocol does not support the
    * content type at all.
@@ -458,6 +460,8 @@ public abstract class URLConnection
    * Retrieves the content of this URLConnection
    *
    * @param classes The allowed classes for the content
+   *
+   * @return the content
    *
    * @exception IOException If an error occurs
    * @exception UnknownServiceException If the protocol does not support the
@@ -535,7 +539,7 @@ public abstract class URLConnection
   }
 
   /**
-   * Returns the value of a flag indicating whether or not input is going
+   * Sets the value of a flag indicating whether or not input is going
    * to be done for this connection.  This default to true unless the
    * doOutput flag is set to false, in which case this defaults to false.
    *
@@ -565,7 +569,7 @@ public abstract class URLConnection
   }
 
   /**
-   * Returns a boolean flag indicating whether or not output will be done
+   * Sets a boolean flag indicating whether or not output will be done
    * on this connection.  The default value is false, so this method can
    * be used to override the default
    *
@@ -856,7 +860,7 @@ public abstract class URLConnection
   }
 
   /**
-   * Set's the ContentHandlerFactory for an application.  This can be called
+   * Sets the ContentHandlerFactory for an application.  This can be called
    * once and only once.  If it is called again, then an Error is thrown.
    * Unlike for other set factory methods, this one does not do a security
    * check prior to setting the factory.
@@ -895,22 +899,7 @@ public abstract class URLConnection
    */
   public static String guessContentTypeFromName(String filename)
   {
-    int dot = filename.lastIndexOf(".");
-    
-    if (dot != -1)
-      {
-	if (dot == filename.length())
-	  return "application/octet-stream";
-	else
-	  filename = filename.substring(dot + 1);
-      }
-    
-    String type = MimeTypes.getMimeTypeFromExtension(filename);
-    
-    if (type == null)
-      return"application/octet-stream";
-
-    return type;
+    return getFileNameMap().getContentTypeFor(filename.toLowerCase());
   }
 
   /**
@@ -935,7 +924,7 @@ public abstract class URLConnection
     is.mark(1024);
     // FIXME: Implement this. Use system mimetype informations (like "file").
     is.reset();
-    return null;
+    return "application/octet-stream";
   }
 
   /**
@@ -946,13 +935,17 @@ public abstract class URLConnection
    *
    * @since 1.2
    */
-  public static FileNameMap getFileNameMap()
+  public static synchronized FileNameMap getFileNameMap()
   {
+    // Delayed initialization.
+    if (fileNameMap == null)
+      fileNameMap = new MimeTypeMapper();
+
     return fileNameMap;
   }
 
   /**
-   * This method set the <code>FileNameMap</code> object being used
+   * This method sets the <code>FileNameMap</code> object being used
    * to decode MIME types by file extension.
    *
    * @param map The <code>FileNameMap</code>.
@@ -962,7 +955,7 @@ public abstract class URLConnection
    *
    * @since 1.2
    */
-  public static void setFileNameMap(FileNameMap map)
+  public static synchronized void setFileNameMap(FileNameMap map)
   {
     // Throw an exception if an extant security manager precludes
     // setting the factory.

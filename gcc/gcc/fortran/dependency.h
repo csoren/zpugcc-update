@@ -16,15 +16,16 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 
 
+bool gfc_ref_needs_temporary_p (gfc_ref *);
 int gfc_check_fncall_dependency (gfc_expr *, gfc_expr *);
 int gfc_check_dependency (gfc_expr *, gfc_expr *, gfc_expr **, int);
 int gfc_is_same_range (gfc_array_ref *, gfc_array_ref *, int, int);
-int gfc_dep_compare_expr (gfc_expr *, gfc_expr *);
 int gfc_expr_is_one (gfc_expr *, int);
 
 int gfc_dep_resolver(gfc_ref *, gfc_ref *);
+int gfc_are_equivalenced_arrays (gfc_expr *, gfc_expr *);

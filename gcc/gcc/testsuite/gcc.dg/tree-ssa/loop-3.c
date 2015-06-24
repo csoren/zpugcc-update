@@ -11,7 +11,7 @@ int foo(int);
 
 void xxx(void)
 {
-  int iter;
+  long iter;
 
   for (iter = 0; iter < 100; iter++)
     arr_base[iter] = foo (iter);
@@ -20,7 +20,8 @@ void xxx(void)
 /* Access to arr_base[iter].y should not be strength reduced, since
    we have a memory mode including multiplication by 4.  */
 
-/* { dg-final { scan-tree-dump-times "arr_base.*=" 1 "vars" } } */
+/* { dg-final { scan-tree-dump-times "MEM" 1 "vars" } } */
+/* { dg-final { scan-tree-dump-times "step:" 1 "vars" } } */
 
 /* And original induction variable should be preserved.  */
 

@@ -17,12 +17,13 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 
 #include "config.h"
 #include "system.h"
+#include "flags.h"
 #include "gfortran.h"
 #include "parse.h"
 
@@ -106,6 +107,14 @@ gfc_set_implicit_none (void)
 {
   int i;
 
+  if (gfc_current_ns->seen_implicit_none)
+    {
+      gfc_error ("Duplicate IMPLICIT NONE statement at %C");
+      return;
+    }
+
+  gfc_current_ns->seen_implicit_none = 1;
+
   for (i = 0; i < GFC_LETTERS; i++)
     {
       gfc_clear_ts (&gfc_current_ns->default_type[i]);
@@ -159,6 +168,12 @@ try
 gfc_merge_new_implicit (gfc_typespec * ts)
 {
   int i;
+
+  if (gfc_current_ns->seen_implicit_none)
+    {
+      gfc_error ("Cannot specify IMPLICIT at %C after IMPLICIT NONE");
+      return FAILURE;
+    }
 
   for (i = 0; i < GFC_LETTERS; i++)
     {
@@ -249,7 +264,8 @@ check_conflict (symbol_attribute * attr, const char * name, locus * where)
     *public = "PUBLIC", *optional = "OPTIONAL", *entry = "ENTRY",
     *function = "FUNCTION", *subroutine = "SUBROUTINE",
     *dimension = "DIMENSION", *in_equivalence = "EQUIVALENCE",
-    *use_assoc = "USE ASSOCIATED", *data = "DATA";
+    *use_assoc = "USE ASSOCIATED", *cray_pointer = "CRAY POINTER",
+    *cray_pointee = "CRAY POINTEE", *data = "DATA";
 
   const char *a1, *a2;
 
@@ -296,11 +312,20 @@ check_conflict (symbol_attribute * attr, const char * name, locus * where)
   conf (pointer, target);
   conf (pointer, external);
   conf (pointer, intrinsic);
+  conf (pointer, elemental);
+
   conf (target, external);
   conf (target, intrinsic);
   conf (external, dimension);   /* See Fortran 95's R504.  */
 
   conf (external, intrinsic);
+    
+  if (attr->if_source || attr->contained)
+    {
+      conf (external, subroutine);
+      conf (external, function);
+    }
+
   conf (allocatable, pointer);
   conf (allocatable, dummy);	/* TODO: Allowed in Fortran 200x.  */
   conf (allocatable, function);	/* TODO: Allowed in Fortran 200x.  */
@@ -330,6 +355,33 @@ check_conflict (symbol_attribute * attr, const char * name, locus * where)
   conf (entry, result);
 
   conf (function, subroutine);
+
+  /* Cray pointer/pointee conflicts.  */
+  conf (cray_pointer, cray_pointee);
+  conf (cray_pointer, dimension);
+  conf (cray_pointer, pointer);
+  conf (cray_pointer, target);
+  conf (cray_pointer, allocatable);
+  conf (cray_pointer, external);
+  conf (cray_pointer, intrinsic);
+  conf (cray_pointer, in_namelist);
+  conf (cray_pointer, function);
+  conf (cray_pointer, subroutine);
+  conf (cray_pointer, entry);
+
+  conf (cray_pointee, allocatable);
+  conf (cray_pointee, intent);
+  conf (cray_pointee, optional);
+  conf (cray_pointee, dummy);
+  conf (cray_pointee, target);
+  conf (cray_pointee, external);
+  conf (cray_pointee, intrinsic);
+  conf (cray_pointee, pointer);
+  conf (cray_pointee, function);
+  conf (cray_pointee, subroutine);
+  conf (cray_pointee, entry);
+  conf (cray_pointee, in_common);
+  conf (cray_pointee, in_equivalence);
 
   conf (data, dummy);
   conf (data, function);
@@ -541,6 +593,18 @@ duplicate_attr (const char *attr, locus * where)
   gfc_error ("Duplicate %s attribute specified at %L", attr, where);
 }
 
+/* Called from decl.c (attr_decl1) to check attributes, when declared separately.  */
+
+try
+gfc_add_attribute (symbol_attribute * attr, locus * where, uint attr_intent)
+{
+
+  if (check_used (attr, NULL, where)
+	|| (attr_intent == 0 && check_done (attr, where)))
+    return FAILURE;
+
+  return check_conflict (attr, NULL, where);
+}
 
 try
 gfc_add_allocatable (symbol_attribute * attr, locus * where)
@@ -647,6 +711,37 @@ gfc_add_pointer (symbol_attribute * attr, locus * where)
 
 
 try
+gfc_add_cray_pointer (symbol_attribute * attr, locus * where)
+{
+
+  if (check_used (attr, NULL, where) || check_done (attr, where))
+    return FAILURE;
+
+  attr->cray_pointer = 1;
+  return check_conflict (attr, NULL, where);
+}
+
+
+try
+gfc_add_cray_pointee (symbol_attribute * attr, locus * where)
+{
+
+  if (check_used (attr, NULL, where) || check_done (attr, where))
+    return FAILURE;
+
+  if (attr->cray_pointee)
+    {
+      gfc_error ("Cray Pointee at %L appears in multiple pointer()"
+		 " statements.", where);
+      return FAILURE;
+    }
+
+  attr->cray_pointee = 1;
+  return check_conflict (attr, NULL, where);
+}
+
+
+try
 gfc_add_result (symbol_attribute * attr, const char *name, locus * where)
 {
 
@@ -675,8 +770,11 @@ gfc_add_save (symbol_attribute * attr, const char *name, locus * where)
 
   if (attr->save)
     {
-      duplicate_attr ("SAVE", where);
-      return FAILURE;
+	if (gfc_notify_std (GFC_STD_LEGACY, 
+			    "Duplicate SAVE attribute specified at %L",
+			    where) 
+	    == FAILURE)
+	  return FAILURE;
     }
 
   attr->save = 1;
@@ -927,9 +1025,8 @@ gfc_add_procedure (symbol_attribute * attr, procedure_type t,
 
   if (attr->proc != PROC_UNKNOWN)
     {
-      gfc_error ("%s procedure at %L is already %s %s procedure",
+      gfc_error ("%s procedure at %L is already declared as %s procedure",
 		 gfc_code2string (procedures, t), where,
-		 gfc_article (gfc_code2string (procedures, attr->proc)),
 		 gfc_code2string (procedures, attr->proc));
 
       return FAILURE;
@@ -1034,9 +1131,18 @@ gfc_add_type (gfc_symbol * sym, gfc_typespec * ts, locus * where)
 
   if (sym->ts.type != BT_UNKNOWN)
     {
-      gfc_error ("Symbol '%s' at %L already has basic type of %s", sym->name,
-		 where, gfc_basic_typename (sym->ts.type));
-      return FAILURE;
+      const char *msg = "Symbol '%s' at %L already has basic type of %s";
+      if (!(sym->ts.type == ts->type
+	     && (sym->attr.flavor == FL_PROCEDURE || sym->attr.result))
+	   || gfc_notification_std (GFC_STD_GNU) == ERROR
+	   || pedantic)
+	{
+	  gfc_error (msg, sym->name, where, gfc_basic_typename (sym->ts.type));
+	  return FAILURE;
+	}
+      else if (gfc_notify_std (GFC_STD_GNU, msg, sym->name, where,
+			       gfc_basic_typename (sym->ts.type)) == FAILURE)
+	  return FAILURE;
     }
 
   flavor = sym->attr.flavor;
@@ -1141,6 +1247,11 @@ gfc_copy_attr (symbol_attribute * dest, symbol_attribute * src, locus * where)
   if (gfc_missing_attr (dest, where) == FAILURE)
     goto fail;
 
+  if (src->cray_pointer && gfc_add_cray_pointer (dest, where) == FAILURE)
+    goto fail;
+  if (src->cray_pointee && gfc_add_cray_pointee (dest, where) == FAILURE)
+    goto fail;    
+  
   /* The subroutines that set these bits also cause flavors to be set,
      and that has already happened in the original, so don't let it
      happen again.  */
@@ -1244,7 +1355,7 @@ switch_types (gfc_symtree * st, gfc_symbol * from, gfc_symbol * to)
 gfc_symbol *
 gfc_use_derived (gfc_symbol * sym)
 {
-  gfc_symbol *s, *p;
+  gfc_symbol *s;
   gfc_typespec *t;
   gfc_symtree *st;
   int i;
@@ -1278,15 +1389,7 @@ gfc_use_derived (gfc_symbol * sym)
   s->refs++;
 
   /* Unlink from list of modified symbols.  */
-  if (changed_syms == sym)
-    changed_syms = sym->tlink;
-  else
-    for (p = changed_syms; p; p = p->tlink)
-      if (p->tlink == sym)
-	{
-	  p->tlink = sym->tlink;
-	  break;
-	}
+  gfc_commit_symbol (sym);
 
   switch_types (sym->ns->sym_root, sym, s);
 
@@ -1393,21 +1496,25 @@ gfc_get_component_attr (symbol_attribute * attr, gfc_component * c)
    occurs.  */
 
 void
-gfc_free_st_label (gfc_st_label * l)
+gfc_free_st_label (gfc_st_label * label)
 {
 
-  if (l == NULL)
+  if (label == NULL)
     return;
 
-  if (l->prev)
-    (l->prev->next = l->next);
+  if (label->prev)
+    label->prev->next = label->next;
 
-  if (l->next)
-    (l->next->prev = l->prev);
+  if (label->next)
+    label->next->prev = label->prev;
 
-  if (l->format != NULL)
-    gfc_free_expr (l->format);
-  gfc_free (l);
+  if (gfc_current_ns->st_labels == label)
+    gfc_current_ns->st_labels = label->next;
+
+  if (label->format != NULL)
+    gfc_free_expr (label->format);
+
+  gfc_free (label);
 }
 
 /* Free a whole list of gfc_st_label structures.  */
@@ -2126,6 +2233,32 @@ gfc_undo_symbols (void)
 }
 
 
+/* Free sym->old_symbol. sym->old_symbol is mostly a shallow copy of sym; the
+   components of old_symbol that might need deallocation are the "allocatables"
+   that are restored in gfc_undo_symbols(), with two exceptions: namelist and
+   namelist_tail.  In case these differ between old_symbol and sym, it's just
+   because sym->namelist has gotten a few more items.  */
+
+static void
+free_old_symbol (gfc_symbol * sym)
+{
+  if (sym->old_symbol == NULL)
+    return;
+
+  if (sym->old_symbol->as != sym->as) 
+    gfc_free_array_spec (sym->old_symbol->as);
+
+  if (sym->old_symbol->value != sym->value) 
+    gfc_free_expr (sym->old_symbol->value);
+
+  if (sym->old_symbol->formal != sym->formal)
+    gfc_free_formal_arglist (sym->old_symbol->formal);
+
+  gfc_free (sym->old_symbol);
+  sym->old_symbol = NULL;
+}
+
+
 /* Makes the changes made in the current statement permanent-- gets
    rid of undo information.  */
 
@@ -2141,14 +2274,37 @@ gfc_commit_symbols (void)
       p->mark = 0;
       p->new = 0;
 
-      if (p->old_symbol != NULL)
-	{
-	  gfc_free (p->old_symbol);
-	  p->old_symbol = NULL;
-	}
+      free_old_symbol (p);
+    }
+  changed_syms = NULL;
+}
+
+
+/* Makes the changes made in one symbol permanent -- gets rid of undo
+   information.  */
+
+void
+gfc_commit_symbol (gfc_symbol * sym)
+{
+  gfc_symbol *p;
+
+  if (changed_syms == sym)
+    changed_syms = sym->tlink;
+  else
+    {
+      for (p = changed_syms; p; p = p->tlink)
+        if (p->tlink == sym)
+          {
+            p->tlink = sym->tlink;
+            break;
+          }
     }
 
-  changed_syms = NULL;
+  sym->tlink = NULL;
+  sym->mark = 0;
+  sym->new = 0;
+
+  free_old_symbol (sym);
 }
 
 
@@ -2227,6 +2383,46 @@ free_sym_tree (gfc_symtree * sym_tree)
 }
 
 
+/* Free a derived type list.  */
+
+static void
+gfc_free_dt_list (gfc_dt_list * dt)
+{
+  gfc_dt_list *n;
+
+  for (; dt; dt = n)
+    {
+      n = dt->next;
+      gfc_free (dt);
+    }
+}
+
+
+/* Free the gfc_equiv_info's.  */
+
+static void
+gfc_free_equiv_infos (gfc_equiv_info * s)
+{
+  if (s == NULL)
+    return;
+  gfc_free_equiv_infos (s->next);
+  gfc_free (s);
+}
+
+
+/* Free the gfc_equiv_lists.  */
+
+static void
+gfc_free_equiv_lists (gfc_equiv_list * l)
+{
+  if (l == NULL)
+    return;
+  gfc_free_equiv_lists (l->next);
+  gfc_free_equiv_infos (l->equiv);
+  gfc_free (l);
+}
+
+
 /* Free a namespace structure and everything below it.  Interface
    lists associated with intrinsic operators are not freed.  These are
    taken care of when a specific name is freed.  */
@@ -2262,6 +2458,9 @@ gfc_free_namespace (gfc_namespace * ns)
   free_st_labels (ns->st_labels);
 
   gfc_free_equiv (ns->equiv);
+  gfc_free_equiv_lists (ns->equiv_lists);
+
+  gfc_free_dt_list (ns->derived_types);
 
   for (i = GFC_INTRINSIC_BEGIN; i != GFC_INTRINSIC_END; i++)
     gfc_free_interface (ns->operator[i]);
@@ -2365,7 +2564,7 @@ gfc_is_var_automatic (gfc_symbol * sym)
   if (sym->attr.dimension && sym->as
       && !gfc_is_compile_time_shape (sym->as))
     return true;
-  /* Check for non-constant length character vairables.  */
+  /* Check for non-constant length character variables.  */
   if (sym->ts.type == BT_CHARACTER
       && sym->ts.cl
       && !gfc_is_constant_expr (sym->ts.cl->length))
@@ -2468,7 +2667,7 @@ gfc_get_gsymbol (const char *name)
 
   s = gfc_getmem (sizeof (gfc_gsymbol));
   s->type = GSYM_UNKNOWN;
-  strcpy (s->name, name);
+  s->name = gfc_get_string (name);
 
   gfc_insert_bbt (&gfc_gsym_root, s, gsym_compare);
 

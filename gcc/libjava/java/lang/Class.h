@@ -1,6 +1,6 @@
 // Class.h - Header file for java.lang.Class.  -*- c++ -*-
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -21,7 +21,21 @@ details.  */
 #include <java/lang/reflect/Modifier.h>
 #include <java/security/ProtectionDomain.h>
 #include <java/lang/Package.h>
-#include <gnu/gcj/runtime/StackTrace.h>
+
+// Avoid including SystemClassLoader.h.
+extern "Java"
+{
+  namespace gnu
+  {
+    namespace gcj
+    {
+      namespace runtime
+      {
+        class SystemClassLoader;
+      }
+    }
+  }
+}
 
 // We declare these here to avoid including gcj/cni.h.
 extern "C" void _Jv_InitClass (jclass klass);
@@ -238,16 +252,18 @@ jclass _Jv_GetArrayClass (jclass klass, java::lang::ClassLoader *loader);
 jboolean _Jv_IsInterpretedClass (jclass);
 jboolean _Jv_IsBinaryCompatibilityABI (jclass);
 
+void _Jv_CopyClassesToSystemLoader (gnu::gcj::runtime::SystemClassLoader *);
+
 #ifdef INTERPRETER
 void _Jv_InitField (jobject, jclass, int);
 
-class _Jv_ClassReader;	
+class _Jv_ClassReader;
 class _Jv_InterpClass;
 class _Jv_InterpMethod;
 #endif
 
+class _Jv_StackTrace;
 class _Jv_BytecodeVerifier;
-class gnu::gcj::runtime::StackTrace;
 class java::io::VMObjectStreamClass;
 
 void _Jv_sharedlib_register_hook (jclass klass);
@@ -273,7 +289,7 @@ public:
   java::lang::reflect::Constructor *getConstructor (JArray<jclass> *);
   JArray<java::lang::reflect::Constructor *> *getConstructors (void);
   java::lang::reflect::Constructor *getDeclaredConstructor (JArray<jclass> *);
-  JArray<java::lang::reflect::Constructor *> *getDeclaredConstructors (void);
+  JArray<java::lang::reflect::Constructor *> *getDeclaredConstructors (jboolean);
   java::lang::reflect::Field *getDeclaredField (jstring);
   JArray<java::lang::reflect::Field *> *getDeclaredFields ();
   JArray<java::lang::reflect::Field *> *getDeclaredFields (jboolean);
@@ -281,12 +297,12 @@ public:
   JArray<java::lang::reflect::Method *> *getDeclaredMethods (void);
 
   JArray<jclass> *getDeclaredClasses (void);
+  JArray<jclass> *getDeclaredClasses (jboolean);
   jclass getDeclaringClass (void);
 
   java::lang::reflect::Field *getField (jstring);
 private:
   JArray<java::lang::reflect::Field *> internalGetFields ();
-  JArray<java::lang::reflect::Constructor *> *_getConstructors (jboolean);
   java::lang::reflect::Field *getField (jstring, jint);
   jint _getMethods (JArray<java::lang::reflect::Method *> *result,
 		    jint offset);
@@ -479,13 +495,13 @@ private:
   friend class ::_Jv_InterpClass;
   friend class ::_Jv_InterpMethod;
 #endif
+  friend class ::_Jv_StackTrace;
 
 #ifdef JV_MARKOBJ_DECL
   friend JV_MARKOBJ_DECL;
 #endif
 
   friend class ::_Jv_BytecodeVerifier;
-  friend class gnu::gcj::runtime::StackTrace;
   friend class java::io::VMObjectStreamClass;
 
   friend class ::_Jv_Linker;
@@ -496,6 +512,8 @@ private:
   friend void ::_Jv_sharedlib_register_hook (jclass klass);
 
   friend void *::_Jv_ResolvePoolEntry (jclass this_class, jint index);
+
+  friend void ::_Jv_CopyClassesToSystemLoader (gnu::gcj::runtime::SystemClassLoader *);
 
   // Chain for class pool.  This also doubles as the ABI version
   // number.  It is only used for this purpose at class registration

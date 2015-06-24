@@ -1,5 +1,7 @@
 #include "private/pthread_support.h"
 
+/* This probably needs more porting work to ppc64. */
+
 # if defined(GC_DARWIN_THREADS)
 
 /* From "Inside Mac OS X - Mach-O Runtime Architecture" published by Apple
@@ -14,13 +16,12 @@
 */
 #define PPC_RED_ZONE_SIZE 224
 
-/* Not 64-bit clean. Wait until Apple defines their 64-bit ABI */
 typedef struct StackFrame {
-  unsigned int	savedSP;
-  unsigned int	savedCR;
-  unsigned int	savedLR;
-  unsigned int	reserved[2];
-  unsigned int	savedRTOC;
+  unsigned long	savedSP;
+  unsigned long	savedCR;
+  unsigned long	savedLR;
+  unsigned long	reserved[2];
+  unsigned long	savedRTOC;
 } StackFrame;
 
 
@@ -154,6 +155,7 @@ void GC_push_all_stacks() {
 #     endif
       GC_push_all_stack(lo, hi); 
     } /* for(p=GC_threads[i]...) */
+    vm_deallocate(current_task(), (vm_address_t)act_list, sizeof(thread_t) * listcount);
 }
 
 static mach_port_t GC_mach_handler_thread;
@@ -296,6 +298,7 @@ void GC_stop_world()
 	changes = result;
 	prev_list = act_list;
 	prevcount = listcount;
+        vm_deallocate(current_task(), (vm_address_t)act_list, sizeof(thread_t) * listcount);
       } while (changes);
       
  
@@ -367,6 +370,7 @@ void GC_start_world()
 	}
       }
     }
+    vm_deallocate(current_task(), (vm_address_t)act_list, sizeof(thread_t) * listcount);
 #   if DEBUG_THREADS
      GC_printf0("World started\n");
 #   endif

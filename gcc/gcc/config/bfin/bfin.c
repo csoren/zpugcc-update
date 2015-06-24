@@ -70,7 +70,8 @@ const char *byte_reg_names[]   =  BYTE_REGISTER_NAMES;
 
 static int arg_regs[] = FUNCTION_ARG_REGISTERS;
 
-const char *bfin_library_id_string;
+/* Nonzero if -mshared-library-id was given.  */
+static int bfin_lib_id_given;
 
 static void
 bfin_globalize_label (FILE *stream, const char *name)
@@ -127,7 +128,7 @@ static e_funkind funkind (tree funtype)
    necessary.  PICREG is the register holding the pointer to the PIC offset
    table.  */
 
-static rtx
+rtx
 legitimize_pic_address (rtx orig, rtx reg, rtx picreg)
 {
   rtx addr = orig;
@@ -414,7 +415,7 @@ setup_incoming_varargs (CUMULATIVE_ARGS *cum,
 
   /* The move for named arguments will be generated automatically by the
      compiler.  We need to generate the move rtx for the unnamed arguments
-     if they are in the first 3 words.  We assume atleast 1 named argument
+     if they are in the first 3 words.  We assume at least 1 named argument
      exists, so we never generate [ARGP] = R0 here.  */
 
   for (i = cum->words + 1; i < max_arg_registers; i++)
@@ -439,7 +440,7 @@ bfin_frame_pointer_required (void)
   if (fkind != SUBROUTINE)
     return 1;
 
-  /* We turn on on -fomit-frame-pointer if -momit-leaf-frame-pointer is used,
+  /* We turn on -fomit-frame-pointer if -momit-leaf-frame-pointer is used,
      so we have to override it for non-leaf functions.  */
   if (TARGET_OMIT_LEAF_FRAME_POINTER && ! current_function_is_leaf)
     return 1;
@@ -615,8 +616,7 @@ emit_link_insn (rtx spreg, HOST_WIDE_INT frame_size)
   for (i = 0; i < XVECLEN (PATTERN (insn), 0); i++)
     {
       rtx set = XVECEXP (PATTERN (insn), 0, i);
-      if (GET_CODE (set) != SET)
-	abort ();
+      gcc_assert (GET_CODE (set) == SET);
       RTX_FRAME_RELATED_P (set) = 1;
     }
 
@@ -869,23 +869,22 @@ bfin_load_pic_reg (rtx dest)
 {
   struct cgraph_local_info *i = NULL;
   rtx addr, insn;
-
+ 
   if (flag_unit_at_a_time)
     i = cgraph_local_info (current_function_decl);
-
+ 
   /* Functions local to the translation unit don't need to reload the
      pic reg, since the caller always passes a usable one.  */
   if (i && i->local)
     return pic_offset_table_rtx;
-
-  if (bfin_library_id_string)
-    addr = plus_constant (pic_offset_table_rtx, atoi (bfin_library_id_string));
+      
+  if (bfin_lib_id_given)
+    addr = plus_constant (pic_offset_table_rtx, -4 - bfin_library_id * 4);
   else
     addr = gen_rtx_PLUS (Pmode, pic_offset_table_rtx,
 			 gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx),
 					 UNSPEC_LIBRARY_OFFSET));
   insn = emit_insn (gen_movsi (dest, gen_rtx_MEM (Pmode, addr)));
-
   REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx, NULL);
   return dest;
 }
@@ -1025,6 +1024,25 @@ legitimize_address (rtx x ATTRIBUTE_UNUSED, rtx oldx ATTRIBUTE_UNUSED,
   return NULL_RTX;
 }
 
+static rtx
+bfin_delegitimize_address (rtx orig_x)
+{
+  rtx x = orig_x, y;
+
+  if (GET_CODE (x) != MEM)
+    return orig_x;
+
+  x = XEXP (x, 0);
+  if (GET_CODE (x) == PLUS
+      && GET_CODE (XEXP (x, 1)) == UNSPEC
+      && XINT (XEXP (x, 1), 1) == UNSPEC_MOVE_PIC
+      && GET_CODE (XEXP (x, 0)) == REG
+      && REGNO (XEXP (x, 0)) == PIC_OFFSET_TABLE_REGNUM)
+    return XVECEXP (XEXP (x, 1), 0, 0);
+
+  return orig_x;
+}
+
 /* This predicate is used to compute the length of a load/store insn.
    OP is a MEM rtx, we return nonzero if its addressing mode requires a
    32 bit instruction.  */
@@ -1037,11 +1055,12 @@ effective_address_32bit_p (rtx op, enum machine_mode mode)
   mode = GET_MODE (op);
   op = XEXP (op, 0);
 
-  if (REG_P (op) || GET_CODE (op) == POST_INC
-      || GET_CODE (op) == PRE_DEC || GET_CODE (op) == POST_DEC)
-    return 0;
   if (GET_CODE (op) != PLUS)
-    abort ();
+    {
+      gcc_assert (REG_P (op) || GET_CODE (op) == POST_INC
+		  || GET_CODE (op) == PRE_DEC || GET_CODE (op) == POST_DEC);
+      return 0;
+    }
 
   offset = INTVAL (XEXP (op, 1));
 
@@ -1076,9 +1095,6 @@ bfin_address_cost (rtx addr ATTRIBUTE_UNUSED)
 void
 print_address_operand (FILE *file, rtx x)
 {
-  if (GET_CODE (x) == MEM) 
-    abort ();
-
   switch (GET_CODE (x))
     {
     case PLUS:
@@ -1101,7 +1117,9 @@ print_address_operand (FILE *file, rtx x)
       break;
 
     default:
+      gcc_assert (GET_CODE (x) != MEM);
       print_operand (file, x, 0);
+      break;
     }
 }
 
@@ -1232,8 +1250,7 @@ print_operand (FILE *file, rtx x, char code)
 	    }
 	  else if (code == 'T')
 	    {
-	      if (REGNO (x) > 7)
-		abort ();
+	      gcc_assert (D_REGNO_P (REGNO (x)));
 	      fprintf (file, "%s", byte_reg_names[REGNO (x)]);
 	    }
 	  else 
@@ -1273,15 +1290,20 @@ print_operand (FILE *file, rtx x, char code)
 	  break;
 
 	case UNSPEC:
-	  if (XINT (x, 1) == UNSPEC_MOVE_PIC)
+	  switch (XINT (x, 1))
 	    {
+	    case UNSPEC_MOVE_PIC:
 	      output_addr_const (file, XVECEXP (x, 0, 0));
 	      fprintf (file, "@GOT");
+	      break;
+
+	    case UNSPEC_LIBRARY_OFFSET:
+	      fprintf (file, "_current_shared_library_p5_offset_");
+	      break;
+
+	    default:
+	      gcc_unreachable ();
 	    }
-	  else if (XINT (x, 1) == UNSPEC_LIBRARY_OFFSET)
-	    fprintf (file, "_current_shared_library_p5_offset_");
-	  else
-	    abort ();
 	  break;
 
 	default:
@@ -1798,6 +1820,25 @@ secondary_output_reload_class (enum reg_class class, enum machine_mode mode,
   return secondary_input_reload_class (class, mode, x);
 }
 
+/* Implement TARGET_HANDLE_OPTION.  */
+
+static bool
+bfin_handle_option (size_t code, const char *arg, int value)
+{
+  switch (code)
+    {
+    case OPT_mshared_library_id_:
+      if (value > MAX_LIBRARY_ID)
+	error ("-mshared-library-id=%s is not between 0 and %d",
+	       arg, MAX_LIBRARY_ID);
+      bfin_lib_id_given = 1;
+      return true;
+
+    default:
+      return true;
+    }
+}
+
 /* Implement the macro OVERRIDE_OPTIONS.  */
 
 void
@@ -1807,19 +1848,8 @@ override_options (void)
     flag_omit_frame_pointer = 1;
 
   /* Library identification */
-  if (bfin_library_id_string)
-    {
-      int id;
-
-      if (! TARGET_ID_SHARED_LIBRARY)
-	error ("-mshared-library-id= specified without -mid-shared-library");
-      id = atoi (bfin_library_id_string);
-      if (id < 0 || id > MAX_LIBRARY_ID)
-	error ("-mshared-library-id=%d is not between 0 and %d", id, MAX_LIBRARY_ID);
-
-      /* From now on, bfin_library_id_string will contain the library offset.  */
-      asprintf ((char **)&bfin_library_id_string, "%d", (id * -4) - 4);
-    }
+  if (bfin_lib_id_given && ! TARGET_ID_SHARED_LIBRARY)
+    error ("-mshared-library-id= specified without -mid-shared-library");
 
   if (TARGET_ID_SHARED_LIBRARY)
     /* ??? Provide a way to use a bigger GOT.  */
@@ -1901,8 +1931,7 @@ asm_conditional_branch (rtx insn, rtx *operands, int n_nops, int predict_taken)
   int bp = predict_taken && len == 0 ? 1 : cbranch_predicted_taken_p (insn);
   int idx = (bp << 1) | (GET_CODE (operands[0]) == EQ ? BRF : BRT);
   output_asm_insn (ccbranch_templates[idx][len], operands);
-  if (n_nops > 0 && bp)
-    abort ();
+  gcc_assert (n_nops == 0 || !bp);
   if (len == 0)
     while (n_nops-- > 0)
       output_asm_insn ("nop;", NULL);
@@ -1923,10 +1952,8 @@ bfin_gen_compare (rtx cmp, enum machine_mode mode ATTRIBUTE_UNUSED)
      do not need to emit another comparison.  */
   if (GET_MODE (op0) == BImode)
     {
-      if ((code == NE || code == EQ) && op1 == const0_rtx)
-	tem = op0, code2 = code;
-      else
-	abort ();
+      gcc_assert ((code == NE || code == EQ) && op1 == const0_rtx);
+      tem = op0, code2 = code;
     }
   else
     {
@@ -2360,15 +2387,19 @@ void
 output_push_multiple (rtx insn, rtx *operands)
 {
   char buf[80];
+  int ok;
+  
   /* Validate the insn again, and compute first_[dp]reg_to_save. */
-  if (! push_multiple_operation (PATTERN (insn), VOIDmode))
-    abort ();
+  ok = push_multiple_operation (PATTERN (insn), VOIDmode);
+  gcc_assert (ok);
+  
   if (first_dreg_to_save == 8)
     sprintf (buf, "[--sp] = ( p5:%d );\n", first_preg_to_save);
   else if (first_preg_to_save == 6)
     sprintf (buf, "[--sp] = ( r7:%d );\n", first_dreg_to_save);
   else
-    sprintf (buf, "[--sp] = ( r7:%d, p5:%d );\n", first_dreg_to_save, first_preg_to_save);
+    sprintf (buf, "[--sp] = ( r7:%d, p5:%d );\n",
+	     first_dreg_to_save, first_preg_to_save);
 
   output_asm_insn (buf, operands);
 }
@@ -2380,16 +2411,19 @@ void
 output_pop_multiple (rtx insn, rtx *operands)
 {
   char buf[80];
+  int ok;
+  
   /* Validate the insn again, and compute first_[dp]reg_to_save. */
-  if (! pop_multiple_operation (PATTERN (insn), VOIDmode))
-    abort ();
+  ok = pop_multiple_operation (PATTERN (insn), VOIDmode);
+  gcc_assert (ok);
 
   if (first_dreg_to_save == 8)
     sprintf (buf, "( p5:%d ) = [sp++];\n", first_preg_to_save);
   else if (first_preg_to_save == 6)
     sprintf (buf, "( r7:%d ) = [sp++];\n", first_dreg_to_save);
   else
-    sprintf (buf, "( r7:%d, p5:%d ) = [sp++];\n", first_dreg_to_save, first_preg_to_save);
+    sprintf (buf, "( r7:%d, p5:%d ) = [sp++];\n",
+	     first_dreg_to_save, first_preg_to_save);
 
   output_asm_insn (buf, operands);
 }
@@ -2397,7 +2431,7 @@ output_pop_multiple (rtx insn, rtx *operands)
 /* Adjust DST and SRC by OFFSET bytes, and generate one move in mode MODE.  */
 
 static void
-single_move_for_strmov (rtx dst, rtx src, enum machine_mode mode, HOST_WIDE_INT offset)
+single_move_for_movmem (rtx dst, rtx src, enum machine_mode mode, HOST_WIDE_INT offset)
 {
   rtx scratch = gen_reg_rtx (mode);
   rtx srcmem, dstmem;
@@ -2413,7 +2447,7 @@ single_move_for_strmov (rtx dst, rtx src, enum machine_mode mode, HOST_WIDE_INT 
    back on a different method.  */
 
 bool
-bfin_expand_strmov (rtx dst, rtx src, rtx count_exp, rtx align_exp)
+bfin_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp)
 {
   rtx srcreg, destreg, countreg;
   HOST_WIDE_INT align = 0;
@@ -2458,7 +2492,7 @@ bfin_expand_strmov (rtx dst, rtx src, rtx count_exp, rtx align_exp)
 	{
 	  if ((count & ~3) == 4)
 	    {
-	      single_move_for_strmov (dst, src, SImode, offset);
+	      single_move_for_movmem (dst, src, SImode, offset);
 	      offset = 4;
 	    }
 	  else if (count & ~3)
@@ -2470,7 +2504,7 @@ bfin_expand_strmov (rtx dst, rtx src, rtx count_exp, rtx align_exp)
 	    }
 	  if (count & 2)
 	    {
-	      single_move_for_strmov (dst, src, HImode, offset);
+	      single_move_for_movmem (dst, src, HImode, offset);
 	      offset += 2;
 	    }
 	}
@@ -2478,7 +2512,7 @@ bfin_expand_strmov (rtx dst, rtx src, rtx count_exp, rtx align_exp)
 	{
 	  if ((count & ~1) == 2)
 	    {
-	      single_move_for_strmov (dst, src, HImode, offset);
+	      single_move_for_movmem (dst, src, HImode, offset);
 	      offset = 2;
 	    }
 	  else if (count & ~1)
@@ -2491,7 +2525,7 @@ bfin_expand_strmov (rtx dst, rtx src, rtx count_exp, rtx align_exp)
 	}
       if (count & 1)
 	{
-	  single_move_for_strmov (dst, src, QImode, offset);
+	  single_move_for_movmem (dst, src, QImode, offset);
 	}
       return true;
     }
@@ -2543,7 +2577,7 @@ bfin_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
    which perform the memory reference, are allowed to execute before the
    jump condition is evaluated.
    Therefore, we must insert additional instructions in all places where this
-   could lead to incorrect behaviour.  The manual recommends CSYNC, while
+   could lead to incorrect behavior.  The manual recommends CSYNC, while
    VDSP seems to use NOPs (even though its corresponding compiler option is
    named CSYNC).
 
@@ -2713,7 +2747,7 @@ handle_int_attribute (tree *node, tree name,
 
   if (TREE_CODE (x) != FUNCTION_TYPE)
     {
-      warning ("%qs attribute only applies to functions",
+      warning (OPT_Wattributes, "%qs attribute only applies to functions",
 	       IDENTIFIER_POINTER (name));
       *no_add_attrs = true;
     }
@@ -2774,7 +2808,7 @@ bfin_handle_longcall_attribute (tree *node, tree name,
       && TREE_CODE (*node) != FIELD_DECL
       && TREE_CODE (*node) != TYPE_DECL)
     {
-      warning ("`%s' attribute only applies to functions",
+      warning (OPT_Wattributes, "`%s' attribute only applies to functions",
 	       IDENTIFIER_POINTER (name));
       *no_add_attrs = true;
     }
@@ -2784,7 +2818,8 @@ bfin_handle_longcall_attribute (tree *node, tree name,
       || (strcmp (IDENTIFIER_POINTER (name), "shortcall") == 0
 	  && lookup_attribute ("longcall", TYPE_ATTRIBUTES (*node))))
     {
-      warning ("can't apply both longcall and shortcall attributes to the same function");
+      warning (OPT_Wattributes,
+	       "can't apply both longcall and shortcall attributes to the same function");
       *no_add_attrs = true;
     }
 
@@ -2993,5 +3028,14 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 
 #undef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P bfin_vector_mode_supported_p
+
+#undef TARGET_HANDLE_OPTION
+#define TARGET_HANDLE_OPTION bfin_handle_option
+
+#undef TARGET_DEFAULT_TARGET_FLAGS
+#define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
+
+#undef TARGET_DELEGITIMIZE_ADDRESS
+#define TARGET_DELEGITIMIZE_ADDRESS bfin_delegitimize_address
 
 struct gcc_target targetm = TARGET_INITIALIZER;

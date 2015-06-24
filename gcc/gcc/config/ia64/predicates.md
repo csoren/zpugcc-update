@@ -15,8 +15,8 @@
 ;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 
 ;; True if OP is a valid operand for the MEM of a CALL insn.
 (define_predicate "call_operand"
@@ -89,7 +89,7 @@
       return (offset >= 0 && offset <= size);
 
     default:
-      abort ();
+      gcc_unreachable ();
     }
 })
 
@@ -586,8 +586,6 @@
 (define_predicate "basereg_operand"
   (match_operand 0 "register_operand")
 {
-  if (GET_CODE (op) == SUBREG)
-    op = SUBREG_REG (op);
-  return REG_POINTER (op);
+  return REG_P (op) && REG_POINTER (op);
 })
 

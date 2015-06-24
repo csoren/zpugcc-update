@@ -229,7 +229,17 @@
 #    define ARM32
 #    define mach_type_known
 # endif
+# if defined(LINUX) && defined(__cris__)
+#    ifndef CRIS
+#	define CRIS
+#    endif
+#    define mach_type_known
+# endif
 # if defined(LINUX) && (defined(powerpc) || defined(__powerpc__) || defined(powerpc64) || defined(__powerpc64__))
+#    define POWERPC
+#    define mach_type_known
+# endif
+# if defined(FREEBSD) && (defined(powerpc) || defined(__powerpc__))
 #    define POWERPC
 #    define mach_type_known
 # endif
@@ -277,8 +287,9 @@
 #   define MACOS
 #   define mach_type_known
 # endif
-# if defined(macosx) || \
-     defined(__APPLE__) && defined(__MACH__) && defined(__ppc__)
+# if defined(macosx) \
+     || defined(__APPLE__) && defined(__MACH__) && defined(__ppc__) \
+     || defined(__APPLE__) && defined(__MACH__) && defined(__ppc64__)
 #    define DARWIN
 #    define POWERPC
 #    define mach_type_known
@@ -475,6 +486,8 @@
 		    /*		   POWERPC    ==> IBM/Apple PowerPC	*/
 		    /*			(MACOS(<=9),DARWIN(incl.MACOSX),*/
 		    /*			 LINUX, NETBSD, NOSYS variants)	*/
+		    /*		   CRIS       ==> Axis Etrax		*/
+		    /*		   M32R	      ==> Renesas M32R		*/
 
 
 /*
@@ -757,7 +770,12 @@
 #     define DATAEND (_end)
 #   endif
 #   ifdef DARWIN
-#     define ALIGNMENT 4
+#     if (defined (__ppc64__))
+#       define ALIGNMENT 8
+#       define CPP_WORDSZ 64
+#     else
+#       define ALIGNMENT 4
+#     endif
 #     define OS_TYPE "DARWIN"
 #     define DYNAMIC_LOADING
       /* XXX: see get_end(3), get_etext() and get_end() should not be used.
@@ -783,6 +801,22 @@
       /* There seems to be some issues with trylock hanging on darwin. This
          should be looked into some more */
 #     define NO_PTHREAD_TRYLOCK
+#   endif
+#   ifdef FREEBSD
+#       define ALIGNMENT 4
+#       define OS_TYPE "FREEBSD"
+#       ifndef GC_FREEBSD_THREADS
+#           define MPROTECT_VDB
+#       endif
+#       define SIG_SUSPEND SIGUSR1
+#       define SIG_THR_RESTART SIGUSR2
+#       define FREEBSD_STACKBOTTOM
+#       ifdef __ELF__
+#           define DYNAMIC_LOADING
+#       endif
+        extern char etext[];
+        extern char * GC_FreeBSDGetDataStart();
+#       define DATASTART GC_FreeBSDGetDataStart(0x1000, &etext)
 #   endif
 #   ifdef NETBSD
 #     define ALIGNMENT 4
@@ -1796,6 +1830,19 @@
 #   endif
 #endif
 
+# ifdef CRIS
+#   define MACH_TYPE "CRIS"
+#   define CPP_WORDSZ 32
+#   define ALIGNMENT 1
+#   define OS_TYPE "LINUX"
+#   define DYNAMIC_LOADING
+#   define LINUX_STACKBOTTOM
+#   define USE_GENERIC_PUSH_REGS
+#   define SEARCH_FOR_DATA_START
+      extern int _end[];
+#   define DATAEND (_end)
+# endif
+
 # ifdef SH
 #   define MACH_TYPE "SH"
 #   define ALIGNMENT 4
@@ -2061,7 +2108,7 @@
 # endif
 
 # if defined(HP_PA) || defined(M88K) || defined(POWERPC) && !defined(DARWIN) \
-	     || defined(LINT) || defined(MSWINCE) || defined(ARM32) \
+	     || defined(LINT) || defined(MSWINCE) || defined(ARM32) || defined(CRIS) \
 	     || (defined(I386) && defined(__LCC__))
 	/* Use setjmp based hack to mark from callee-save registers.    */
 	/* The define should move to the individual platform 		*/

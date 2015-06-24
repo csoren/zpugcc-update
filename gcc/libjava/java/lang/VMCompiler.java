@@ -15,8 +15,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GNU Classpath; see the file COPYING.  If not, write to the
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-02111-1307 USA.
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
 
 Linking this library statically or dynamically with other modules is
 making a combined work based on this library.  Thus, the terms and
@@ -80,22 +80,18 @@ final class VMCompiler
   private static Vector precompiledMapFiles;
 
   // We create a single MD5 engine and then clone it whenever we want
-  // a new one.  This is simpler than trying to find a new one each
-  // time, and it avoids potential deadlocks due to class loader
-  // oddities.
-  private static final MessageDigest md5Digest;
+  // a new one.
 
-  static
-  {
-    try
-      {
-	md5Digest = MessageDigest.getInstance("MD5");
-      }
-    catch (NoSuchAlgorithmException _)
-      {
-	md5Digest = null;
-      }
-  }
+  // We don't use 
+  //
+  // md5Digest = MessageDigest.getInstance("MD5");
+  //
+  // here because that loads a great deal of security provider code as
+  // interpreted bytecode -- before we're able to use this class to
+  // load precompiled classes.
+
+  private static final MessageDigest md5Digest
+    = new gnu.java.security.provider.MD5();
 
   static
   {

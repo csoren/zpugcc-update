@@ -1,6 +1,6 @@
 /* Handle errors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation,
-   Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software
+   Foundation, Inc.
    Contributed by Andy Vaught & Niels Kristian Bech Jensen
 
 This file is part of GCC.
@@ -17,8 +17,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* Handle the inevitable errors.  A major catch here is that things
    flagged as errors in one match subroutine can conceivably be legal
@@ -118,7 +118,7 @@ error_string (const char *p)
    locus.  Calls error_printf() recursively, but the recursion is at
    most one level deep.  */
 
-static void error_printf (const char *, ...) ATTRIBUTE_PRINTF_1;
+static void error_printf (const char *, ...) ATTRIBUTE_GCC_GFC(1,2);
 
 static void
 show_locus (int offset, locus * loc)
@@ -314,7 +314,7 @@ separate:
 #define IBUF_LEN 30
 #define MAX_ARGS 10
 
-static void
+static void ATTRIBUTE_GCC_GFC(2,0)
 error_print (const char *type, const char *format0, va_list argp)
 {
   char c, *p, int_buf[IBUF_LEN], c_arg[MAX_ARGS], *cp_arg[MAX_ARGS];
@@ -449,12 +449,12 @@ error_print (const char *type, const char *format0, va_list argp)
 /* Wrapper for error_print().  */
 
 static void
-error_printf (const char *format, ...)
+error_printf (const char *nocmsgid, ...)
 {
   va_list argp;
 
-  va_start (argp, format);
-  error_print ("", format, argp);
+  va_start (argp, nocmsgid);
+  error_print ("", _(nocmsgid), argp);
   va_end (argp);
 }
 
@@ -462,7 +462,7 @@ error_printf (const char *format, ...)
 /* Issue a warning.  */
 
 void
-gfc_warning (const char *format, ...)
+gfc_warning (const char *nocmsgid, ...)
 {
   va_list argp;
 
@@ -473,23 +473,39 @@ gfc_warning (const char *format, ...)
   warning_buffer.index = 0;
   cur_error_buffer = &warning_buffer;
 
-  va_start (argp, format);
+  va_start (argp, nocmsgid);
   if (buffer_flag == 0)
     warnings++;
-  error_print ("Warning:", format, argp);
+  error_print (_("Warning:"), _(nocmsgid), argp);
   va_end (argp);
 
   error_char ('\0');
 }
 
 
+/* Whether, for a feature included in a given standard set (GFC_STD_*),
+   we should issue an error or a warning, or be quiet.  */
+
+notification
+gfc_notification_std (int std)
+{
+  bool warning;
+
+  warning = ((gfc_option.warn_std & std) != 0) && !inhibit_warnings;
+  if ((gfc_option.allow_std & std) != 0 && !warning)
+    return SILENT;
+
+  return warning ? WARNING : ERROR;
+}
+
+
 /* Possibly issue a warning/error about use of a nonstandard (or deleted)
    feature.  An error/warning will be issued if the currently selected
    standard does not contain the requested bits.  Return FAILURE if
-   and error is generated.  */
+   an error is generated.  */
 
 try
-gfc_notify_std (int std, const char *format, ...)
+gfc_notify_std (int std, const char *nocmsgid, ...)
 {
   va_list argp;
   bool warning;
@@ -514,11 +530,11 @@ gfc_notify_std (int std, const char *format, ...)
       else
 	errors++;
     }
-  va_start (argp, format);
+  va_start (argp, nocmsgid);
   if (warning)
-    error_print ("Warning:", format, argp);
+    error_print (_("Warning:"), _(nocmsgid), argp);
   else
-    error_print ("Error:", format, argp);
+    error_print (_("Error:"), _(nocmsgid), argp);
   va_end (argp);
 
   error_char ('\0');
@@ -529,7 +545,7 @@ gfc_notify_std (int std, const char *format, ...)
 /* Immediate warning (i.e. do not buffer the warning).  */
 
 void
-gfc_warning_now (const char *format, ...)
+gfc_warning_now (const char *nocmsgid, ...)
 {
   va_list argp;
   int i;
@@ -541,8 +557,8 @@ gfc_warning_now (const char *format, ...)
   buffer_flag = 0;
   warnings++;
 
-  va_start (argp, format);
-  error_print ("Warning:", format, argp);
+  va_start (argp, nocmsgid);
+  error_print (_("Warning:"), _(nocmsgid), argp);
   va_end (argp);
 
   error_char ('\0');
@@ -578,7 +594,7 @@ gfc_warning_check (void)
 /* Issue an error.  */
 
 void
-gfc_error (const char *format, ...)
+gfc_error (const char *nocmsgid, ...)
 {
   va_list argp;
 
@@ -589,10 +605,10 @@ gfc_error (const char *format, ...)
   error_buffer.index = 0;
   cur_error_buffer = &error_buffer;
 
-  va_start (argp, format);
+  va_start (argp, nocmsgid);
   if (buffer_flag == 0)
     errors++;
-  error_print ("Error:", format, argp);
+  error_print (_("Error:"), _(nocmsgid), argp);
   va_end (argp);
 
   error_char ('\0');
@@ -602,7 +618,7 @@ gfc_error (const char *format, ...)
 /* Immediate error.  */
 
 void
-gfc_error_now (const char *format, ...)
+gfc_error_now (const char *nocmsgid, ...)
 {
   va_list argp;
   int i;
@@ -615,8 +631,8 @@ gfc_error_now (const char *format, ...)
   buffer_flag = 0;
   errors++;
 
-  va_start (argp, format);
-  error_print ("Error:", format, argp);
+  va_start (argp, nocmsgid);
+  error_print (_("Error:"), _(nocmsgid), argp);
   va_end (argp);
 
   error_char ('\0');
@@ -630,14 +646,14 @@ gfc_error_now (const char *format, ...)
 /* Fatal error, never returns.  */
 
 void
-gfc_fatal_error (const char *format, ...)
+gfc_fatal_error (const char *nocmsgid, ...)
 {
   va_list argp;
 
   buffer_flag = 0;
 
-  va_start (argp, format);
-  error_print ("Fatal Error:", format, argp);
+  va_start (argp, nocmsgid);
+  error_print (_("Fatal Error:"), _(nocmsgid), argp);
   va_end (argp);
 
   exit (3);
@@ -741,13 +757,13 @@ gfc_free_error (gfc_error_buf * err)
 /* Debug wrapper for printf.  */
 
 void
-gfc_status (const char *format, ...)
+gfc_status (const char *cmsgid, ...)
 {
   va_list argp;
 
-  va_start (argp, format);
+  va_start (argp, cmsgid);
 
-  vprintf (format, argp);
+  vprintf (_(cmsgid), argp);
 
   va_end (argp);
 }

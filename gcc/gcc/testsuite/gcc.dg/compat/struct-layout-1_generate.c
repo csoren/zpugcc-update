@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* Compile with gcc -o struct-layout-1_generate{,.c} generate_random{,_r}.c */
 
@@ -656,7 +656,7 @@ struct entry
 #define HASH_SIZE 32749 
 static struct entry *hash_table[HASH_SIZE];
 
-static int idx, limidx, output_one;
+static int idx, limidx, output_one, short_enums;
 static const char *destdir;
 static const char *srcdir;
 FILE *outfile;
@@ -696,6 +696,7 @@ switchfiles (int fields)
   fprintf (outfile, "\
 /* { dg-options \"-I%s\" } */\n\
 /* { dg-options \"-I%s -fno-common\" { target hppa*-*-hpux* } } */\n\
+/* { dg-options \"-I%s -mno-base-addresses\" { target mmix-*-* } } */\n\
 #include \"struct-layout-1.h\"\n\
 \n\
 #define TX(n, type, attrs, fields, ops) extern void test##n (void);\n\
@@ -713,7 +714,7 @@ int main (void)\n\
       abort ();\n\
     }\n\
   exit (0);\n\
-}\n", srcdir, srcdir, filecnt, filecnt);
+}\n", srcdir, srcdir, srcdir, filecnt, filecnt);
   fclose (outfile);
   sprintf (destptr, "t%03d_x.c", filecnt);
   outfile = fopen (destbuf, "w");
@@ -722,10 +723,11 @@ int main (void)\n\
   fprintf (outfile, "\
 /* { dg-options \"-w -I%s\" } */\n\
 /* { dg-options \"-w -I%s -fno-common\" { target hppa*-*-hpux* } } */\n\
+/* { dg-options \"-w -I%s -mno-base-addresses\" { target mmix-*-* } } */\n\
 #include \"struct-layout-1_x1.h\"\n\
 #include \"t%03d_test.h\"\n\
 #include \"struct-layout-1_x2.h\"\n\
-#include \"t%03d_test.h\"\n", srcdir, srcdir, filecnt, filecnt);
+#include \"t%03d_test.h\"\n", srcdir, srcdir, srcdir, filecnt, filecnt);
   fclose (outfile);
   sprintf (destptr, "t%03d_y.c", filecnt);
   outfile = fopen (destbuf, "w");
@@ -734,10 +736,11 @@ int main (void)\n\
   fprintf (outfile, "\
 /* { dg-options \"-w -I%s\" } */\n\
 /* { dg-options \"-w -I%s -fno-common\" { target hppa*-*-hpux* } } */\n\
+/* { dg-options \"-w -I%s -mno-base-addresses\" { target mmix-*-* } } */\n\
 #include \"struct-layout-1_y1.h\"\n\
 #include \"t%03d_test.h\"\n\
 #include \"struct-layout-1_y2.h\"\n\
-#include \"t%03d_test.h\"\n", srcdir, srcdir, filecnt, filecnt);
+#include \"t%03d_test.h\"\n", srcdir, srcdir, srcdir, filecnt, filecnt);
   fclose (outfile);
   sprintf (destptr, "t%03d_test.h", filecnt);
   outfile = fopen (destbuf, "w");
@@ -786,6 +789,13 @@ subfield (struct entry *e, char *letter)
 	    snprintf (buf, 20, "%c[]", *letter);
 	  else
 	    snprintf (buf, 20, "%c[%d]", *letter, e[0].arr_len);
+	  /* If this is an array type, do not put aligned attributes on
+	     elements.  Aligning elements to a value greater than their
+	     size will result in a compiler error.  */
+	  if (type == 1
+	      && ((strncmp (e[0].attrib, "atal", 4) == 0)
+		   || strncmp (e[0].attrib, "atpaal", 6) == 0))
+	    type = 2;
 	}
       else
         {
@@ -842,18 +852,32 @@ subfield (struct entry *e, char *letter)
         }
       ++*letter;
       if (e[0].attrib)
-	switch (generate_random () % 3)
-          {
-          case 0:
-            fprintf (outfile, "%s %s %s;", e[0].attrib, e[0].type->name, buf);
-            break;
-          case 1:
-            fprintf (outfile, "%s %s %s;", e[0].type->name, e[0].attrib, buf);
-            break;
-          case 2:
-            fprintf (outfile, "%s %s %s;", e[0].type->name, buf, e[0].attrib);
-            break;
-          }
+	{
+	  /* If this is an array type, do not put aligned attributes on
+	     elements.  Aligning elements to a value greater than their
+	     size will result in a compiler error.  */
+	  if (e[0].etype == ETYPE_ARRAY
+              && ((strncmp (e[0].attrib, "atal", 4) == 0)
+                   || strncmp (e[0].attrib, "atpaal", 6) == 0))
+	    type = 2;
+	  else
+            type = generate_random () % 3;
+	  switch (type)
+	    {
+	    case 0:
+	      fprintf (outfile, "%s %s %s;", e[0].attrib, e[0].type->name,
+		       buf);
+	      break;
+	    case 1:
+	      fprintf (outfile, "%s %s %s;", e[0].type->name, e[0].attrib,
+		       buf);
+	      break;
+	    case 2:
+	      fprintf (outfile, "%s %s %s;", e[0].type->name, buf,
+		       e[0].attrib);
+	      break;
+	    }
+	}
       else
 	fprintf (outfile, "%s %s;", e[0].type->name, buf);
       return 1;
@@ -1645,10 +1669,14 @@ generate_fields (enum FEATURE features, struct entry *e, struct entry *parent,
 		    abort ();
 		  if (!mi)
 		    mi = 1;
-		  if (mi <= 32)
-		    ma = 32;
-		  else
+		  if (mi > 32)
 		    ma = 64;
+		  else if (mi > 16 || !short_enums)
+		    ma = 32;
+		  else if (mi > 8)
+		    ma = 16;
+		  else
+		    ma = 8;
 		  break;
 		default:
 		  abort ();
@@ -1821,6 +1849,10 @@ main (int argc, char **argv)
 	  output_one = 1;
 	  limidx = atoi (optarg);
 	  break;
+	case 'e':
+	  short_enums = 1;
+	  i--;
+	  break;
 	default:
 	  fprintf (stderr, "unrecognized option %s\n", argv[i]);
 	  goto usage;
@@ -1843,7 +1875,7 @@ main (int argc, char **argv)
     {
     usage:
       fprintf (stderr, "Usage:\n\
-%s [-s srcdir -d destdir] [-n count] [-i idx]\n\
+%s [-e] [-s srcdir -d destdir] [-n count] [-i idx]\n\
 Either -s srcdir -d destdir or -i idx must be used\n", argv[0]);
       return 1;
     }

@@ -18,8 +18,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -164,7 +164,7 @@ static const unsigned char *
   decode_signature_piece (FILE *, const unsigned char *,
 			  const unsigned char *, int *);
 static void print_class_decls (FILE *, JCF *, int);
-static void error (const char *gmsgid, ...);
+static void error (const char *gmsgid, ...) ATTRIBUTE_PRINTF_1;
 static void usage (void) ATTRIBUTE_NORETURN;
 static void help (void) ATTRIBUTE_NORETURN;
 static void version (void) ATTRIBUTE_NORETURN;
@@ -2417,6 +2417,7 @@ main (int argc, char** argv)
   char *output_file = NULL;
   int emit_dependencies = 0, suppress_output = 0;
   int opt;
+  int local_found_error;
 
   /* Unlock the stdio streams.  */
   unlock_std_streams ();
@@ -2564,11 +2565,17 @@ main (int argc, char** argv)
       exit (1);
     }
 
+  local_found_error = 0;
   for (argi = optind; argi < argc; argi++)
     {
       char *classname = argv[argi];
-      char *current_output_file;
+      char *current_output_file = NULL;
       const char *classfile_name;
+
+      /* We reset the error state here so that we can detect errors
+	 that occur when processing this file, so the output can be
+	 unlinked if need be.  */
+      found_error = 0;
 
       if (verbose)
 	printf (_("Processing %s\n"), classname);
@@ -2645,13 +2652,22 @@ main (int argc, char** argv)
       free_method_name_list ();
       process_file (&jcf, out);
       JCF_FINISH (&jcf);
+
+      /* If we found an error and we're writing to a real file,
+	 delete it.  */
+      if (found_error && ! suppress_output && current_output_file != NULL
+	  && strcmp (current_output_file, "-"))
+	unlink (current_output_file);
+
       if (current_output_file != output_file)
 	free (current_output_file);
       jcf_dependency_write ();
+
+      local_found_error |= found_error;
     }
 
   if (out != NULL && out != stdout)
     fclose (out);
 
-  return found_error;
+  return local_found_error;
 }

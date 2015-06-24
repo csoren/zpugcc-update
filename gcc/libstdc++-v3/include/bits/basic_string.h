@@ -16,7 +16,7 @@
 
 // You should have received a copy of the GNU General Public License along
 // with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
 // As a special exception, you may use this file as part of a free software
@@ -109,17 +109,19 @@ namespace std
   template<typename _CharT, typename _Traits, typename _Alloc>
     class basic_string
     {
+      typedef typename _Alloc::template rebind<_CharT>::other _CharT_alloc_type;
+
       // Types:
     public:
       typedef _Traits					    traits_type;
       typedef typename _Traits::char_type		    value_type;
       typedef _Alloc					    allocator_type;
-      typedef typename _Alloc::size_type		    size_type;
-      typedef typename _Alloc::difference_type		    difference_type;
-      typedef typename _Alloc::reference		    reference;
-      typedef typename _Alloc::const_reference		    const_reference;
-      typedef typename _Alloc::pointer			    pointer;
-      typedef typename _Alloc::const_pointer		    const_pointer;
+      typedef typename _CharT_alloc_type::size_type	    size_type;
+      typedef typename _CharT_alloc_type::difference_type   difference_type;
+      typedef typename _CharT_alloc_type::reference	    reference;
+      typedef typename _CharT_alloc_type::const_reference   const_reference;
+      typedef typename _CharT_alloc_type::pointer	    pointer;
+      typedef typename _CharT_alloc_type::const_pointer	    const_pointer;
       typedef __gnu_cxx::__normal_iterator<pointer, basic_string>  iterator;
       typedef __gnu_cxx::__normal_iterator<const_pointer, basic_string>
                                                             const_iterator;
@@ -175,7 +177,10 @@ namespace std
 
         static _Rep&
         _S_empty_rep()
-        { return *reinterpret_cast<_Rep*>(&_S_empty_rep_storage); }
+        {
+	  void* __p = reinterpret_cast<void*>(&_S_empty_rep_storage);
+	  return *reinterpret_cast<_Rep*>(__p);
+	}
 
         bool
 	_M_is_leaked() const
@@ -2370,6 +2375,10 @@ namespace std
     basic_istream<_CharT, _Traits>&
     operator>>(basic_istream<_CharT, _Traits>& __is,
 	       basic_string<_CharT, _Traits, _Alloc>& __str);
+
+  template<>
+    basic_istream<char>&
+    operator>>(basic_istream<char>& __is, basic_string<char>& __str);
 
   /**
    *  @brief  Write string to a stream.

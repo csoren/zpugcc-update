@@ -1,10 +1,15 @@
-//PR c++/28258
+// PR c++/21930
+// Test case by Volker Reichelt
+// { dg-do compile }
 
-struct A 
-{            // { dg-error "" }
-  A(void x); // { dg-error "invalid use|incomplete type|candidates" }
-};
+template<int> struct A {};
 
-struct B : A {}; // { dg-error "no matching function for call" }
- 
-B b; // { dg-error "synthesized method" }
+template<int N>
+void foo(const A<N> &a)
+{ -A<N>(a); } // { dg-error "\\(\\(const A<0>\\*\\)a\\)" "" }
+
+void bar()
+{
+    foo(A<0>()); // { dg-error "instantiated from here" "" }
+}
+

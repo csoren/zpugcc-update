@@ -1,5 +1,5 @@
 /* { dg-do run } */
-/* { dg-error "" "unrecognizable insn" { target sparc*-*-* } 0 } */
+/* { dg-require-effective-target tls_runtime } */
 
 extern void abort (void);
 extern void *memset (void *, int, __SIZE_TYPE__);

@@ -16,8 +16,8 @@
 # GNU General Public License for more details.
 #
 # For a copy of the GNU General Public License, write the the
-# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA.
+# Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+# Boston, MA 02110-1301, USA.
 
 function pass(msg)	{
 			  passes++;
@@ -40,17 +40,20 @@ BEGIN			{ skip = 1; passes = 0; fails = 0; }
 /^PASS.*-2.c/		{ ignore(); next }
 # dg-xfail-if applies to the compile step; these should be XPASS for the
 # compile step on dox tests, which are run tests.
-/^XPASS.*dox.*xiff.*-1.c.*(test for excess errors)/ { ignore(); next }
+/^XPASS.*dox.*xiff.*-1.c.*\(test for excess errors\)/ { ignore(); next }
 # xfail for scan-assembler-not tests doesn't apply to the compile step.
-/^PASS.*sa.*-1.c.*(test for excess errors)/ { ignore(); next }
+/^PASS.*sa.*-1.c.*\(test for excess errors\)/ { ignore(); next }
+# ignore compile step, tests for warnings for output-exists[-not] tests.
+/dg-outexists.*\(test for excess errors)/ { ignore(); next }
+/dg-outexists.*\(test for warnings/ { ignore(); next }
 # The other dox tests pass the compile step; ignore that message.
-/^PASS.*dox.*(test for excess errors)/ { ignore(); next }
+/^PASS.*dox.*\(test for excess errors\)/ { ignore(); next }
 # The sf tests pass the compile step; ignore that message.
-/^PASS.*sf.*(test for excess errors)/ { ignore(); next }
+/^PASS.*sf.*\(test for excess errors\)/ { ignore(); next }
 # Ignore lines that begin with comma.
 /^,/			{ ignore(); next }
 # For tests of dg-output, ignore successful compilation.
-/^PASS.*dg-output.*(test for excess error)/	{ ignore(); next }
+/^PASS.*dg-output.*\(test for excess errors\)/	{ ignore(); next }
 # For tests of dg-output, ignore successful execution.
 /^PASS.*dg-output.*execution test/	{ ignore(); next }
 /^PASS/			{ if (match ($0, "exp-P")) { pass(); next } }

@@ -25,8 +25,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public
 License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include <stdlib.h>
@@ -34,6 +34,9 @@ Boston, MA 02111-1307, USA.  */
 #include <float.h>
 #include <limits.h>
 #include "libgfortran.h"
+
+
+#if defined (HAVE_GFC_REAL_8) && defined (HAVE_GFC_INTEGER_4)
 
 
 extern void maxloc1_4_r8 (gfc_array_i4 *, gfc_array_r8 *, index_type *);
@@ -94,7 +97,7 @@ maxloc1_4_r8 (gfc_array_i4 *retarray, gfc_array_r8 *array, index_type *pdim)
 	 = internal_malloc_size (sizeof (GFC_INTEGER_4)
 		 		 * retarray->dim[rank-1].stride
 				 * extent[rank-1]);
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
     }
   else
@@ -126,7 +129,7 @@ maxloc1_4_r8 (gfc_array_i4 *retarray, gfc_array_r8 *array, index_type *pdim)
 
   GFC_REAL_8 maxval;
   maxval = -GFC_REAL_8_HUGE;
-  result = 1;
+  result = 0;
         if (len <= 0)
 	  *dest = 0;
 	else
@@ -134,7 +137,7 @@ maxloc1_4_r8 (gfc_array_i4 *retarray, gfc_array_r8 *array, index_type *pdim)
 	    for (n = 0; n < len; n++, src += delta)
 	      {
 
-  if (*src > maxval)
+  if (*src > maxval || !result)
     {
       maxval = *src;
       result = (GFC_INTEGER_4)n + 1;
@@ -245,7 +248,7 @@ mmaxloc1_4_r8 (gfc_array_i4 * retarray, gfc_array_r8 * array,
 	 = internal_malloc_size (sizeof (GFC_INTEGER_4)
 		 		 * retarray->dim[rank-1].stride
 				 * extent[rank-1]);
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
     }
   else
@@ -290,7 +293,7 @@ mmaxloc1_4_r8 (gfc_array_i4 * retarray, gfc_array_r8 * array,
 
   GFC_REAL_8 maxval;
   maxval = -GFC_REAL_8_HUGE;
-  result = 1;
+  result = 0;
         if (len <= 0)
 	  *dest = 0;
 	else
@@ -298,7 +301,7 @@ mmaxloc1_4_r8 (gfc_array_i4 * retarray, gfc_array_r8 * array,
 	    for (n = 0; n < len; n++, src += delta, msrc += mdelta)
 	      {
 
-  if (*msrc && *src > maxval)
+  if (*msrc && (*src > maxval || !result))
     {
       maxval = *src;
       result = (GFC_INTEGER_4)n + 1;
@@ -341,3 +344,58 @@ mmaxloc1_4_r8 (gfc_array_i4 * retarray, gfc_array_r8 * array,
     }
 }
 
+
+extern void smaxloc1_4_r8 (gfc_array_i4 * const restrict, 
+	gfc_array_r8 * const restrict, const index_type * const restrict,
+	GFC_LOGICAL_4 *);
+export_proto(smaxloc1_4_r8);
+
+void
+smaxloc1_4_r8 (gfc_array_i4 * const restrict retarray, 
+	gfc_array_r8 * const restrict array, 
+	const index_type * const restrict pdim, 
+	GFC_LOGICAL_4 * mask)
+{
+  index_type rank;
+  index_type n;
+  index_type dstride;
+  GFC_INTEGER_4 *dest;
+
+  if (*mask)
+    {
+      maxloc1_4_r8 (retarray, array, pdim);
+      return;
+    }
+    rank = GFC_DESCRIPTOR_RANK (array);
+  if (rank <= 0)
+    runtime_error ("Rank of array needs to be > 0");
+
+  if (retarray->data == NULL)
+    {
+      retarray->dim[0].lbound = 0;
+      retarray->dim[0].ubound = rank-1;
+      retarray->dim[0].stride = 1;
+      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->offset = 0;
+      retarray->data = internal_malloc_size (sizeof (GFC_INTEGER_4) * rank);
+    }
+  else
+    {
+      if (GFC_DESCRIPTOR_RANK (retarray) != 1)
+	runtime_error ("rank of return array does not equal 1");
+
+      if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
+        runtime_error ("dimension of return array incorrect");
+
+      if (retarray->dim[0].stride == 0)
+	retarray->dim[0].stride = 1;
+    }
+
+    dstride = retarray->dim[0].stride;
+    dest = retarray->data;
+
+    for (n = 0; n < rank; n++)
+      dest[n * dstride] = 0 ;
+}
+
+#endif

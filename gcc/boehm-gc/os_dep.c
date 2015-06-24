@@ -80,7 +80,7 @@
 #   define NEED_FIND_LIMIT
 # endif
 
-#if defined(FREEBSD) && defined(I386)
+#if defined(FREEBSD) && (defined(I386) || defined(powerpc) || defined(__powerpc__))
 #  include <machine/trap.h>
 #  if !defined(PCR)
 #    define NEED_FIND_LIMIT
@@ -1387,7 +1387,7 @@ int * etext_addr;
 }
 # endif
 
-# if defined(FREEBSD) && defined(I386) && !defined(PCR)
+# if defined(FREEBSD) && (defined(I386) || defined(powerpc) || defined(__powerpc__)) && !defined(PCR)
 /* Its unclear whether this should be identical to the above, or 	*/
 /* whether it should apply to non-X86 architectures.			*/
 /* For now we don't assume that there is always an empty page after	*/
@@ -2519,7 +2519,11 @@ SIG_PF GC_old_segv_handler;	/* Also old MSWIN32 ACCESS_VIOLATION filter */
 #               if defined(ARM32)
                   char * addr = (char *)sc.fault_address;
 #               else
-		  --> architecture not supported
+#		  if defined(CRIS)
+		    char * addr = (char *)sc.regs.csraddr;
+#		  else
+		    --> architecture not supported
+#		  endif
 #               endif
 #	      endif
 #	    endif

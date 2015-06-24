@@ -24,8 +24,8 @@
 !
 !You should have received a copy of the GNU General Public
 !License along with libgfortran; see the file COPYING.  If not,
-!write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-!Boston, MA 02111-1307, USA.
+!write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+!Boston, MA 02110-1301, USA.
 !
 ! Specifics for the intrinsics whose calling conventions change if
 ! -ff2c is used.
@@ -135,11 +135,6 @@ REAL_BODY(cosh)
 REAL_HEAD(tanh)
 REAL_BODY(tanh)
 
-COMPLEX_HEAD(conjg)
-COMPLEX_BODY(conjg)
-DCOMPLEX_HEAD(conjg)
-DCOMPLEX_BODY(conjg)
-
 REAL_HEAD(aint)
 REAL_BODY(aint)
 
@@ -167,3 +162,16 @@ REAL2_BODY(atan2)
 
 REAL2_HEAD(mod)
 REAL2_BODY(mod)
+
+! conjg is special-cased because it is not suffixed _c4 but _4
+subroutine f2c_specific__conjg_4 (res, parm)
+  COMPLEX, intent (in) :: parm
+  COMPLEX, intent (out) :: res
+  res = conjg (parm)
+end subroutine
+subroutine f2c_specific__conjg_8 (res, parm)
+  DOUBLE COMPLEX, intent (in) :: parm
+  DOUBLE COMPLEX, intent (out) :: res
+  res = conjg (parm)
+end subroutine
+

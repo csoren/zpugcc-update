@@ -1,6 +1,6 @@
 /* Matching subroutines in all sizes, shapes and colors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation,
-   Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -17,8 +17,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 
 #include "config.h"
@@ -58,6 +58,7 @@ mstring intrinsic_operators[] = {
     minit (".gt.", INTRINSIC_GT),
     minit (">", INTRINSIC_GT),
     minit (".not.", INTRINSIC_NOT),
+    minit ("parens", INTRINSIC_PARENTHESES),
     minit (NULL, INTRINSIC_NONE)
 };
 
@@ -141,16 +142,17 @@ gfc_match_eos (void)
    old-style character length specifications.  */
 
 match
-gfc_match_small_literal_int (int *value)
+gfc_match_small_literal_int (int *value, int *cnt)
 {
   locus old_loc;
   char c;
-  int i;
+  int i, j;
 
   old_loc = gfc_current_locus;
 
   gfc_gobble_whitespace ();
   c = gfc_next_char ();
+  *cnt = 0;
 
   if (!ISDIGIT (c))
     {
@@ -159,6 +161,7 @@ gfc_match_small_literal_int (int *value)
     }
 
   i = c - '0';
+  j = 1;
 
   for (;;)
     {
@@ -169,6 +172,7 @@ gfc_match_small_literal_int (int *value)
 	break;
 
       i = 10 * i + c - '0';
+      j++;
 
       if (i > 99999999)
 	{
@@ -180,6 +184,7 @@ gfc_match_small_literal_int (int *value)
   gfc_current_locus = old_loc;
 
   *value = i;
+  *cnt = j;
   return MATCH_YES;
 }
 
@@ -217,25 +222,35 @@ gfc_match_small_int (int *value)
    do most of the work.  */
 
 match
-gfc_match_st_label (gfc_st_label ** label, int allow_zero)
+gfc_match_st_label (gfc_st_label ** label)
 {
   locus old_loc;
   match m;
-  int i;
+  int i, cnt;
 
   old_loc = gfc_current_locus;
 
-  m = gfc_match_small_literal_int (&i);
+  m = gfc_match_small_literal_int (&i, &cnt);
   if (m != MATCH_YES)
     return m;
 
-  if (((i == 0) && allow_zero) || i <= 99999)
+  if (cnt > 5)
     {
-      *label = gfc_get_st_label (i);
-      return MATCH_YES;
+      gfc_error ("Too many digits in statement label at %C");
+      goto cleanup;
     }
 
-  gfc_error ("Statement label at %C is out of range");
+  if (i == 0)
+    {
+      gfc_error ("Statement label at %C is zero");
+      goto cleanup;
+    }
+
+  *label = gfc_get_st_label (i);
+  return MATCH_YES;
+
+cleanup:
+
   gfc_current_locus = old_loc;
   return MATCH_ERROR;
 }
@@ -447,6 +462,8 @@ gfc_match_symbol (gfc_symbol ** matched_symbol, int host_assoc)
       else
         *matched_symbol = NULL;
     }
+  else
+    *matched_symbol = NULL;
   return m;
 }
 
@@ -688,7 +705,7 @@ loop:
 
 	case 'l':
 	  label = va_arg (argp, gfc_st_label **);
-	  n = gfc_match_st_label (label, 0);
+	  n = gfc_match_st_label (label);
 	  if (n != MATCH_YES)
 	    {
 	      m = n;
@@ -1041,6 +1058,12 @@ gfc_match_if (gfc_statement * if_type)
   gfc_undo_symbols ();
   gfc_current_locus = old_loc;
 
+  /* m can be MATCH_NO or MATCH_ERROR, here.  For MATCH_NO, continue to
+     call the various matchers.  For MATCH_ERROR, a mangled assignment
+     was found.  */
+  if (m == MATCH_ERROR)
+    return MATCH_ERROR;
+
   gfc_match (" if ( %e ) ", &expr);	/* Guaranteed to match */
 
   m = gfc_match_pointer_assignment ();
@@ -1072,6 +1095,7 @@ gfc_match_if (gfc_statement * if_type)
     match ("deallocate", gfc_match_deallocate, ST_DEALLOCATE)
     match ("end file", gfc_match_endfile, ST_END_FILE)
     match ("exit", gfc_match_exit, ST_EXIT)
+    match ("flush", gfc_match_flush, ST_FLUSH)
     match ("forall", match_simple_forall, ST_FORALL)
     match ("go to", gfc_match_goto, ST_GOTO)
     match ("if", match_arithmetic_if, ST_ARITHMETIC_IF)
@@ -1239,7 +1263,7 @@ gfc_match_do (void)
   if (gfc_match (" do") != MATCH_YES)
     return MATCH_NO;
 
-  m = gfc_match_st_label (&label, 0);
+  m = gfc_match_st_label (&label);
   if (m == MATCH_ERROR)
     goto cleanup;
 
@@ -1272,7 +1296,7 @@ gfc_match_do (void)
   gfc_match_label ();		/* This won't error */
   gfc_match (" do ");		/* This will work */
 
-  gfc_match_st_label (&label, 0);	/* Can't error out */
+  gfc_match_st_label (&label);	/* Can't error out */
   gfc_match_char (',');		/* Optional comma */
 
   m = gfc_match_iterator (&iter, 0);
@@ -1401,19 +1425,20 @@ gfc_match_stopcode (gfc_statement st)
   int stop_code;
   gfc_expr *e;
   match m;
+  int cnt;
 
   stop_code = -1;
   e = NULL;
 
   if (gfc_match_eos () != MATCH_YES)
     {
-      m = gfc_match_small_literal_int (&stop_code);
+      m = gfc_match_small_literal_int (&stop_code, &cnt);
       if (m == MATCH_ERROR)
         goto cleanup;
 
-      if (m == MATCH_YES && stop_code > 99999)
+      if (m == MATCH_YES && cnt > 5)
         {
-          gfc_error ("STOP code out of range at %C");
+          gfc_error ("Too many digits in STOP code at %C");
           goto cleanup;
         }
 
@@ -1582,7 +1607,7 @@ gfc_match_goto (void)
 
       do
 	{
-	  m = gfc_match_st_label (&label, 0);
+	  m = gfc_match_st_label (&label);
 	  if (m != MATCH_YES)
 	    goto syntax;
 
@@ -1628,7 +1653,7 @@ gfc_match_goto (void)
 
   do
     {
-      m = gfc_match_st_label (&label, 0);
+      m = gfc_match_st_label (&label);
       if (m != MATCH_YES)
 	goto syntax;
 
@@ -1748,6 +1773,9 @@ gfc_match_allocate (void)
 		     "PURE procedure");
 	  goto cleanup;
 	}
+
+      if (tail->expr->ts.type == BT_DERIVED)
+	tail->expr->ts.derived = gfc_use_derived (tail->expr->ts.derived);
 
       if (gfc_match_char (',') != MATCH_YES)
 	break;
@@ -1869,7 +1897,7 @@ syntax:
   gfc_syntax_error (ST_NULLIFY);
 
 cleanup:
-  gfc_free_statements (tail);
+  gfc_free_statements (new_st.next);
   return MATCH_ERROR;
 }
 
@@ -2031,12 +2059,6 @@ done:
 
 /* Match a CALL statement.  The tricky part here are possible
    alternate return specifiers.  We handle these by having all
-  gfc_enclosing_unit (&s);
-  if (s == COMP_PROGRAM
-      && gfc_notify_std (GFC_STD_GNU, "Extension: RETURN statement in "
-                        "main program at %C") == FAILURE)
-      return MATCH_ERROR;
-
    "subroutines" actually return an integer via a register that gives
    the return number.  If the call specifies alternate returns, we
    generate code for a SELECT statement whose case clauses contain
@@ -2235,6 +2257,7 @@ gfc_match_common (void)
   gfc_array_spec *as;
   gfc_equiv * e1, * e2;
   match m;
+  gfc_gsymbol *gsym;
 
   old_blank_common = gfc_current_ns->blank_common.head;
   if (old_blank_common)
@@ -2250,6 +2273,23 @@ gfc_match_common (void)
       m = match_common_name (name);
       if (m == MATCH_ERROR)
 	goto cleanup;
+
+      gsym = gfc_get_gsymbol (name);
+      if (gsym->type != GSYM_UNKNOWN && gsym->type != GSYM_COMMON)
+	{
+	  gfc_error ("Symbol '%s' at %C is already an external symbol "
+		     " that is not COMMON", name);
+	  goto cleanup;
+	}
+
+      if (gsym->type == GSYM_UNKNOWN)
+	{
+	  gsym->type = GSYM_COMMON;
+	  gsym->where = gfc_current_locus;
+	  gsym->defined = 1;
+	}
+
+      gsym->used = 1;
 
       if (name[0] == '\0')
 	{
@@ -2492,6 +2532,14 @@ gfc_match_namelist (void)
 	  return MATCH_ERROR;
 	}
 
+      if (group_name->attr.flavor == FL_NAMELIST
+	    && group_name->attr.use_assoc
+	    && gfc_notify_std (GFC_STD_GNU, "Namelist group name '%s' "
+			       "at %C already is USE associated and can"
+			       "not be respecified.", group_name->name)
+		 == FAILURE)
+	return MATCH_ERROR;
+
       if (group_name->attr.flavor != FL_NAMELIST
 	  && gfc_add_flavor (&group_name->attr, FL_NAMELIST,
 			     group_name->name, NULL) == FAILURE)
@@ -2509,8 +2557,24 @@ gfc_match_namelist (void)
 	      && gfc_add_in_namelist (&sym->attr, sym->name, NULL) == FAILURE)
 	    goto error;
 
+	  /* Use gfc_error_check here, rather than goto error, so that this
+	     these are the only errors for the next two lines.  */
+	  if (sym->as && sym->as->type == AS_ASSUMED_SIZE)
+	    {
+	      gfc_error ("Assumed size array '%s' in namelist '%s'at "
+		         "%C is not allowed.", sym->name, group_name->name);
+	      gfc_error_check ();
+	    }
+
+	  if (sym->as && sym->as->type == AS_ASSUMED_SHAPE
+		&& gfc_notify_std (GFC_STD_GNU, "Assumed shape array '%s' in "
+				   "namelist '%s' at %C is an extension.",
+				   sym->name, group_name->name) == FAILURE)
+	    gfc_error_check ();
+
 	  nl = gfc_get_namelist ();
 	  nl->sym = sym;
+	  sym->refs++;
 
 	  if (group_name->namelist == NULL)
 	    group_name->namelist = group_name->namelist_tail = nl;
@@ -2599,6 +2663,7 @@ gfc_match_equivalence (void)
   match m;
   gfc_common_head *common_head = NULL;
   bool common_flag;
+  int cnt;
 
   tail = NULL;
 
@@ -2616,6 +2681,7 @@ gfc_match_equivalence (void)
 
       set = eq;
       common_flag = FALSE;
+      cnt = 0;
 
       for (;;)
 	{
@@ -2624,6 +2690,9 @@ gfc_match_equivalence (void)
 	    goto cleanup;
 	  if (m == MATCH_NO)
 	    goto syntax;
+
+	  /*  count the number of objects.  */
+	  cnt++;
 
 	  if (gfc_match_char ('%') == MATCH_YES)
 	    {
@@ -2655,11 +2724,18 @@ gfc_match_equivalence (void)
 
 	  if (gfc_match_char (')') == MATCH_YES)
 	    break;
+
 	  if (gfc_match_char (',') != MATCH_YES)
 	    goto syntax;
 
 	  set->eq = gfc_get_equiv ();
 	  set = set->eq;
+	}
+
+      if (cnt < 2)
+	{
+	  gfc_error ("EQUIVALENCE at %C requires two or more objects");
+	  goto cleanup;
 	}
 
       /* If one of the members of an equivalence is in common, then
@@ -2705,7 +2781,11 @@ cleanup:
 
 /* Check that a statement function is not recursive. This is done by looking
    for the statement function symbol(sym) by looking recursively through its
-   expression(e).  If a reference to sym is found, true is returned.  */
+   expression(e).  If a reference to sym is found, true is returned.  
+   12.5.4 requires that any variable of function that is implicitly typed
+   shall have that type confirmed by any subsequent type declaration.  The
+   implicit typing is conveniently done here.  */
+
 static bool
 recursive_stmt_fcn (gfc_expr *e, gfc_symbol *sym)
 {
@@ -2739,11 +2819,17 @@ recursive_stmt_fcn (gfc_expr *e, gfc_symbol *sym)
 	    && recursive_stmt_fcn (e->symtree->n.sym->value, sym))
 	return true;
 
+      if (e->symtree->n.sym->ts.type == BT_UNKNOWN)
+	gfc_set_default_type (e->symtree->n.sym, 0, NULL);
+
       break;
 
     case EXPR_VARIABLE:
       if (e->symtree && sym->name == e->symtree->n.sym->name)
 	return true;
+
+      if (e->symtree->n.sym->ts.type == BT_UNKNOWN)
+	gfc_set_default_type (e->symtree->n.sym, 0, NULL);
       break;
 
     case EXPR_OP:
@@ -2932,6 +3018,15 @@ match_case_eos (void)
 
   if (gfc_match_eos () == MATCH_YES)
     return MATCH_YES;
+
+
+  /* If the case construct doesn't have a case-construct-name, we
+     should have matched the EOS.  */
+  if (!gfc_current_block ())
+    {
+      gfc_error ("Expected the name of the select case construct at %C");
+      return MATCH_ERROR;
+    }
 
   gfc_gobble_whitespace ();
 
@@ -3287,6 +3382,13 @@ syntax:
   m = MATCH_ERROR;
 
 cleanup:
+  /* Make sure that potential internal function references in the
+     mask do not get messed up.  */
+  if (iter->var
+	&& iter->var->expr_type == EXPR_VARIABLE
+	&& iter->var->symtree->n.sym->refs == 1)
+    iter->var->symtree->n.sym->attr.flavor = FL_UNKNOWN;
+
   gfc_current_locus = where;
   gfc_free_forall_iterator (iter);
   return m;
@@ -3299,12 +3401,13 @@ static match
 match_forall_header (gfc_forall_iterator ** phead, gfc_expr ** mask)
 {
   gfc_forall_iterator *head, *tail, *new;
+  gfc_expr *msk;
   match m;
 
   gfc_gobble_whitespace ();
 
   head = tail = NULL;
-  *mask = NULL;
+  msk = NULL;
 
   if (gfc_match_char ('(') != MATCH_YES)
     return MATCH_NO;
@@ -3325,6 +3428,7 @@ match_forall_header (gfc_forall_iterator ** phead, gfc_expr ** mask)
       m = match_forall_iterator (&new);
       if (m == MATCH_ERROR)
 	goto cleanup;
+
       if (m == MATCH_YES)
 	{
 	  tail->next = new;
@@ -3334,7 +3438,7 @@ match_forall_header (gfc_forall_iterator ** phead, gfc_expr ** mask)
 
       /* Have to have a mask expression */
 
-      m = gfc_match_expr (mask);
+      m = gfc_match_expr (&msk);
       if (m == MATCH_NO)
 	goto syntax;
       if (m == MATCH_ERROR)
@@ -3347,13 +3451,14 @@ match_forall_header (gfc_forall_iterator ** phead, gfc_expr ** mask)
     goto syntax;
 
   *phead = head;
+  *mask = msk;
   return MATCH_YES;
 
 syntax:
   gfc_syntax_error (ST_FORALL);
 
 cleanup:
-  gfc_free_expr (*mask);
+  gfc_free_expr (msk);
   gfc_free_forall_iterator (head);
 
   return MATCH_ERROR;
@@ -3476,9 +3581,7 @@ gfc_match_forall (gfc_statement * st)
 
   c = gfc_get_code ();
   *c = new_st;
-
-  if (gfc_match_eos () != MATCH_YES)
-    goto syntax;
+  c->loc = gfc_current_locus;
 
   gfc_clear_new_st ();
   new_st.op = EXEC_FORALL;

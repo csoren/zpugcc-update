@@ -25,8 +25,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public
 License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include "libgfortran.h"
@@ -59,7 +59,7 @@ perror_sub (char *string, gfc_charlen_type string_len)
   /* Make a null terminated copy of the strings.  */
   str = gfc_alloca (string_len + 1);
   memcpy (str, string, string_len);
-  str[string_len] = '\0'; 
+  str[string_len] = '\0';
 
   perror (str);
 }

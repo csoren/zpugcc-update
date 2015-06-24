@@ -25,18 +25,18 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public
 License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include <stdlib.h>
 #include <assert.h>
 #include "libgfortran.h"
 
+#if defined (HAVE_GFC_INTEGER_8)
+
 typedef GFC_ARRAY_DESCRIPTOR(1, index_type) shape_type;
 
-/* The shape parameter is ignored. We can currently deduce the shape from the
-   return array.  */
 
 extern void reshape_8 (gfc_array_i8 *, gfc_array_i8 *, shape_type *,
 				    gfc_array_i8 *, shape_type *);
@@ -75,6 +75,7 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
   const GFC_INTEGER_8 *src;
   int n;
   int dim;
+  int sempty, pempty;
 
   if (source->dim[0].stride == 0)
     source->dim[0].stride = 1;
@@ -89,7 +90,7 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
     {
       rdim = shape->dim[0].ubound - shape->dim[0].lbound + 1;
       rs = 1;
-      for (n=0; n < rdim; n++)
+      for (n = 0; n < rdim; n++)
 	{
 	  ret->dim[n].lbound = 0;
 	  rex = shape->data[n * shape->dim[0].stride];
@@ -97,7 +98,7 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
 	  ret->dim[n].stride = rs;
 	  rs *= rex;
 	}
-      ret->base = 0;
+      ret->offset = 0;
       ret->data = internal_malloc_size ( rs * sizeof (GFC_INTEGER_8));
       ret->dtype = (source->dtype & ~GFC_DTYPE_RANK_MASK) | rdim;
     }
@@ -133,13 +134,17 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
 
   sdim = GFC_DESCRIPTOR_RANK (source);
   ssize = 1;
+  sempty = 0;
   for (n = 0; n < sdim; n++)
     {
       scount[n] = 0;
       sstride[n] = source->dim[n].stride;
       sextent[n] = source->dim[n].ubound + 1 - source->dim[n].lbound;
       if (sextent[n] <= 0)
-        abort ();
+	{
+	  sempty = 1;
+	  sextent[n] = 0;
+	}
 
       if (ssize == sstride[n])
         ssize *= sextent[n];
@@ -151,13 +156,18 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
     {
       pdim = GFC_DESCRIPTOR_RANK (pad);
       psize = 1;
+      pempty = 0;
       for (n = 0; n < pdim; n++)
         {
           pcount[n] = 0;
           pstride[n] = pad->dim[n].stride;
           pextent[n] = pad->dim[n].ubound + 1 - pad->dim[n].lbound;
           if (pextent[n] <= 0)
-            abort ();
+	    {
+	      pempty = 1;
+	      pextent[n] = 0;
+	    }
+
           if (psize == pstride[n])
             psize *= pextent[n];
           else
@@ -169,6 +179,7 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
     {
       pdim = 0;
       psize = 1;
+      pempty = 1;
       pptr = NULL;
     }
 
@@ -186,6 +197,24 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
   rstride0 = rstride[0];
   sstride0 = sstride[0];
 
+  if (sempty && pempty)
+    abort ();
+
+  if (sempty)
+    {
+      /* Switch immediately to the pad array.  */
+      src = pptr;
+      sptr = NULL;
+      sdim = pdim;
+      for (dim = 0; dim < pdim; dim++)
+	{
+	  scount[dim] = pcount[dim];
+	  sextent[dim] = pextent[dim];
+	  sstride[dim] = pstride[dim];
+	  sstride0 = sstride[0] * sizeof (GFC_INTEGER_8);
+	}
+    }
+
   while (rptr)
     {
       /* Select between the source and pad arrays.  */
@@ -195,6 +224,7 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
       src += sstride0;
       rcount[0]++;
       scount[0]++;
+
       /* Advance to the next destination element.  */
       n = 0;
       while (rcount[n] == rextent[n])
@@ -256,3 +286,5 @@ reshape_8 (gfc_array_i8 * ret, gfc_array_i8 * source, shape_type * shape,
         }
     }
 }
+
+#endif

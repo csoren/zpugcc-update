@@ -1,24 +1,47 @@
-2007-01-31  Release Manager
+2007-02-13  Release Manager
 
-	* GCC 4.0.4 released.
+	* GCC 4.1.2 released.
 
-2006-03-09  Release Manager
+2006-05-24  Release Manager
 
-	* GCC 4.0.3 released.
+	* GCC 4.1.1 released.
 
-2005-12-06  Matthias Klose  <doko@debian.org>
+2006-04-11  Bryce McKinlay  <mckinlay@redhat.com>
 
-	2005-09-15  Kazu Hirata  <kazu@codesourcery.com>
-	* include/private/gc_locks.h (GC_test_and_set): Change the
-	constraint of the first operand to '0'.
+	* darwin_stop_world.c (GC_push_all_stacks, GC_stop_world,
+	GC_start_world): Call vm_deallocate to free act_list. Fix from
+	Bruce Mitchener.
+
+2006-02-28  Release Manager
+
+	* GCC 4.1.0 released.
+
+2006-02-09  Tom Tromey  <tromey@redhat.com>
+
+	* pthread_support.c: Conditionally include dlfcn.h.
+
+2006-02-06  Jakub Jelinek  <jakub@redhat.com>
+	    Anthony Green  <green@redhat.com>
+	    Tom Tromey  <tromey@redhat.com>
+
+	* include/gc_ext_config.h.in: Added GC_PTHREAD_SYM_VERSION.
+	* include/gc_config.h.in: Rebuilt.
+	* include/gc_pthread_redirects.h (pthread_create): Conditionally
+	define.
+	* pthread_support.c (pthread_create_): New global.
+	(constr): New function.
+	(pthread_create): Conditionally renamed.
+	* configure: Rebuilt.
+	* configure.ac (GC_PTHREAD_SYM_VERSION): Define.
 
 2005-11-01  Bryce McKinlay  <mckinlay@redhat.com>
 
 	* include/private/gc_priv.h: Increase MAX_ROOT_SETS to 1024.
 
-2005-09-20  Release Manager
+2005-09-15  Kazu Hirata  <kazu@codesourcery.com>
 
-	* GCC 4.0.2 released.
+	* include/private/gc_locks.h (GC_test_and_set): Change the
+	constraint of the first operand to '0'.
 
 2005-09-06  Tom Tromey  <tromey@redhat.com>
 
@@ -30,22 +53,47 @@
 
 	* include/private/gcconfig.h (sh-linux): Use LINUX_STACKBOTTOM.
 
-2005-07-07  Release Manager
+2005-06-15  Andreas Tobler  <a.tobler@schweiz.ch>
 
-	* GCC 4.0.1 released.
+	* os_dep.c: Add FreeBSD/PowerPC bits.
+	(GC_SysVGetDataStart): Likewise.
+	* include/private/gcconfig.h: Likewise.
 
 2005-05-25  Andrew Haley  <aph@redhat.com>
 
 	* include/private/gcconfig.h (HBLKSIZE): Define to 4096 on
 	powerpc64-linux.
 
-2005-04-20  Release Manager
+2005-05-09  Mike Stump  <mrs@apple.com>
 
-	* GCC 4.0.0 released.
+	* configure: Regenerate.
+
+2005-04-19  Hans-Peter Nilsson  <hp@axis.com>
+
+	* os_dep.c, include/private/gc_locks.h: Import CRIS port by
+	Simon Posnjak from gc6.4.
+	* include/private/gcconfig.h: Ditto.  Add M32R note from gc6.4.
+
+2005-04-17  David S. Miller  <davem@davemloft.net>
+
+	* include/private/gcconfig.h (sparc-linux): Use LINUX_STACKBOTTOM.
+	* os_dep.c (GC_linux_stack_base): Check for bug present in some
+	Sparc glibc variants where __libc_stack_end is erroneously set
+	to "1".  Fallback to procfs code in that case.
+
+2005-04-12  Mike Stump  <mrs@apple.com>
+
+	* configure: Regenerate.
 
 2005-04-12  Richard Henderson  <rth@redhat.com>
 
 	* include/private/gcconfig.h (alpha-linux): Use LINUX_STACKBOTTOM.
+
+2005-03-23  Mike Stump  <mrs@apple.com>
+
+	* darwin_stop_world.c: Update for -m64 multilib.
+	* include/private/gcconfig.h: Likewise.
+	* powerpc_darwin_mach_dep.s: Likewise.
 
 2005-03-01  Kelley Cook  <kcook@gcc.gnu.org>
 

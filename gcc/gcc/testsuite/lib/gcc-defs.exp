@@ -12,7 +12,7 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+# Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 load_lib wrapper.exp
 
@@ -31,6 +31,11 @@ proc ${tool}_check_compile {testcase option objname gcc_output} {
 
     if [string match "$fatal_signal 11" $gcc_output] then {
 	${tool}_fail $testcase "Got Signal 11, $option"
+	return 0
+    }
+
+    if [string match "*internal compiler error*" $gcc_output] then {
+	${tool}_fail $testcase "$option (internal compiler error)"
 	return 0
     }
 

@@ -1,5 +1,5 @@
 /* Language parser definitions for the GNU compiler for the Java(TM) language.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
    Free Software Foundation, Inc.
    Contributed by Alexandre Petit-Bianco (apbianco@cygnus.com)
 
@@ -17,8 +17,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -120,6 +120,10 @@ extern tree stabilize_reference (tree);
     }
 #endif
 
+#ifdef ATTRIBUTE_GCC_DIAG
+extern void parse_error_context (tree cl, const char *gmsgid, ...) ATTRIBUTE_GCC_DIAG(2,3);
+#endif
+
 #define ABSTRACT_CHECK(FLAG, V, CL, S)				\
   if ((FLAG) & (V))						\
     parse_error_context ((CL), "%s method can't be abstract", (S));
@@ -153,7 +157,7 @@ extern tree stabilize_reference (tree);
    IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (TYPE))))
 
 /* Pedantic warning on obsolete modifiers. Note: when cl is NULL,
-   flags was set artificially, such as for a interface method */
+   flags was set artificially, such as for an interface method.  */
 #define OBSOLETE_MODIFIER_WARNING(cl, flags, __modifier, arg)                \
   {                                                                          \
     if (flag_redundant && (cl) && ((flags) & (__modifier)))		     \
@@ -739,10 +743,6 @@ typedef struct jdeplist_s jdeplist;
 /* Macro to access the osb (opening square bracket) count */
 #define CURRENT_OSB(C) (C)->osb_number [(C)->osb_depth]
 
-/* Macro for the xreferencer */
-#define DECL_END_SOURCE_LINE(DECL)       (DECL_CHECK (DECL)->decl.u1.i)
-#define DECL_INHERITED_SOURCE_LINE(DECL) (DECL_CHECK (DECL)->decl.u2.i)
-     
 /* Parser context data structure. */
 struct parser_ctxt GTY(()) {
   const char *filename;		     /* Current filename */

@@ -15,7 +15,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
 
 /* ANSI and traditional C compatibility macros
 
@@ -258,11 +258,11 @@ So instead we use the macro below and test it against specific values.  */
 
 /* Attributes on labels were valid as of gcc 2.93. */
 #ifndef ATTRIBUTE_UNUSED_LABEL
-# if (GCC_VERSION >= 2093)
+# if (!defined (__cplusplus) && GCC_VERSION >= 2093)
 #  define ATTRIBUTE_UNUSED_LABEL ATTRIBUTE_UNUSED
 # else
 #  define ATTRIBUTE_UNUSED_LABEL
-# endif /* GNUC >= 2.93 */
+# endif /* !__cplusplus && GNUC >= 2.93 */
 #endif /* ATTRIBUTE_UNUSED_LABEL */
 
 #ifndef ATTRIBUTE_UNUSED

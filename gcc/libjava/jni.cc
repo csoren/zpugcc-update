@@ -1,6 +1,6 @@
 // jni.cc - JNI implementation, including the jump table.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation
 
    This file is part of libgcj.
@@ -248,6 +248,12 @@ _Jv_JNI_DeleteGlobalRef (JNIEnv *, jobject obj)
 {
   // This seems weird but I think it is correct.
   obj = unwrap (obj);
+  
+  // NULL is ok here -- the JNI specification doesn't say so, but this
+  // is a no-op.
+  if (! obj)
+    return;
+
   unmark_for_gc (obj, global_ref_table);
 }
 
@@ -258,6 +264,11 @@ _Jv_JNI_DeleteLocalRef (JNIEnv *env, jobject obj)
 
   // This seems weird but I think it is correct.
   obj = unwrap (obj);
+
+  // NULL is ok here -- the JNI specification doesn't say so, but this
+  // is a no-op.
+  if (! obj)
+    return;
 
   for (frame = env->locals; frame != NULL; frame = frame->next)
     {
@@ -1118,10 +1129,10 @@ _Jv_JNI_NewObjectV (JNIEnv *env, jclass klass,
 		    jmethodID id, va_list args)
 {
   JvAssert (klass && ! klass->isArray ());
-  JvAssert (! strcmp (id->name->data, "<init>")
-	    && id->signature->length > 2
-	    && id->signature->data[0] == '('
-	    && ! strcmp (&id->signature->data[id->signature->length - 2],
+  JvAssert (! strcmp (id->name->chars(), "<init>")
+	    && id->signature->len() > 2
+	    && id->signature->chars()[0] == '('
+	    && ! strcmp (&id->signature->chars()[id->signature->len() - 2],
 			 ")V"));
 
   return _Jv_JNI_CallAnyMethodV<jobject, constructor> (env, NULL, klass,
@@ -1132,10 +1143,10 @@ static jobject JNICALL
 _Jv_JNI_NewObject (JNIEnv *env, jclass klass, jmethodID id, ...)
 {
   JvAssert (klass && ! klass->isArray ());
-  JvAssert (! strcmp (id->name->data, "<init>")
-	    && id->signature->length > 2
-	    && id->signature->data[0] == '('
-	    && ! strcmp (&id->signature->data[id->signature->length - 2],
+  JvAssert (! strcmp (id->name->chars(), "<init>")
+	    && id->signature->len() > 2
+	    && id->signature->chars()[0] == '('
+	    && ! strcmp (&id->signature->chars()[id->signature->len() - 2],
 			 ")V"));
 
   va_list args;
@@ -1154,10 +1165,10 @@ _Jv_JNI_NewObjectA (JNIEnv *env, jclass klass, jmethodID id,
 		    jvalue *args)
 {
   JvAssert (klass && ! klass->isArray ());
-  JvAssert (! strcmp (id->name->data, "<init>")
-	    && id->signature->length > 2
-	    && id->signature->data[0] == '('
-	    && ! strcmp (&id->signature->data[id->signature->length - 2],
+  JvAssert (! strcmp (id->name->chars(), "<init>")
+	    && id->signature->len() > 2
+	    && id->signature->chars()[0] == '('
+	    && ! strcmp (&id->signature->chars()[id->signature->len() - 2],
 			 ")V"));
 
   return _Jv_JNI_CallAnyMethodA<jobject, constructor> (env, NULL, klass,
@@ -1853,7 +1864,6 @@ natrehash ()
       nathash =
 	(JNINativeMethod *) _Jv_AllocBytes (nathash_size
 					    * sizeof (JNINativeMethod));
-      memset (nathash, 0, nathash_size * sizeof (JNINativeMethod));
     }
   else
     {
@@ -1863,7 +1873,6 @@ natrehash ()
       nathash =
 	(JNINativeMethod *) _Jv_AllocBytes (nathash_size
 					    * sizeof (JNINativeMethod));
-      memset (nathash, 0, nathash_size * sizeof (JNINativeMethod));
 
       for (int i = 0; i < savesize; ++i)
 	{
@@ -2354,10 +2363,14 @@ _Jv_JNI_AttachCurrentThread (JavaVM *, jstring name, void **penv,
     }
 
   // Attaching an already-attached thread is a no-op.
-  if (_Jv_GetCurrentJNIEnv () != NULL)
-    return 0;
+  JNIEnv *env = _Jv_GetCurrentJNIEnv ();
+  if (env != NULL)
+    {
+      *penv = reinterpret_cast<void *> (env);
+      return 0;
+    }
 
-  JNIEnv *env = (JNIEnv *) _Jv_MallocUnchecked (sizeof (JNIEnv));
+  env = (JNIEnv *) _Jv_MallocUnchecked (sizeof (JNIEnv));
   if (env == NULL)
     return JNI_ERR;
   env->p = &_Jv_JNIFunctions;

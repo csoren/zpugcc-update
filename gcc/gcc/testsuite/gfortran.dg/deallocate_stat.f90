@@ -1,4 +1,5 @@
 ! { dg-do run }
+! PR 17792
 ! PR 21375
 ! Test that the STAT argument to DEALLOCATE works with POINTERS and 
 ! ALLOCATABLE arrays.

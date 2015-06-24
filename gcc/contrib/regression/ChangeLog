@@ -1,6 +1,10 @@
-2007-01-31  Release Manager
+2007-02-13  Release Manager
 
-	* GCC 4.0.4 released.
+	* GCC 4.1.2 released.
+
+2006-05-24  Release Manager
+
+	* GCC 4.1.1 released.
 
 2006-03-31  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -11,21 +15,21 @@
 	g++.sum has moved to gcc/testsuite/g++/g++.sum.
 	objc.sum has moved to gcc/testsuite/objc/objc.sum.
 
-2006-03-09  Release Manager
+2006-02-28  Release Manager
 
-	* GCC 4.0.3 released.
+	* GCC 4.1.0 released.
 
-2005-09-20  Release Manager
+2005-06-07  Hans-Peter Nilsson  <hp@bitrange.com>
 
-	* GCC 4.0.2 released.
+	* btest-gcc.sh: Add support for option
+	--add-passes-despite-regression.
 
-2005-07-07  Release Manager
+2005-06-06  Hans-Peter Nilsson  <hp@axis.com>
 
-	* GCC 4.0.1 released.
+	* btest-gcc.sh <Build>: Don't pass --with-newlib when target is
+	"*-linux*".
 
-2005-04-20  Release Manager
-
-	* GCC 4.0.0 released.
+	* btest-gcc.sh (TESTLOGS): Make libstdc++.sum optional.
 
 2004-11-07  James A. Morrison  <phython@gcc.gnu.org>
 

@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+# Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 # This file was written by Rob Savoye (rob@cygnus.com)
 # Currently maintained by Doug Evans (dje@cygnus.com)
@@ -186,6 +186,11 @@ proc objc_target_compile { source dest type options } {
 	set objc_link_flags "-L${libobjc_dir}"
 	lappend options "additional_flags=${objc_link_flags}"
 	append ld_library_path ":${libobjc_dir}"
+    }
+    if { $type == "precompiled_header" } {
+	# If we generating a precompiled header, we have say this is an
+	# objective-C header
+	set source [concat "-x objective-c-header" $source]
     }
     lappend options "compiler=$OBJC_UNDER_TEST"
 

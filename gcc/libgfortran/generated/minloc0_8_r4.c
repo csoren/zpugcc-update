@@ -25,8 +25,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public
 License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include <stdlib.h>
@@ -35,6 +35,8 @@ Boston, MA 02111-1307, USA.  */
 #include <limits.h>
 #include "libgfortran.h"
 
+
+#if defined (HAVE_GFC_REAL_4) && defined (HAVE_GFC_INTEGER_8)
 
 
 extern void minloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array);
@@ -62,7 +64,7 @@ minloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array)
       retarray->dim[0].ubound = rank-1;
       retarray->dim[0].stride = 1;
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->data = internal_malloc_size (sizeof (GFC_INTEGER_8) * rank);
     }
   else
@@ -102,7 +104,7 @@ minloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array)
 
   /* Initialize the return value.  */
   for (n = 0; n < rank; n++)
-    dest[n * dstride] = 1;
+    dest[n * dstride] = 0;
   {
 
   GFC_REAL_4 minval;
@@ -114,7 +116,7 @@ minloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array)
       {
         /* Implementation start.  */
 
-  if (*base < minval)
+  if (*base < minval || !dest[0])
     {
       minval = *base;
       for (n = 0; n < rank; n++)
@@ -180,7 +182,7 @@ mminloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array,
       retarray->dim[0].ubound = rank-1;
       retarray->dim[0].stride = 1;
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->data = internal_malloc_size (sizeof (GFC_INTEGER_8) * rank);
     }
   else
@@ -235,7 +237,7 @@ mminloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array,
 
   /* Initialize the return value.  */
   for (n = 0; n < rank; n++)
-    dest[n * dstride] = 1;
+    dest[n * dstride] = 0;
   {
 
   GFC_REAL_4 minval;
@@ -247,7 +249,7 @@ mminloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array,
       {
         /* Implementation start.  */
 
-  if (*mbase && *base < minval)
+  if (*mbase && (*base < minval || !dest[0]))
     {
       minval = *base;
       for (n = 0; n < rank; n++)
@@ -286,3 +288,57 @@ mminloc0_8_r4 (gfc_array_i8 * retarray, gfc_array_r4 *array,
     }
   }
 }
+
+
+extern void sminloc0_8_r4 (gfc_array_i8 * const restrict, 
+	gfc_array_r4 * const restrict, GFC_LOGICAL_4 *);
+export_proto(sminloc0_8_r4);
+
+void
+sminloc0_8_r4 (gfc_array_i8 * const restrict retarray, 
+	gfc_array_r4 * const restrict array,
+	GFC_LOGICAL_4 * mask)
+{
+  index_type rank;
+  index_type dstride;
+  index_type n;
+  GFC_INTEGER_8 *dest;
+
+  if (*mask)
+    {
+      minloc0_8_r4 (retarray, array);
+      return;
+    }
+
+  rank = GFC_DESCRIPTOR_RANK (array);
+
+  if (rank <= 0)
+    runtime_error ("Rank of array needs to be > 0");
+
+  if (retarray->data == NULL)
+    {
+      retarray->dim[0].lbound = 0;
+      retarray->dim[0].ubound = rank-1;
+      retarray->dim[0].stride = 1;
+      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->offset = 0;
+      retarray->data = internal_malloc_size (sizeof (GFC_INTEGER_8) * rank);
+    }
+  else
+    {
+      if (GFC_DESCRIPTOR_RANK (retarray) != 1)
+	runtime_error ("rank of return array does not equal 1");
+
+      if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
+        runtime_error ("dimension of return array incorrect");
+
+      if (retarray->dim[0].stride == 0)
+	retarray->dim[0].stride = 1;
+    }
+
+  dstride = retarray->dim[0].stride;
+  dest = retarray->data;
+  for (n = 0; n<rank; n++)
+    dest[n * dstride] = 0 ;
+}
+#endif

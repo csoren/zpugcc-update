@@ -77,7 +77,7 @@ name`'rtype_qual`_'atype_code (rtype *retarray, atype *array, index_type *pdim)
 	 = internal_malloc_size (sizeof (rtype_name)
 		 		 * retarray->dim[rank-1].stride
 				 * extent[rank-1]);
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
     }
   else
@@ -222,7 +222,7 @@ void
 	 = internal_malloc_size (sizeof (rtype_name)
 		 		 * retarray->dim[rank-1].stride
 				 * extent[rank-1]);
-      retarray->base = 0;
+      retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
     }
   else
@@ -310,6 +310,60 @@ define(FINISH_MASKED_ARRAY_FUNCTION,
             }
         }
     }
+}')dnl
+define(SCALAR_ARRAY_FUNCTION,
+`
+extern void `s'name`'rtype_qual`_'atype_code (rtype * const restrict, 
+	atype * const restrict, const index_type * const restrict,
+	GFC_LOGICAL_4 *);
+export_proto(`s'name`'rtype_qual`_'atype_code);
+
+void
+`s'name`'rtype_qual`_'atype_code (rtype * const restrict retarray, 
+	atype * const restrict array, 
+	const index_type * const restrict pdim, 
+	GFC_LOGICAL_4 * mask)
+{
+  index_type rank;
+  index_type n;
+  index_type dstride;
+  rtype_name *dest;
+
+  if (*mask)
+    {
+      name`'rtype_qual`_'atype_code (retarray, array, pdim);
+      return;
+    }
+    rank = GFC_DESCRIPTOR_RANK (array);
+  if (rank <= 0)
+    runtime_error ("Rank of array needs to be > 0");
+
+  if (retarray->data == NULL)
+    {
+      retarray->dim[0].lbound = 0;
+      retarray->dim[0].ubound = rank-1;
+      retarray->dim[0].stride = 1;
+      retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
+      retarray->offset = 0;
+      retarray->data = internal_malloc_size (sizeof (rtype_name) * rank);
+    }
+  else
+    {
+      if (GFC_DESCRIPTOR_RANK (retarray) != 1)
+	runtime_error ("rank of return array does not equal 1");
+
+      if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
+        runtime_error ("dimension of return array incorrect");
+
+      if (retarray->dim[0].stride == 0)
+	retarray->dim[0].stride = 1;
+    }
+
+    dstride = retarray->dim[0].stride;
+    dest = retarray->data;
+
+    for (n = 0; n < rank; n++)
+      dest[n * dstride] = $1 ;
 }')dnl
 define(ARRAY_FUNCTION,
 `START_ARRAY_FUNCTION

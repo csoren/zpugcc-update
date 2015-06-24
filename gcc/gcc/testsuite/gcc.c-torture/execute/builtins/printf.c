@@ -30,8 +30,11 @@ main_test (void)
     abort();
   
   printf ("");
+  printf ("%s", "");
   printf ("\n");
+  printf ("%s", "\n");
   printf ("hello world\n");
+  printf ("%s", "hello world\n");
   
   /* Test at least one instance of the __builtin_ style.  We do this
      to ensure that it works and that the prototype is correct.  */
@@ -44,4 +47,6 @@ main_test (void)
      problems on systems without the unlocked functions.  */
   printf_unlocked ("");
   __builtin_printf_unlocked ("");
+  printf_unlocked ("%s", "");
+  __builtin_printf_unlocked ("%s", "");
 }

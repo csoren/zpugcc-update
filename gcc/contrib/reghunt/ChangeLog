@@ -1,22 +1,18 @@
-2007-01-31  Release Manager
+2007-02-13  Release Manager
 
-	* GCC 4.0.4 released.
+	* GCC 4.1.2 released.
 
-2006-03-09  Release Manager
+2006-05-24  Release Manager
 
-	* GCC 4.0.3 released.
+	* GCC 4.1.1 released.
 
-2005-09-20  Release Manager
+2006-02-28  Release Manager
 
-	* GCC 4.0.2 released.
+	* GCC 4.1.0 released.
 
-2005-07-07  Release Manager
+2005-07-14  Ben Elliston  <bje@au.ibm.com>
 
-	* GCC 4.0.1 released.
-
-2005-04-20  Release Manager
-
-	* GCC 4.0.0 released.
+	* reg_test_template: Typo fix.
 
 2005-01-17  Kazu Hirata  <kazu@cs.umass.edu>
 

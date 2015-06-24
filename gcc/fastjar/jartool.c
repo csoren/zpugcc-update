@@ -15,7 +15,7 @@
   
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 /*
@@ -321,7 +321,7 @@ ub4 end_of_entries;
 #define OPT_HELP     LONG_OPT (0)
 
 /* This holds all options.  */
-#define OPTION_STRING "-ctxuvVf:m:C:0ME@"
+#define OPTION_STRING "-ctxuvVf:m:C:0MiE@"
 
 /* Define the MANIFEST content here to have it easier with calculations
    below.  This is for the case we create an empty MANIFEST.MF.  */
@@ -335,7 +335,8 @@ static const struct option options[] =
   { NULL, no_argument, NULL, 0 }
 };
 
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
 
   char *mfile = NULL;
   
@@ -406,6 +407,9 @@ int main(int argc, char **argv){
     case 'M':
       manifest = FALSE;
       break;
+    case 'i':
+      action = ACTION_INDEX;
+      break;
 
     case OPT_HELP:
       help(argv[0]);
@@ -422,6 +426,13 @@ int main(int argc, char **argv){
       usage(argv[0]);
     }
   }
+
+  if(verbose && action == ACTION_INDEX)
+    fprintf(stderr, "Warning: '-i' option is currently a no-op\n");
+
+  /* FIXME: implement -i option. */
+  if(action == ACTION_INDEX)
+    exit(0);
 
   /* We might have seen `--'.  In this case we want to make sure that
      all following options are handled as file names.  */
@@ -602,9 +613,7 @@ static int args_current_g;
 static char **args_g;
 
 static void 
-init_args(args, current)
-     char **args;
-     int current;
+init_args(char **args, int current)
 {
   if(!read_names_from_stdin)
     {
@@ -614,7 +623,7 @@ init_args(args, current)
 }
 
 static char *
-get_next_arg ()
+get_next_arg (void)
 {
   static int reached_end = 0;
 
@@ -674,7 +683,8 @@ get_next_arg ()
     }
 }
 
-void init_headers(){
+void init_headers(void)
+{
   /* packing file header */
   /* magic number */
   file_header[0] = 0x50;
@@ -725,7 +735,8 @@ void init_headers(){
   
 }
 
-void add_entry(struct zipentry *ze){
+void add_entry(struct zipentry *ze)
+{
 
   if(ziplist == NULL){
     ziplist = ze;
@@ -906,7 +917,8 @@ int read_entries (int fd)
   return 0;
 }
 
-int make_manifest(int jfd, const char *mf_name, int updating){
+int make_manifest(int jfd, const char *mf_name, int updating)
+{
   time_t current_time;
   int nlen;   /* length of file name */
   int mod_time; /* file modification time */
@@ -2220,7 +2232,7 @@ void usage(const char *filename){
   exit (1);
 }
 
-void version ()
+void version (void)
 {
   printf("jar (%s) %s\n\n", PACKAGE, VERSION);
   printf("Copyright 1999, 2000, 2001  Bryan Burns\n");
@@ -2253,6 +2265,8 @@ Store many files together in a single `jar' file.\n\
   --help          print this help, then exit\n\
   -m FILE         include manifest information from specified manifest file\n\
   -M              Do not create a manifest file for the entries\n\
+  -i              generate an index of the packages in this jar\n\
+                  and its Class-Path (currently unimplemented)\n\
   -v              generate verbose output on standard output\n\
   -V, --version   display version information\n\
 ");
@@ -2272,8 +2286,7 @@ Example 2: use an existing manifest file 'mymanifest' and archive all the\n\
 }
 
 static char *
-jt_strdup(s)
-     char *s;
+jt_strdup(char *s)
 {
   char *result = (char*)malloc(strlen(s) + 1);
   if (result == (char*)0)

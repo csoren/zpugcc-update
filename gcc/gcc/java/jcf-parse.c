@@ -16,8 +16,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -693,7 +693,7 @@ load_class (tree class_or_name, int verbose)
 	    break;
 
 	  /* We failed loading name. Now consider that we might be looking
-	     for a inner class. */
+	     for an inner class.  */
 	  if ((separator = strrchr (IDENTIFIER_POINTER (name), '$'))
 	      || (separator = strrchr (IDENTIFIER_POINTER (name), '.')))
 	    {
@@ -727,8 +727,8 @@ load_class (tree class_or_name, int verbose)
 	{
 	  /* This is just a diagnostic during testing, not a real problem.  */
 	  if (!quiet_flag)
-	    warning("cannot find file for class %s", 
-		    IDENTIFIER_POINTER (saved));
+	    warning (0, "cannot find file for class %s", 
+		     IDENTIFIER_POINTER (saved));
 	  
 	  /* Fake it.  */
 	  if (TREE_CODE (class_or_name) == RECORD_TYPE)
@@ -833,6 +833,20 @@ load_inner_classes (tree cur_class)
 }
 
 static void
+duplicate_class_warning (const char *filename)
+{
+  location_t warn_loc;
+#ifdef USE_MAPPED_LOCATION
+  linemap_add (&line_table, LC_RENAME, 0, filename, 0);
+  warn_loc = linemap_line_start (&line_table, 0, 1);
+#else
+  warn_loc.file = filename;
+  warn_loc.line = 0;
+#endif
+  warning (0, "%Hduplicate class will only be compiled once", &warn_loc);
+}
+
+static void
 parse_class_file (void)
 {
   tree method;
@@ -887,7 +901,7 @@ parse_class_file (void)
 	  continue;
 	}
 
-      input_location = file_start_location;
+      input_location = DECL_SOURCE_LOCATION (TYPE_NAME (current_class));
       if (DECL_LINENUMBERS_OFFSET (method))
 	{
 	  int i;
@@ -1149,19 +1163,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	  /* Exclude file that we see twice on the command line. */
 	     
 	  if (IS_A_COMMAND_LINE_FILENAME_P (node))
-	    {
-	      location_t warn_loc;
-#ifdef USE_MAPPED_LOCATION
-	      linemap_add (&line_table, LC_RENAME, 0,
-			   IDENTIFIER_POINTER (node), 0);
-	      warn_loc = linemap_line_start (&line_table, 0, 1);
-#else
-	      warn_loc.file = IDENTIFIER_POINTER (node);
-	      warn_loc.line = 0;
-#endif
-	      warning ("%Hsource file seen twice on command line and "
-		       "will be compiled only once", &warn_loc);
-	    }
+	    duplicate_class_warning (IDENTIFIER_POINTER (node));
 	  else
 	    {
 	      tree file_decl = build_decl (TRANSLATION_UNIT_DECL, node, NULL);
@@ -1177,7 +1179,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
     free (file_list);
 
   if (filename_count == 0)
-    warning ("no input file specified");
+    warning (0, "no input file specified");
 
   if (resource_name)
     {
@@ -1239,6 +1241,12 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	  jcf_parse (current_jcf);
 	  DECL_SOURCE_LOCATION (node) = file_start_location;
 	  TYPE_JCF (current_class) = current_jcf;
+	  if (CLASS_FROM_CURRENTLY_COMPILED_P (current_class))
+	    {
+	      /* We've already compiled this class.  */
+	      duplicate_class_warning (filename);
+	      continue;
+	    }
 	  CLASS_FROM_CURRENTLY_COMPILED_P (current_class) = 1;
 	  TREE_TYPE (node) = current_class;
 	}
@@ -1261,10 +1269,6 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	  linemap_add (&line_table, LC_LEAVE, false, NULL, 0);
 #endif
 	  parse_zip_file_entries ();
-	  /*
-	  for (each entry)
-	    CLASS_FROM_CURRENTLY_COMPILED_P (current_class) = 1;
-	  */
 	}
       else
 	{
@@ -1407,6 +1411,15 @@ parse_zip_file_entries (void)
 	    FREE (class_name);
 	    current_jcf = TYPE_JCF (class);
 	    output_class = current_class = class;
+
+	    if (CLASS_FROM_CURRENTLY_COMPILED_P (current_class))
+	      {
+	        /* We've already compiled this class.  */
+		duplicate_class_warning (current_jcf->filename);
+		break;
+	      }
+	    
+	    CLASS_FROM_CURRENTLY_COMPILED_P (current_class) = 1;
 
 	    if (TYPE_DUMMY (class))
 	      {

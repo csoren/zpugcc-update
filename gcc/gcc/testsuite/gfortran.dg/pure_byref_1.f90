@@ -8,8 +8,8 @@ program main
   if (.not.all(b == 'ok')) call abort()
 contains
   elemental function fun(a) 
-    character(2), intent(in) :: a
-    character(2) :: fun
+    character(*), intent(in) :: a
+    character(len(a)) :: fun
     fun = a
   end function fun
 end program main

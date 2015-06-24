@@ -15,8 +15,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GNU Classpath; see the file COPYING.  If not, write to the
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-02111-1307 USA.
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
 
 Linking this library statically or dynamically with other modules is
 making a combined work based on this library.  Thus, the terms and
@@ -65,7 +65,7 @@ import java.util.zip.ZipFile;
  * This subclass of java.net.JarURLConnection models a URLConnection via
  * the "jar" protocol.
  *
- * @author Kresten Krab Thorup <krab@gnu.org>
+ * @author Kresten Krab Thorup (krab@gnu.org)
  */
 public final class Connection extends JarURLConnection
 {

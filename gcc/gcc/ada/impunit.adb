@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---           Copyright (C) 2000-2005 Free Software Foundation, Inc.         --
+--           Copyright (C) 2000-2005, Free Software Foundation, Inc.        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -16,8 +16,8 @@
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
 -- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the Free Software Foundation,  59 Temple Place - Suite 330,  Boston, --
--- MA 02111-1307, USA.                                                      --
+-- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
+-- Boston, MA 02110-1301, USA.                                              --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -157,6 +157,13 @@ package body Impunit is
      "a-tiocst",    -- Ada.Text_IO.C_Streams
      "a-wtcstr",    -- Ada.Wide_Text_IO.C_Streams
 
+      --  Note: strictly the next two should be Ada 2005 units, but it seems
+      --  harmless (and useful) to make then available in Ada 95 mode, since
+      --  they only deal with Wide_Character, not Wide_Wide_Character.
+
+     "a-wichun",    -- Ada.Wide_Characters.Unicode
+     "a-widcha",    -- Ada.Wide_Characters
+
    ---------------------------
    -- GNAT Special IO Units --
    ---------------------------
@@ -250,6 +257,7 @@ package body Impunit is
      "g-thread",    -- GNAT.Threads
      "g-traceb",    -- GNAT.Traceback
      "g-trasym",    -- GNAT.Traceback.Symbolic
+     "g-utf_32",    -- GNAT.UTF_32
      "g-wistsp",    -- GNAT.Wide_String_Split
 
    -----------------------------------------------------
@@ -325,29 +333,20 @@ package body Impunit is
      "a-cgaaso",    -- Ada.Containers.Generic_Anonymous_Array_Sort
      "a-cgarso",    -- Ada.Containers.Generic_Array_Sort
      "a-cgcaso",    -- Ada.Containers.Generic_Constrained_Array_Sort
-     "a-chtgke",    -- Ada.Containers.Hash_Tables.Generic_Keys
-     "a-chtgop",    -- Ada.Containers.Hash_Tables.Generic_Operations
+     "a-chacon",    -- Ada.Characters.Conversions
      "a-cidlli",    -- Ada.Containers.Indefinite_Doubly_Linked_Lists
      "a-cihama",    -- Ada.Containers.Indefinite_Hashed_Maps
      "a-cihase",    -- Ada.Containers.Indefinite_Hashed_Sets
      "a-ciorma",    -- Ada.Containers.Indefinite_Ordered_Maps
-     "a-ciormu",    -- Ada.Containers.Indefinite_Ordered_Multisets
      "a-ciorse",    -- Ada.Containers.Indefinite_Ordered_Sets
      "a-cohama",    -- Ada.Containers.Hashed_Maps
      "a-cohase",    -- Ada.Containers.Hashed_Sets
-     "a-cohata",    -- Ada.Containers.Hash_Tables
      "a-coinve",    -- Ada.Containers.Indefinite_Vectors
      "a-contai",    -- Ada.Containers
      "a-convec",    -- Ada.Containers.Vectors
      "a-coorma",    -- Ada.Containers.Ordered_Maps
-     "a-coormu",    -- Ada.Containers.Ordered_Multisets
      "a-coorse",    -- Ada.Containers.Ordered_Sets
-     "a-coprnu",    -- Ada.Containers.Prime_Numbers
-     "a-crbltr",    -- Ada.Containers.Red_Black_Trees
-     "a-crbtgk",    -- Ada.Containers.Red_Black_Trees.Generic_Keys
-     "a-crbtgo",    -- Ada.Containers.Red_Black_Trees.Generic_Operations
      "a-direct",    -- Ada.Directories
-     "a-rbtgso",    -- Ada.Containers.Red_Black_Trees.Generic_Set_Operations
      "a-secain",    -- Ada.Strings.Equal_Case_Insensitive
      "a-shcain",    -- Ada.Strings.Hash_Case_Insensitive
      "a-slcain",    -- Ada.Strings.Less_Case_Insensitive
@@ -359,11 +358,14 @@ package body Impunit is
      "a-stzhas",    -- Ada.Strings.Wide_Wide_Hash
      "a-stzmap",    -- Ada.Strings.Wide_Wide_Maps
      "a-stzunb",    -- Ada.Strings.Wide_Wide_Unbounded
-     "a-swunha",    -- Ada.Strings.Wide_Unbounded.Hash
+     "a-swuwha",    -- Ada.Strings.Wide_Unbounded.Wide_Hash
      "a-szmzco",    -- Ada.Strings.Wide_Wide_Maps.Wide_Wide_Constants;
-     "a-szunha",    -- Ada.Strings.Wide_Wide_Unbounded.Hash
+     "a-szuzha",    -- Ada.Strings.Wide_Wide_Unbounded.Wide_Wide_Hash
+     "a-tgdico",    -- Ada.Tags.Generic_Dispatching_Constructor;
      "a-tiunio",    -- Ada.Text_IO.Unbounded_IO;
+     "a-wichun",    -- Ada.Wide_Characters.Unicode
      "a-wwunio",    -- Ada.Wide_Text_IO.Wide_Unbounded_IO;
+     "a-zchara",    -- Ada.Wide_Wide_Characters
      "a-zttest",    -- Ada.Wide_Wide_Text_IO.Text_Streams
      "a-ztexio",    -- Ada.Wide_Wide_Text_IO
      "a-zzunio",    -- Ada.Wide_Wide_Text_IO.Wide_Wide_Unbounded_IO
@@ -387,7 +389,10 @@ package body Impunit is
 
      "a-chzla1",    -- Ada.Characters.Wide_Wide_Latin_1
      "a-chzla9",    -- Ada.Characters.Wide_Wide_Latin_9
+     "a-ciormu",    -- Ada.Containers.Indefinite_Ordered_Multisets
+     "a-coormu",    -- Ada.Containers.Ordered_Multisets
      "a-szuzti",    -- Ada.Strings.Wide_Wide_Unbounded.Wide_Wide_Text_IO
+     "a-zchuni",    -- Ada.Wide_Wide_Characters.Unicode
 
    ---------------------------
    -- GNAT Special IO Units --

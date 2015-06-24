@@ -16,8 +16,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -77,7 +77,6 @@ sanity_check_exception_range (struct eh_range *range)
 		  && ptr->end_pc <=  ptr->outer->end_pc);
       (void) sanity_check_exception_range (ptr);
     }
-
   return true;
 }
 
@@ -231,7 +230,7 @@ split_range (struct eh_range *range, int pc)
   first_child = &range->first_child;
   second_child = &h->first_child;
 
-  /* Distribute the sub-ranges bewteen the two new ranges.  */
+  /* Distribute the sub-ranges between the two new ranges.  */
   for (ptr = range->first_child; ptr; ptr = ptr->next_sibling)
     {
       if (ptr->start_pc < pc)
@@ -496,21 +495,11 @@ expand_end_java_handler (struct eh_range *range)
       type = prepare_eh_table_type (type);
 
       {
-	tree goto_expr = build1 (GOTO_EXPR, void_type_node,
-				 TREE_VALUE (handler));
-	/* Build an asm to prevent gcc from attempting to merge this
-	   handler with the next basic block; this is a workaround for
-	   a bug in cfgbuild.c.  */
-	tree asm_expr = build (ASM_EXPR, void_type_node,
-			       build_string (0, ""),
-			       NULL_TREE, NULL_TREE, NULL_TREE);
-	tree compound = build2 (COMPOUND_EXPR, void_type_node,
-				asm_expr, goto_expr);
-	tree try_catch_expr 
-	  = build2 (TRY_CATCH_EXPR, void_type_node,
-		    *get_stmts (), 
-		    build2 (CATCH_EXPR, void_type_node, type, 
-			    compound));
+	tree catch_expr = build2 (CATCH_EXPR, void_type_node, type,
+				  build1 (GOTO_EXPR, void_type_node,
+					  TREE_VALUE (handler)));
+	tree try_catch_expr = build2 (TRY_CATCH_EXPR, void_type_node,
+				      *get_stmts (), catch_expr);	
 	*get_stmts () = try_catch_expr;
       }
     }

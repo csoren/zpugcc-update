@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1995-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1995-2005, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -16,8 +16,8 @@
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
 -- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the Free Software Foundation,  59 Temple Place - Suite 330,  Boston, --
--- MA 02111-1307, USA.                                                      --
+-- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
+-- Boston, MA 02110-1301, USA.                                              --
 --                                                                          --
 -- As a special exception,  if other files  instantiate  generics from this --
 -- unit, or you link  this unit with other files  to produce an executable, --
@@ -113,7 +113,6 @@ package GNAT.OS_Lib is
    subtype Minute_Type is Integer range    0 ..   59;
    subtype Second_Type is Integer range    0 ..   59;
    --  Declarations similar to those in Calendar, breaking down the time
-
 
    function GM_Year    (Date : OS_Time) return Year_Type;
    function GM_Month   (Date : OS_Time) return Month_Type;
@@ -350,16 +349,16 @@ package GNAT.OS_Lib is
    --  platforms, Success is always set to False.
 
    function Read
-     (FD   : File_Descriptor;
-      A    : System.Address;
-      N    : Integer) return Integer;
+     (FD : File_Descriptor;
+      A  : System.Address;
+      N  : Integer) return Integer;
    --  Read N bytes to address A from file referenced by FD. Returned value is
    --  count of bytes actually read, which can be less than N at EOF.
 
    function Write
-     (FD   : File_Descriptor;
-      A    : System.Address;
-      N    : Integer) return Integer;
+     (FD : File_Descriptor;
+      A  : System.Address;
+      N  : Integer) return Integer;
    --  Write N bytes from address A to file referenced by FD. The returned
    --  value is the number of bytes written, which can be less than N if a
    --  disk full condition was detected.
@@ -715,6 +714,40 @@ package GNAT.OS_Lib is
    --  This function will always return Invalid_Id under VxWorks, since there
    --  is no notion of executables under this OS.
 
+   function Non_Blocking_Spawn
+     (Program_Name           : String;
+      Args                   : Argument_List;
+      Output_File_Descriptor : File_Descriptor;
+      Err_To_Out             : Boolean := True) return Process_Id;
+   --  Similar to the procedure above, but redirects the output to the file
+   --  designated by Output_File_Descriptor. If Err_To_Out is True, then the
+   --  Standard Error output is also redirected. Invalid_Id is returned
+   --  if the program could not be spawned successfully.
+   --
+   --  "Non_Blocking_Spawn" should not be used in tasking applications.
+   --
+   --  This function will always return Invalid_Id under VxWorks, since there
+   --  is no notion of executables under this OS.
+
+   function Non_Blocking_Spawn
+     (Program_Name : String;
+      Args         : Argument_List;
+      Output_File  : String;
+      Err_To_Out   : Boolean := True)
+      return         Process_Id;
+   --  Similar to the procedure above, but saves the output of the command to
+   --  a file with the name Output_File.
+   --
+   --  Success is set to True if the command is executed and its output
+   --  successfully written to the file. Invalid_Id is returned if the output
+   --  file could not be created or if the program could not be spawned
+   --  successfully.
+   --
+   --  "Non_Blocking_Spawn" should not be used in tasking applications.
+   --
+   --  This function will always return Invalid_Id under VxWorks, since there
+   --  is no notion of executables under this OS.
+
    procedure Wait_Process (Pid : out Process_Id; Success : out Boolean);
    --  Wait for the completion of any of the processes created by previous
    --  calls to Non_Blocking_Spawn. The caller will be suspended until one of
@@ -730,8 +763,7 @@ package GNAT.OS_Lib is
    --  there is no notion of executables under this OS.
 
    function Argument_String_To_List
-     (Arg_String : String)
-      return       Argument_List_Access;
+     (Arg_String : String) return Argument_List_Access;
    --  Take a string that is a program and its arguments and parse it into an
    --  Argument_List. Note that the result is allocated on the heap, and must
    --  be freed by the programmer (when it is no longer needed) to avoid

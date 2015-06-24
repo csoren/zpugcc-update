@@ -3,6 +3,7 @@
 /* { dg-options "-O2 -funroll-loops" } */
 /* { dg-options "-mtune=k6 -O2 -funroll-loops" { target { { i?86-*-* x86_64-*-* } && ilp32 } } } */
 
+
 extern void abort (void);
 
 int array[6] = { 1,2,3,4,5,6 };

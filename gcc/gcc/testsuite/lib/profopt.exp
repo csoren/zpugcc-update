@@ -12,7 +12,7 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  
 #
 # This script was submitted by Janis Johnson <janis187@us.ibm.com>.
 
@@ -221,7 +221,7 @@ proc profopt-execute { src } {
         error "No feedback option specified for second compile."
     }
 
-    regsub "^$srcdir/?" $src "" testcase
+    regsub "(?q)$srcdir/" $src "" testcase
     # If we couldn't rip $srcdir out of `src' then just do the best we can.
     # The point is to reduce the unnecessary noise in the logs.  Don't strip
     # out too much because different testcases with the same name can confuse

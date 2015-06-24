@@ -75,10 +75,6 @@ struct _Jv_VTable
   static _Jv_VTable *new_vtable (int count);
 };
 
-// Number of virtual methods on object.  FIXME: it sucks that we have
-// to keep this up to date by hand.
-#define NUM_OBJECT_METHODS 5
-
 union _Jv_word
 {
   jobject o;
@@ -118,20 +114,6 @@ union _Jv_value
   jfloat float_value;
   jdouble double_value;
   jobject object_value;
-};
-
-// An instance of this type is used to represent a single frame in a
-// backtrace.  If the interpreter has been built, we also include
-// information about the interpreted method.
-struct _Jv_frame_info
-{
-  // PC value.
-  void *addr;
-#ifdef INTERPRETER
-  // Actually a _Jv_InterpMethod, but we don't want to include
-  // java-interp.h everywhere.
-  void *interp;
-#endif // INTERPRETER
 };
 
 /* Extract a character from a Java-style Utf8 string.
@@ -376,6 +358,10 @@ void _Jv_SetInitialHeapSize (const char *arg);
    _Jv_GCSetMaximumHeapSize.  */
 void _Jv_SetMaximumHeapSize (const char *arg);
 
+/* Free the method cache, if one was allocated.  This is only called
+   during thread deregistration.  */
+void _Jv_FreeMethodCache ();
+
 /* Set the stack size for threads.  Parses ARG, a number which can 
    optionally have "k" or "m" appended.  */
 void _Jv_SetStackSize (const char *arg);
@@ -452,6 +438,10 @@ extern "C" void _Jv_ThrowBadArrayIndex (jint bad_index)
   __attribute__((noreturn));
 extern "C" void _Jv_ThrowNullPointerException (void)
   __attribute__((noreturn));
+extern "C" void _Jv_ThrowNoSuchMethodError (void)
+  __attribute__((noreturn));
+extern "C" void _Jv_ThrowNoSuchFieldError (int)
+  __attribute__((noreturn));
 extern "C" jobject _Jv_NewArray (jint type, jint size)
   __attribute__((__malloc__));
 extern "C" jobject _Jv_NewMultiArray (jclass klass, jint dims, ...)
@@ -474,7 +464,8 @@ extern "C" jobject _Jv_UnwrapJNIweakReference (jobject);
 extern jclass _Jv_FindClass (_Jv_Utf8Const *name,
 			     java::lang::ClassLoader *loader);
 extern jclass _Jv_FindClassFromSignature (char *,
-					  java::lang::ClassLoader *loader);
+					  java::lang::ClassLoader *loader,
+					  char ** = NULL);
 extern void _Jv_GetTypesFromSignature (jmethodID method,
 				       jclass declaringClass,
 				       JArray<jclass> **arg_types_out,
@@ -503,6 +494,8 @@ extern void _Jv_CallAnyMethodA (jobject obj,
 
 extern jobject _Jv_NewMultiArray (jclass, jint ndims, jint* dims)
   __attribute__((__malloc__));
+
+extern "C" void _Jv_ThrowAbstractMethodError () __attribute__((__noreturn__));
 
 /* Checked divide subroutines. */
 extern "C"
@@ -589,11 +582,11 @@ extern void _Jv_RegisterBootstrapPackages ();
 #define FLAG_BINARYCOMPAT_ABI (1<<31)  /* Class is built with the BC-ABI. */
 
 #define FLAG_BOOTSTRAP_LOADER (1<<30)  /* Used when defining a class that 
-					should be loaded by the bootstrap
-					loader.  */
+					  should be loaded by the bootstrap
+					  loader.  */
 
 // These are used to find ABI versions we recognize.
-#define GCJ_CXX_ABI_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 10)
+#define GCJ_CXX_ABI_VERSION (__GNUC__ * 100000 + __GNUC_MINOR__ * 1000)
 
 // This is the old-style BC version ID used by GCJ 4.0.0.
 #define OLD_GCJ_40_BC_ABI_VERSION (4 * 10000 + 0 * 10 + 5)
@@ -617,13 +610,19 @@ _Jv_CheckABIVersion (unsigned long value)
       int abi_rev = version % 100;
       int abi_ver = version - abi_rev;
       if (abi_ver == GCJ_40_BC_ABI_VERSION && abi_rev <= 0)
-	return true;
+        return true;
     }
   else
     // C++ ABI
     return version == GCJ_CXX_ABI_VERSION;
   
   return false;
+}
+
+inline bool
+_Jv_ClassForBootstrapLoader (unsigned long value)
+{
+  return (value & FLAG_BOOTSTRAP_LOADER);
 }
 
 // It makes the source cleaner if we simply always define this

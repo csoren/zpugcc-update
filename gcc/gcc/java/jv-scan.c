@@ -17,8 +17,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include "system.h"
@@ -42,7 +42,8 @@ Boston, MA 02111-1307, USA.  */
 
 extern void fatal_error (const char *gmsgid, ...)
      ATTRIBUTE_PRINTF_1 ATTRIBUTE_NORETURN;
-void warning (const char *gmsgid, ...) ATTRIBUTE_PRINTF_1;
+void warning (int opt, const char *gmsgid, ...) ATTRIBUTE_PRINTF_2;
+void warning0 (const char *gmsgid, ...) ATTRIBUTE_PRINTF_1;
 void report (void);
 
 static void usage (void) ATTRIBUTE_NORETURN;
@@ -261,7 +262,18 @@ fatal_error (const char *gmsgid, ...)
 }
 
 void
-warning (const char *gmsgid, ...)
+warning (int opt ATTRIBUTE_UNUSED, const char *gmsgid, ...)
+{
+  va_list ap;
+  va_start (ap, gmsgid);
+  fprintf (stderr, _("%s: warning: "), exec_name);
+  vfprintf (stderr, _(gmsgid), ap);
+  fputc ('\n', stderr);
+  va_end (ap);
+}
+
+void
+warning0 (const char *gmsgid, ...)
 {
   va_list ap;
   va_start (ap, gmsgid);

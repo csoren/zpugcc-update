@@ -1,5 +1,5 @@
 /* Code to maintain a C++ template repository.
-   Copyright (C) 1995, 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004
+   Copyright (C) 1995, 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004, 2005
    Free Software Foundation, Inc.
    Contributed by Jason Merrill (jason@cygnus.com)
 
@@ -17,8 +17,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 /* My strategy here is as follows:
 
@@ -40,13 +40,12 @@ Boston, MA 02111-1307, USA.  */
 
 static char *extract_string (char **);
 static const char *get_base_filename (const char *);
-static void open_repo_file (const char *);
+static FILE *open_repo_file (const char *);
 static char *afgets (FILE *);
-static void reopen_repo_file_for_write (void);
+static FILE *reopen_repo_file_for_write (void);
 
 static GTY(()) tree pending_repo;
 static char *repo_name;
-static FILE *repo_file;
 
 static const char *old_args, *old_dir, *old_main;
 
@@ -110,22 +109,22 @@ get_base_filename (const char *filename)
 
   if (p && ! compiling)
     {
-      warning ("-frepo must be used with -c");
+      warning (0, "-frepo must be used with -c");
       flag_use_repository = 0;
       return NULL;
     }
 
   return lbasename (filename);
-}        
+}
 
-static void
+static FILE *
 open_repo_file (const char *filename)
 {
   const char *p;
   const char *s = get_base_filename (filename);
 
   if (s == NULL)
-    return;
+    return NULL;
 
   p = lbasename (s);
   p = strrchr (p, '.');
@@ -136,7 +135,7 @@ open_repo_file (const char *filename)
   memcpy (repo_name, s, p - s);
   memcpy (repo_name + (p - s), ".rpo", 5);
 
-  repo_file = fopen (repo_name, "r");
+  return fopen (repo_name, "r");
 }
 
 static char *
@@ -155,6 +154,7 @@ void
 init_repo (void)
 {
   char *buf;
+  FILE *repo_file;
 
   if (! flag_use_repository)
     return;
@@ -167,7 +167,7 @@ init_repo (void)
   if (!temporary_obstack_initialized_p)
     gcc_obstack_init (&temporary_obstack);
 
-  open_repo_file (main_input_filename);
+  repo_file = open_repo_file (main_input_filename);
 
   if (repo_file == 0)
     return;
@@ -205,16 +205,18 @@ init_repo (void)
   fclose (repo_file);
 }
 
-static void
+static FILE *
 reopen_repo_file_for_write (void)
 {
-  repo_file = fopen (repo_name, "w");
+  FILE *repo_file = fopen (repo_name, "w");
 
   if (repo_file == 0)
     {
       error ("can't create repository information file %qs", repo_name);
       flag_use_repository = 0;
     }
+
+  return repo_file;
 }
 
 /* Emit any pending repos.  */
@@ -224,14 +226,15 @@ finish_repo (void)
 {
   tree t;
   char *dir, *args;
+  FILE *repo_file;
 
   if (!flag_use_repository)
     return;
 
   if (errorcount || sorrycount)
-    goto out;
+    return;
 
-  reopen_repo_file_for_write ();
+  repo_file = reopen_repo_file_for_write ();
   if (repo_file == 0)
     goto out;
 
@@ -349,7 +352,7 @@ repo_export_class_p (tree class_type)
     return false;
   /* If the virtual table has been assigned to this translation unit,
      export the class.  */
-  return (IDENTIFIER_REPO_CHOSEN 
+  return (IDENTIFIER_REPO_CHOSEN
 	  (DECL_ASSEMBLER_NAME (CLASSTYPE_VTABLES (class_type))));
 }
 

@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* dependency.c -- Expression dependency analysis code.  */
 /* There's probably quite a bit of duplication in this file.  We currently
@@ -159,7 +159,7 @@ gfc_is_same_range (gfc_array_ref * ar1, gfc_array_ref * ar2, int n, int def)
     e1 = ar1->as->lower[n];
 
   if (ar2->as && !e2)
-    e2 = ar2->as->upper[n];
+    e2 = ar2->as->lower[n];
 
   /* Check we have values for both.  */
   if (!(e1 && e2))
@@ -175,6 +175,45 @@ gfc_is_same_range (gfc_array_ref * ar1, gfc_array_ref * ar2, int n, int def)
 }
 
 
+/* Return true if the result of reference REF can only be constructed
+   using a temporary array.  */
+
+bool
+gfc_ref_needs_temporary_p (gfc_ref *ref)
+{
+  int n;
+  bool subarray_p;
+
+  subarray_p = false;
+  for (; ref; ref = ref->next)
+    switch (ref->type)
+      {
+      case REF_ARRAY:
+	/* Vector dimensions are generally not monotonic and must be
+	   handled using a temporary.  */
+	if (ref->u.ar.type == AR_SECTION)
+	  for (n = 0; n < ref->u.ar.dimen; n++)
+	    if (ref->u.ar.dimen_type[n] == DIMEN_VECTOR)
+	      return true;
+
+	subarray_p = true;
+	break;
+
+      case REF_SUBSTRING:
+	/* Within an array reference, character substrings generally
+	   need a temporary.  Character array strides are expressed as
+	   multiples of the element size (consistent with other array
+	   types), not in characters.  */
+	return subarray_p;
+
+      case REF_COMPONENT:
+	break;
+      }
+
+  return false;
+}
+
+
 /* Dependency checking for direct function return by reference.
    Returns true if the arguments of the function depend on the
    destination.  This is considerably less conservative than other
@@ -185,9 +224,7 @@ int
 gfc_check_fncall_dependency (gfc_expr * dest, gfc_expr * fncall)
 {
   gfc_actual_arglist *actual;
-  gfc_ref *ref;
   gfc_expr *expr;
-  int n;
 
   gcc_assert (dest->expr_type == EXPR_VARIABLE
 	  && fncall->expr_type == EXPR_FUNCTION);
@@ -205,31 +242,8 @@ gfc_check_fncall_dependency (gfc_expr * dest, gfc_expr * fncall)
       switch (expr->expr_type)
 	{
 	case EXPR_VARIABLE:
-	  if (expr->rank > 1)
-	    {
-	      /* This is an array section.  */
-	      for (ref = expr->ref; ref; ref = ref->next)
-		{
-		  if (ref->type == REF_ARRAY && ref->u.ar.type != AR_ELEMENT)
-		    break;
-		}
-	      gcc_assert (ref);
-	      /* AR_FULL can't contain vector subscripts.  */
-	      if (ref->u.ar.type == AR_SECTION)
-		{
-		  for (n = 0; n < ref->u.ar.dimen; n++)
-		    {
-		      if (ref->u.ar.dimen_type[n] == DIMEN_VECTOR)
-			break;
-		    }
-		  /* Vector subscript array sections will be copied to a
-		     temporary.  */
-		  if (n != ref->u.ar.dimen)
-		    continue;
-		}
-	    }
-
-	  if (gfc_check_dependency (dest, actual->expr, NULL, 0))
+	  if (!gfc_ref_needs_temporary_p (expr->ref)
+	      && gfc_check_dependency (dest, expr, NULL, 0))
 	    return 1;
 	  break;
 
@@ -244,6 +258,51 @@ gfc_check_fncall_dependency (gfc_expr * dest, gfc_expr * fncall)
     }
 
   return 0;
+}
+
+
+/* Return 1 if e1 and e2 are equivalenced arrays, either
+   directly or indirectly; ie. equivalence (a,b) for a and b
+   or equivalence (a,c),(b,c).  This function uses the equiv_
+   lists, generated in trans-common(add_equivalences), that are
+   guaranteed to pick up indirect equivalences.  A rudimentary
+   use is made of the offset to ensure that cases where the
+   source elements are moved down to the destination are not
+   identified as dependencies.  */
+
+int
+gfc_are_equivalenced_arrays (gfc_expr *e1, gfc_expr *e2)
+{
+  gfc_equiv_list *l;
+  gfc_equiv_info *s, *fl1, *fl2;
+
+  gcc_assert (e1->expr_type == EXPR_VARIABLE
+		&& e2->expr_type == EXPR_VARIABLE);
+
+  if (!e1->symtree->n.sym->attr.in_equivalence
+	|| !e2->symtree->n.sym->attr.in_equivalence
+	|| !e1->rank
+	|| !e2->rank)
+    return 0;
+
+  /* Go through the equiv_lists and return 1 if the variables
+     e1 and e2 are members of the same group and satisfy the
+     requirement on their relative offsets.  */
+  for (l = gfc_current_ns->equiv_lists; l; l = l->next)
+    {
+      fl1 = NULL;
+      fl2 = NULL;
+      for (s = l->equiv; s; s = s->next)
+	{
+	  if (s->sym == e1->symtree->n.sym)
+	    fl1 = s;
+	  if (s->sym == e2->symtree->n.sym)
+	    fl2 = s;
+	  if (fl1 && fl2 && (fl1->offset > fl2->offset))
+	    return 1;
+	}
+    }
+return 0;
 }
 
 
@@ -293,6 +352,10 @@ gfc_check_dependency (gfc_expr * expr1, gfc_expr * expr2, gfc_expr ** vars,
 	  if (ref->type == REF_COMPONENT && ref->u.c.component->pointer)
 	    return 1;
 	}
+
+      /* Return 1 if expr1 and expr2 are equivalenced arrays.  */
+      if (gfc_are_equivalenced_arrays (expr1, expr2))
+	return 1;
 
       if (expr1->symtree->n.sym != expr2->symtree->n.sym)
 	return 0;
@@ -378,7 +441,7 @@ get_deps (mpz_t x1, mpz_t x2, mpz_t y)
 }
 
 
-/* Transforms a sections l and r such that 
+/* Perform the same linear transformation on sections l and r such that 
    (l_start:l_end:l_stride) -> (0:no_of_elements)
    (r_start:r_end:r_stride) -> (X1:X2)
    Where r_end is implicit as both sections must have the same number of
@@ -420,7 +483,7 @@ transform_sections (mpz_t X1, mpz_t X2, mpz_t no_of_elements,
     mpz_mul (X2, no_of_elements, r_stride->value.integer);
 
   if (l_stride != NULL)
-    mpz_cdiv_q (X2, X2, r_stride->value.integer);
+    mpz_cdiv_q (X2, X2, l_stride->value.integer);
   mpz_add (X2, X2, X1);
 
   return 0;
@@ -439,15 +502,19 @@ gfc_check_section_vs_section (gfc_ref * lref, gfc_ref * rref, int n)
   gfc_expr *r_start;
   gfc_expr *r_stride;
 
-  gfc_array_ref	l_ar;
-  gfc_array_ref	r_ar;
+  gfc_array_ref l_ar;
+  gfc_array_ref r_ar;
 
   mpz_t no_of_elements;
-  mpz_t	X1, X2;
+  mpz_t X1, X2;
   gfc_dependency dep;
 
   l_ar = lref->u.ar;
   r_ar = rref->u.ar;
+  
+  /* If they are the same range, return without more ado.  */
+  if (gfc_is_same_range (&l_ar, &r_ar, n, 0))
+    return GFC_DEP_EQUAL;
 
   l_start = l_ar.start[n];
   l_end = l_ar.end[n];

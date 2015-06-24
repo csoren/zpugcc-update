@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* Executable statements are strung together into a singly linked list
    of code structures.  These structures are later translated into GCC
@@ -92,6 +92,7 @@ gfc_free_statement (gfc_code * p)
     {
     case EXEC_NOP:
     case EXEC_ASSIGN:
+    case EXEC_INIT_ASSIGN:
     case EXEC_GOTO:
     case EXEC_CYCLE:
     case EXEC_RETURN:
@@ -111,6 +112,7 @@ gfc_free_statement (gfc_code * p)
       break;
 
     case EXEC_CALL:
+    case EXEC_ASSIGN_CALL:
       gfc_free_actual_arglist (p->ext.actual);
       break;
 
@@ -139,6 +141,7 @@ gfc_free_statement (gfc_code * p)
     case EXEC_BACKSPACE:
     case EXEC_ENDFILE:
     case EXEC_REWIND:
+    case EXEC_FLUSH:
       gfc_free_filepos (p->ext.filepos);
       break;
 

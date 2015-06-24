@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 #include "config.h"
 #include "system.h"
@@ -502,8 +502,8 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 	    if (if_true_label == 0)
 	      drop_through_label = if_true_label = gen_label_rtx ();
 	      
-            cmp0 = fold (build2 (tcode1, TREE_TYPE (exp), op0, op1));
-            cmp1 = fold (build2 (tcode2, TREE_TYPE (exp), op0, op1));
+            cmp0 = fold_build2 (tcode1, TREE_TYPE (exp), op0, op1);
+            cmp1 = fold_build2 (tcode2, TREE_TYPE (exp), op0, op1);
 	    do_jump (cmp0, 0, if_true_label);
 	    do_jump (cmp1, if_false_label, if_true_label);
           }
@@ -801,12 +801,6 @@ compare_from_rtx (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
       code = swap_condition (code);
     }
 
-  if (flag_force_mem)
-    {
-      op0 = force_not_mem (op0);
-      op1 = force_not_mem (op1);
-    }
-
   do_pending_stack_adjust ();
 
   code = unsignedp ? unsigned_condition (code) : code;
@@ -868,12 +862,6 @@ do_compare_rtx_and_jump (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
       op0 = op1;
       op1 = tem;
       code = swap_condition (code);
-    }
-
-  if (flag_force_mem)
-    {
-      op0 = force_not_mem (op0);
-      op1 = force_not_mem (op1);
     }
 
   do_pending_stack_adjust ();
@@ -964,7 +952,7 @@ do_compare_and_jump (tree exp, enum rtx_code signed_code,
      be reliably compared, then canonicalize them.
      Only do this if *both* sides of the comparison are function pointers.
      If one side isn't, we want a noncanonicalized comparison.  See PR
-     middle-end/17564. */
+     middle-end/17564.  */
   if (HAVE_canonicalize_funcptr_for_compare
       && TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == POINTER_TYPE
       && TREE_CODE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (exp, 0))))

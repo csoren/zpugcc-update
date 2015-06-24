@@ -1,4 +1,4 @@
-/* Copyright (C) 2002-2003 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2003, 2005 Free Software Foundation, Inc.
    Contributed by Andy Vaught and Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -24,8 +24,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,6 +104,7 @@ init (void)
   init_variables ();
 
   init_units ();
+  set_fpu ();
   init_compile_options ();
 
 #ifdef DEBUG
@@ -122,7 +123,7 @@ init (void)
 /* Cleanup the runtime library.  */
 
 static void __attribute__((destructor))
-cleanup ()
+cleanup (void)
 {
   close_units ();
 }

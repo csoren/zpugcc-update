@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 
 #include "config.h"
@@ -704,9 +704,7 @@ reg_used_between_p (rtx reg, rtx from_insn, rtx to_insn)
   for (insn = NEXT_INSN (from_insn); insn != to_insn; insn = NEXT_INSN (insn))
     if (INSN_P (insn)
 	&& (reg_overlap_mentioned_p (reg, PATTERN (insn))
-	   || (CALL_P (insn)
-	      && (find_reg_fusage (insn, USE, reg)
-		  || find_reg_fusage (insn, CLOBBER, reg)))))
+	   || (CALL_P (insn) && find_reg_fusage (insn, USE, reg))))
       return 1;
   return 0;
 }
@@ -855,10 +853,10 @@ modified_between_p (rtx x, rtx start, rtx end)
       return 1;
 
     case MEM:
-      if (MEM_READONLY_P (x))
-	return 0;
       if (modified_between_p (XEXP (x, 0), start, end))
 	return 1;
+      if (MEM_READONLY_P (x))
+	return 0;
       for (insn = NEXT_INSN (start); insn != end; insn = NEXT_INSN (insn))
 	if (memory_modified_in_insn_p (x, insn))
 	  return 1;
@@ -913,10 +911,10 @@ modified_in_p (rtx x, rtx insn)
       return 1;
 
     case MEM:
-      if (MEM_READONLY_P (x))
-	return 0;
       if (modified_in_p (XEXP (x, 0), insn))
 	return 1;
+      if (MEM_READONLY_P (x))
+	return 0;
       if (memory_modified_in_insn_p (x, insn))
 	return 1;
       return 0;
@@ -2157,11 +2155,9 @@ may_trap_p_1 (rtx x, bool unaligned_mems)
     case UMOD:
       if (HONOR_SNANS (GET_MODE (x)))
 	return 1;
-      if (! CONSTANT_P (XEXP (x, 1))
-	  || (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT
-	      && flag_trapping_math))
-	return 1;
-      if (XEXP (x, 1) == const0_rtx)
+      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT)
+	return flag_trapping_math;
+      if (!CONSTANT_P (XEXP (x, 1)) || (XEXP (x, 1) == const0_rtx))
 	return 1;
       break;
 
@@ -2210,6 +2206,7 @@ may_trap_p_1 (rtx x, bool unaligned_mems)
 
     case NEG:
     case ABS:
+    case SUBREG:
       /* These operations don't trap even with floating point.  */
       break;
 
@@ -3147,7 +3144,12 @@ subreg_regno_offset (unsigned int xregno, enum machine_mode xmode,
 
   gcc_assert (xregno < FIRST_PSEUDO_REGISTER);
 
-  nregs_xmode = hard_regno_nregs[xregno][xmode];
+  /* Adjust nregs_xmode to allow for 'holes'.  */
+  if (HARD_REGNO_NREGS_HAS_PADDING (xregno, xmode))
+    nregs_xmode = HARD_REGNO_NREGS_WITH_PADDING (xregno, xmode);
+  else
+    nregs_xmode = hard_regno_nregs[xregno][xmode];
+    
   nregs_ymode = hard_regno_nregs[xregno][ymode];
 
   /* If this is a big endian paradoxical subreg, which uses more actual
@@ -3162,7 +3164,7 @@ subreg_regno_offset (unsigned int xregno, enum machine_mode xmode,
   if (offset == 0 || nregs_xmode == nregs_ymode)
     return 0;
 
-  /* size of ymode must not be greater than the size of xmode.  */
+  /* Size of ymode must not be greater than the size of xmode.  */
   mode_multiple = GET_MODE_SIZE (xmode) / GET_MODE_SIZE (ymode);
   gcc_assert (mode_multiple != 0);
 
@@ -3177,7 +3179,7 @@ subreg_regno_offset (unsigned int xregno, enum machine_mode xmode,
    xmode  - The mode of xregno.
    offset - The byte offset.
    ymode  - The mode of a top level SUBREG (or what may become one).
-   RETURN - The regno offset which would be used.  */
+   RETURN - Whether the offset is representable.  */
 bool
 subreg_offset_representable_p (unsigned int xregno, enum machine_mode xmode,
 			       unsigned int offset, enum machine_mode ymode)
@@ -3185,28 +3187,73 @@ subreg_offset_representable_p (unsigned int xregno, enum machine_mode xmode,
   int nregs_xmode, nregs_ymode;
   int mode_multiple, nregs_multiple;
   int y_offset;
+  int regsize_xmode, regsize_ymode;
 
   gcc_assert (xregno < FIRST_PSEUDO_REGISTER);
 
-  nregs_xmode = hard_regno_nregs[xregno][xmode];
+  /* If there are holes in a non-scalar mode in registers, we expect
+     that it is made up of its units concatenated together.  */
+  if (HARD_REGNO_NREGS_HAS_PADDING (xregno, xmode))
+    {
+      enum machine_mode xmode_unit;
+
+      nregs_xmode = HARD_REGNO_NREGS_WITH_PADDING (xregno, xmode);
+      if (GET_MODE_INNER (xmode) == VOIDmode)
+	xmode_unit = xmode;
+      else
+	xmode_unit = GET_MODE_INNER (xmode);
+      gcc_assert (HARD_REGNO_NREGS_HAS_PADDING (xregno, xmode_unit));
+      gcc_assert (nregs_xmode
+		  == (GET_MODE_NUNITS (xmode)
+		      * HARD_REGNO_NREGS_WITH_PADDING (xregno, xmode_unit)));
+      gcc_assert (hard_regno_nregs[xregno][xmode]
+		  == (hard_regno_nregs[xregno][xmode_unit]
+		      * GET_MODE_NUNITS (xmode)));
+
+      /* You can only ask for a SUBREG of a value with holes in the middle
+	 if you don't cross the holes.  (Such a SUBREG should be done by
+	 picking a different register class, or doing it in memory if
+	 necessary.)  An example of a value with holes is XCmode on 32-bit
+	 x86 with -m128bit-long-double; it's represented in 6 32-bit registers,
+	 3 for each part, but in memory it's two 128-bit parts.  
+	 Padding is assumed to be at the end (not necessarily the 'high part')
+	 of each unit.  */
+      if ((offset / GET_MODE_SIZE (xmode_unit) + 1 
+	   < GET_MODE_NUNITS (xmode))
+	  && (offset / GET_MODE_SIZE (xmode_unit)
+	      != ((offset + GET_MODE_SIZE (ymode) - 1)
+		  / GET_MODE_SIZE (xmode_unit))))
+	return false;
+    }
+  else
+    nregs_xmode = hard_regno_nregs[xregno][xmode];
+  
   nregs_ymode = hard_regno_nregs[xregno][ymode];
 
-  /* Paradoxical subregs are always valid.  */
+  /* Paradoxical subregs are otherwise valid.  */
   if (offset == 0
       && nregs_ymode > nregs_xmode
       && (GET_MODE_SIZE (ymode) > UNITS_PER_WORD
 	  ? WORDS_BIG_ENDIAN : BYTES_BIG_ENDIAN))
     return true;
 
-  /* Lowpart subregs are always valid.  */
+  /* If registers store different numbers of bits in the different
+     modes, we cannot generally form this subreg.  */
+  regsize_xmode = GET_MODE_SIZE (xmode) / nregs_xmode;
+  regsize_ymode = GET_MODE_SIZE (ymode) / nregs_ymode;
+  if (regsize_xmode > regsize_ymode && nregs_ymode > 1)
+    return false;
+  if (regsize_ymode > regsize_xmode && nregs_xmode > 1)
+    return false;
+
+  /* Lowpart subregs are otherwise valid.  */
   if (offset == subreg_lowpart_offset (ymode, xmode))
     return true;
 
-  /* This should always pass, otherwise we don't know how to verify the
-     constraint.  These conditions may be relaxed but subreg_offset would
-     need to be redesigned.  */
+  /* This should always pass, otherwise we don't know how to verify
+     the constraint.  These conditions may be relaxed but
+     subreg_regno_offset would need to be redesigned.  */
   gcc_assert ((GET_MODE_SIZE (xmode) % GET_MODE_SIZE (ymode)) == 0);
-  gcc_assert ((GET_MODE_SIZE (ymode) % nregs_ymode) == 0);
   gcc_assert ((nregs_xmode % nregs_ymode) == 0);
 
   /* The XMODE value can be seen as a vector of NREGS_XMODE
@@ -3217,7 +3264,7 @@ subreg_offset_representable_p (unsigned int xregno, enum machine_mode xmode,
 						  / nregs_xmode,
 						  MODE_INT, 0));
 
-  /* size of ymode must not be greater than the size of xmode.  */
+  /* Size of ymode must not be greater than the size of xmode.  */
   mode_multiple = GET_MODE_SIZE (xmode) / GET_MODE_SIZE (ymode);
   gcc_assert (mode_multiple != 0);
 
@@ -3685,12 +3732,14 @@ nonzero_bits1 (rtx x, enum machine_mode mode, rtx known_x,
     case GE:  case GEU:  case UNGE:
     case LE:  case LEU:  case UNLE:
     case UNORDERED: case ORDERED:
-
       /* If this produces an integer result, we know which bits are set.
 	 Code here used to clear bits outside the mode of X, but that is
 	 now done above.  */
-
-      if (GET_MODE_CLASS (mode) == MODE_INT
+      /* Mind that MODE is the mode the caller wants to look at this 
+	 operation in, and not the actual operation mode.  We can wind 
+	 up with (subreg:DI (gt:V4HI x y)), and we don't have anything
+	 that describes the results of a vector compare.  */
+      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_INT
 	  && mode_width <= HOST_BITS_PER_WIDE_INT)
 	nonzero = STORE_FLAG_VALUE;
       break;

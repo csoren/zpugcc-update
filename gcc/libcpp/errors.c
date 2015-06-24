@@ -17,7 +17,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
  In other words, you are welcome to use, share and improve this program.
  You are forbidden to forbid anyone else to use, share and improve
@@ -141,16 +141,7 @@ cpp_error (cpp_reader * pfile, int level, const char *msgid, ...)
   va_start (ap, msgid);
 
   if (CPP_OPTION (pfile, client_diagnostic))
-    {
-      /* Versions up to 4.0.2 used cpplib's notion of pedantic_errors
-	 rather than the front end's, so preserve this for the 4.0
-	 branch.  */
-      if (level == CPP_DL_PEDWARN)
-	level = (CPP_OPTION (pfile, pedantic_errors)
-		 ? CPP_DL_ERROR
-		 : CPP_DL_WARNING);
-      pfile->cb.error (pfile, level, _(msgid), &ap);
-    }
+    pfile->cb.error (pfile, level, _(msgid), &ap);
   else
     {
       if (CPP_OPTION (pfile, traditional))

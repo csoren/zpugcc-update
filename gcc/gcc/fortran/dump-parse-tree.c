@@ -1,5 +1,5 @@
 /* Parse tree dumper
-   Copyright (C) 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
 This file is part of GCC.
@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 
 /* Actually this is just a collection of routines that used to be
@@ -40,7 +40,7 @@ static int show_level = 0;
 
 /* Forward declaration because this one needs all, and all need
    this one.  */
-static void gfc_show_expr (gfc_expr *);
+
 
 /* Do indentation for a specific level.  */
 
@@ -61,6 +61,7 @@ code_indent (int level, gfc_st_label * label)
 
 /* Simple indentation at the current level.  This one
    is used to show symbols.  */
+
 static inline void
 show_indent (void)
 {
@@ -70,6 +71,7 @@ show_indent (void)
 
 
 /* Show type-specific information.  */
+
 static void
 gfc_show_typespec (gfc_typespec * ts)
 {
@@ -122,7 +124,7 @@ gfc_show_actual_arglist (gfc_actual_arglist * a)
 }
 
 
-/* Show an gfc_array_spec array specification structure.  */
+/* Show a gfc_array_spec array specification structure.  */
 
 static void
 gfc_show_array_spec (gfc_array_spec * as)
@@ -165,7 +167,7 @@ gfc_show_array_spec (gfc_array_spec * as)
 }
 
 
-/* Show an gfc_array_ref array reference structure.  */
+/* Show a gfc_array_ref array reference structure.  */
 
 static void
 gfc_show_array_ref (gfc_array_ref * ar)
@@ -299,7 +301,7 @@ gfc_show_constructor (gfc_constructor * c)
 
 /* Show an expression.  */
 
-static void
+void
 gfc_show_expr (gfc_expr * p)
 {
   const char *c;
@@ -346,6 +348,16 @@ gfc_show_expr (gfc_expr * p)
       break;
 
     case EXPR_CONSTANT:
+      if (p->from_H || p->ts.type == BT_HOLLERITH)
+	{
+	  gfc_status ("%dH", p->value.character.length);
+	  c = p->value.character.string;
+	  for (i = 0; i < p->value.character.length; i++, c++)
+	    {
+	      gfc_status_char (*c);
+	    }
+	  break;
+	}
       switch (p->ts.type)
 	{
 	case BT_INTEGER:
@@ -475,6 +487,9 @@ gfc_show_expr (gfc_expr * p)
 	  break;
 	case INTRINSIC_NOT:
 	  gfc_status ("NOT ");
+	  break;
+	case INTRINSIC_PARENTHESES:
+	  gfc_status ("parens");
 	  break;
 
 	default:
@@ -686,6 +701,7 @@ gfc_show_symbol (gfc_symbol * sym)
 
 /* Show a user-defined operator.  Just prints an operator
    and the name of the associated subroutine, really.  */
+
 static void
 show_uop (gfc_user_op * uop)
 {
@@ -745,6 +761,7 @@ show_common (gfc_symtree * st)
     }
   gfc_status_char ('\n');
 }    
+
 
 /* Worker function to display the symbol tree.  */
 
@@ -811,6 +828,7 @@ gfc_show_code_node (int level, gfc_code * c)
       gfc_status ("ENTRY %s", c->ext.entry->sym->name);
       break;
 
+    case EXEC_INIT_ASSIGN:
     case EXEC_ASSIGN:
       gfc_status ("ASSIGN ");
       gfc_show_expr (c->expr);
@@ -855,7 +873,13 @@ gfc_show_code_node (int level, gfc_code * c)
       break;
 
     case EXEC_CALL:
-      gfc_status ("CALL %s ", c->resolved_sym->name);
+      if (c->resolved_sym)
+	gfc_status ("CALL %s ", c->resolved_sym->name);
+      else if (c->symtree)
+	gfc_status ("CALL %s ", c->symtree->name);
+      else
+	gfc_status ("CALL ?? ");
+
       gfc_show_actual_arglist (c->ext.actual);
       break;
 
@@ -1084,6 +1108,11 @@ gfc_show_code_node (int level, gfc_code * c)
 	  gfc_status (" UNIT=");
 	  gfc_show_expr (open->unit);
 	}
+      if (open->iomsg)
+	{
+	  gfc_status (" IOMSG=");
+	  gfc_show_expr (open->iomsg);
+	}
       if (open->iostat)
 	{
 	  gfc_status (" IOSTAT=");
@@ -1139,6 +1168,11 @@ gfc_show_code_node (int level, gfc_code * c)
 	  gfc_status (" PAD=");
 	  gfc_show_expr (open->pad);
 	}
+      if (open->convert)
+	{
+	  gfc_status (" CONVERT=");
+	  gfc_show_expr (open->convert);
+	}
       if (open->err != NULL)
 	gfc_status (" ERR=%d", open->err->value);
 
@@ -1152,6 +1186,11 @@ gfc_show_code_node (int level, gfc_code * c)
 	{
 	  gfc_status (" UNIT=");
 	  gfc_show_expr (close->unit);
+	}
+      if (close->iomsg)
+	{
+	  gfc_status (" IOMSG=");
+	  gfc_show_expr (close->iomsg);
 	}
       if (close->iostat)
 	{
@@ -1177,6 +1216,10 @@ gfc_show_code_node (int level, gfc_code * c)
 
     case EXEC_REWIND:
       gfc_status ("REWIND");
+      goto show_filepos;
+
+    case EXEC_FLUSH:
+      gfc_status ("FLUSH");
 
     show_filepos:
       fp = c->ext.filepos;
@@ -1185,6 +1228,11 @@ gfc_show_code_node (int level, gfc_code * c)
 	{
 	  gfc_status (" UNIT=");
 	  gfc_show_expr (fp->unit);
+	}
+      if (fp->iomsg)
+	{
+	  gfc_status (" IOMSG=");
+	  gfc_show_expr (fp->iomsg);
 	}
       if (fp->iostat)
 	{
@@ -1210,6 +1258,11 @@ gfc_show_code_node (int level, gfc_code * c)
 	  gfc_show_expr (i->file);
 	}
 
+      if (i->iomsg)
+	{
+	  gfc_status (" IOMSG=");
+	  gfc_show_expr (i->iomsg);
+	}
       if (i->iostat)
 	{
 	  gfc_status (" IOSTAT=");
@@ -1321,6 +1374,11 @@ gfc_show_code_node (int level, gfc_code * c)
 	  gfc_status (" PAD=");
 	  gfc_show_expr (i->pad);
 	}
+      if (i->convert)
+	{
+	  gfc_status (" CONVERT=");
+	  gfc_show_expr (i->convert);
+	}
 
       if (i->err != NULL)
 	gfc_status (" ERR=%d", i->err->value);
@@ -1329,6 +1387,7 @@ gfc_show_code_node (int level, gfc_code * c)
     case EXEC_IOLENGTH:
       gfc_status ("IOLENGTH ");
       gfc_show_expr (c->expr);
+      goto show_dt_code;
       break;
 
     case EXEC_READ:
@@ -1356,6 +1415,12 @@ gfc_show_code_node (int level, gfc_code * c)
 	gfc_status (" FMT=%d", dt->format_label->value);
       if (dt->namelist)
 	gfc_status (" NML=%s", dt->namelist->name);
+
+      if (dt->iomsg)
+	{
+	  gfc_status (" IOMSG=");
+	  gfc_show_expr (dt->iomsg);
+	}
       if (dt->iostat)
 	{
 	  gfc_status (" IOSTAT=");
@@ -1377,7 +1442,11 @@ gfc_show_code_node (int level, gfc_code * c)
 	  gfc_show_expr (dt->advance);
 	}
 
-      break;
+    show_dt_code:
+      gfc_status_char ('\n');
+      for (c = c->block->next; c; c = c->next)
+	gfc_show_code_node (level + (c->next != NULL), c);
+      return;
 
     case EXEC_TRANSFER:
       gfc_status ("TRANSFER ");
@@ -1404,7 +1473,7 @@ gfc_show_code_node (int level, gfc_code * c)
 }
 
 
-/* Show and equivalence chain.  */
+/* Show an equivalence chain.  */
 
 static void
 gfc_show_equiv (gfc_equiv *eq)

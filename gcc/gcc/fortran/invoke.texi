@@ -1,11 +1,11 @@
-@c Copyright (C) 2004,2005
+@c Copyright (C) 2004, 2005, 2006
 @c Free Software Foundation, Inc.
 @c This is part of the GFORTRAN manual.   
 @c For copying conditions, see the file gfortran.texi.
 
 @ignore
 @c man begin COPYRIGHT
-Copyright @copyright{} 2004
+Copyright @copyright{} 2004, 2005
 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
@@ -69,19 +69,6 @@ GFORTRAN@.
 The @command{gfortran} command supports all the options supported by the
 @command{gcc} command.  Only options specific to gfortran are documented here.
 
-@emph{Gfortran is not yet a fully conformant Fortran 95 compiler}.
-It can generate code for most constructs and expressions,
-but work remains to be done.  In particular, there are known
-deficiencies with ENTRY, NAMELIST, and sophisticated use of
-MODULES, POINTERS and DERIVED TYPES.  For those whose Fortran
-codes conform to either the Fortran 77 standard or the
-GNU Fortran 77 language, we recommend to use @command{g77}
-from GCC 3.4.  We recommend that distributors continue to provide
-packages of g77-3.4 until we announce that @command{gfortran}
-fully replaces @command{g77}.
-The gfortran developers welcome any feedback on user experience
-with @command{gfortran} at @email{fortran@@gcc.gnu.org}.
-
 @xref{Invoking GCC,,GCC Command Options,gcc,Using the GNU Compiler
 Collection (GCC)}, for information
 on the non-Fortran-specific aspects of the @command{gcc} command (and,
@@ -111,6 +98,7 @@ one is not the default.
 * Warning Options::     How picky should the compiler be?
 * Debugging Options::   Symbol tables, measurements, and debugging dumps.
 * Directory Options::   Where to find module files
+* Runtime Options::     Influencing runtime behavior
 * Code Gen Options::    Specifying conventions for function calls, data layout
                         and register usage.
 * Environment Variables:: Env vars that affect GNU Fortran.
@@ -130,34 +118,41 @@ by type.  Explanations are in the following sections.
 @gccoptlist{
 -ffree-form  -fno-fixed-form @gol
 -fdollar-ok  -fimplicit-none  -fmax-identifier-length @gol
--std=@var{std}
+-std=@var{std} -fd-lines-as-code -fd-lines-as-comments @gol
 -ffixed-line-length-@var{n}  -ffixed-line-length-none @gol
--fdefault-double-8  -fdefault-integer-8  -fdefault-real-8 }
+-ffree-line-length-@var{n}  -ffree-line-length-none @gol
+-fdefault-double-8  -fdefault-integer-8  -fdefault-real-8 @gol
+-fcray-pointer  -frange-check }
 
 @item Warning Options
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
 @gccoptlist{
 -fsyntax-only  -pedantic  -pedantic-errors @gol
--w  -Wall  -Waliasing  -Wconversion @gol
--Wimplicit-interface  -Wnonstd-intrinsics  -Wsurprising  -Wunderflow @gol
+-w  -Wall  -Waliasing -Wampersand -Wconversion -Wimplicit-interface @gol
+-Wnonstd-intrinsics -Wsurprising -Wunderflow @gol
 -Wunused-labels -Wline-truncation -W}
 
 @item Debugging Options
 @xref{Debugging Options,,Options for Debugging Your Program or GCC}.
 @gccoptlist{
--fdump-parse-tree}
+-fdump-parse-tree -ffpe-trap=@var{list}}
 
 @item Directory Options
 @xref{Directory Options,,Options for Directory Search}.
 @gccoptlist{
 -I@var{dir}  -M@var{dir}}
 
+@item Runtime Options
+@xref{Runtime Options,,Options for influencing runtime behavior}.
+@gccoptlist{
+-fconvert=@var{conversion} -frecord-marker=@var{length}}
+
 @item Code Generation Options
 @xref{Code Gen Options,,Options for Code Generation Conventions}.
 @gccoptlist{
 -fno-automatic -ff2c -fno-underscoring  -fsecond-underscore @gol
 -fbounds-check  -fmax-stack-var-size=@var{n} @gol
--fpackderived  -frepack-arrays}
+-fpackderived  -frepack-arrays  -fshort-enums}
 @end table
 
 @menu
@@ -166,6 +161,7 @@ by type.  Explanations are in the following sections.
 * Warning Options::     How picky should the compiler be?
 * Debugging Options::   Symbol tables, measurements, and debugging dumps.
 * Directory Options::   Where to find module files
+* Runtime Options::     Influencing runtime behavior
 * Code Gen Options::    Specifying conventions for function calls, data layout
                         and register usage.
 @end menu
@@ -191,9 +187,21 @@ that the compiler accepts:
 @cindex Fortran 90, features
 @item -ffree-form
 @item -ffixed-form
-Specify the layout used by the the source file. The free form layout
+Specify the layout used by the source file.  The free form layout
 was introduced in Fortran 90.  Fixed form was traditionally used in
 older Fortran programs.
+
+@cindex option, -fd-lines-as-code
+@cindex -fd-lines-as-code, option
+@cindex option, -fd-lines-as-comments
+@cindex -fd-lines-as-comments, option
+@item -fd-lines-as-code
+@item -fd-lines-as-comment
+Enables special treating for lines with @samp{d} or @samp{D} in fixed
+form sources.  If the @option{-fd-lines-as-code} option is given
+they are treated as if the first column contained a blank.  If the
+@option{-fd-lines-as-comments} option is given, they are treated as
+comment lines.
 
 @cindex option, -fdefault-double-8
 @cindex -fdefault-double-8, option
@@ -225,7 +233,6 @@ Allow @samp{$} as a valid character in a symbol name.
 @item -fno-backslash
 @cindex backslash
 @cindex escape characters
-@item
 Compile switch to change the interpretation of a backslash from
 ``C''-style escape characters to a single backslash character.
 
@@ -252,6 +259,20 @@ to them to fill out the line.
 @option{-ffixed-line-length-0} means the same thing as
 @option{-ffixed-line-length-none}.
 
+@cindex -ffree-line-length-@var{n} option
+@cindex options, -ffree-line-length-@var{n}
+@item -ffree-line-length-@var{n}
+@cindex source file format
+@cindex lines, length
+@cindex length of source lines
+@cindex free form
+@cindex limits, lengths of source lines
+Set column after which characters are ignored in typical free-form
+lines in the source file. For free-form, the default value is 132.
+@var{n} may be @samp{none}, meaning that the entire line is meaningful.
+@option{-ffree-line-length-0} means the same thing as
+@option{-ffree-line-length-none}.
+
 @cindex -fmax-identifier-length=@var{n} option
 @cindex option -fmax-identifier-length=@var{n}
 @item -fmax-identifier-length=@var{n}
@@ -264,6 +285,20 @@ Specify the maximum allowed identifier length. Typical values are
 Specify that no implicit typing is allowed, unless overridden by explicit
 @samp{IMPLICIT} statements.  This is the equivalent of adding
 @samp{implicit none} to the start of every procedure.
+
+@cindex -fcray-pointer option
+@cindex options, -fcray-pointer
+@item -fcray-pointer
+Enables the Cray pointer extension, which provides a C-like pointer.
+
+@cindex -frange-check
+@cindex options, -frange-check
+@item -frange-check
+Enable range checking on results of simplification of constant expressions
+during compilation.  For example, by default, @command{gfortran} will give
+an overflow error at compile time when simplifying @code{a = EXP(1000)}.
+With @samp{-fno-range-check}, no error will be given and the variable @code{a}
+will be assigned the value @code{+Infinity}.
 
 @cindex -std=@var{std} option
 @cindex option, -std=@var{std}
@@ -339,24 +374,44 @@ Inhibit all warning messages.
 @item -Wall
 @cindex all warnings
 @cindex warnings, all
-Enables commonly used warning options that which pertain to usage that
-we recommend avoiding and that we believe is easy to avoid.
-This currently includes @option{-Wunused-labels}, @option{-Waliasing},
-@option{-Wsurprising}, @option{-Wnonstd-intrinsic} and
-@option{-Wline-truncation}.
+Enables commonly used warning options pertaining to usage that
+we recommend avoiding and that we believe are easy to avoid. This currently
+includes @option{-Wunused-labels}, @option{-Waliasing}, @option{-Wampersand},
+@option{-Wsurprising}, @option{-Wnonstd-intrinsic},
+and @option{-Wline-truncation}.
 
 
 @cindex -Waliasing option
 @cindex options, -Waliasing
 @item -Waliasing
 @cindex aliasing
-Warn about possible aliasing of dummy arguments. The following example
-will trigger the warning as it would be illegal to @code{bar} to
-modify either parameter.
+Warn about possible aliasing of dummy arguments. Specifically, it warns
+if the same actual argument is associated with a dummy argument with
+@code{intent(in)} and a dummy argument with @code{intent(out)} in a call
+with an explicit interface.
+
+The following example will trigger the warning.
 @smallexample
-  INTEGER A
-  CALL BAR(A,A)
+  interface
+    subroutine bar(a,b)
+      integer, intent(in) :: a
+      integer, intent(out) :: b
+    end subroutine
+  end interface
+  integer :: a
+
+  call bar(a,a)
 @end smallexample
+
+
+@cindex -Wampersand option
+@cindex options, -Wampersand
+@item -Wampersand
+@cindex ampersand
+Warn about missing ampersand in continued character literals. The warning is
+given with @option{-Wampersand}, @option{-pedantic}, and @option{-std=f95}.
+Note: With no ampersand given in a continued character literal, gfortran
+assumes continuation at the first non-comment, non-whitespace character.
 
 
 @cindex -Wconversion option
@@ -398,6 +453,7 @@ lower value is greater than its upper value.
 @item
 A LOGICAL SELECT construct has three CASE statements.
 @end itemize
+
 
 @cindex -Wunderflow
 @cindex options, -Wunderflow
@@ -454,6 +510,22 @@ Output the internal parse tree before starting code generation.  Only
 really useful for debugging gfortran itself.
 @end table
 
+@table @gcctabopt
+@cindex -ffpe-trap=@var{list} option
+@cindex option, -ffpe-trap=@var{list}
+@item -ffpe-trap=@var{list}
+Specify a list of IEEE exceptions when a Floating Point Exception
+(FPE) should be raised.  On most systems, this will result in a SIGFPE
+signal being sent and the program being interrupted, producing a core
+file useful for debugging.  @var{list} is a (possibly empty) comma-separated
+list of the following IEEE exceptions: @samp{invalid} (invalid floating
+point operation, such as @code{sqrt(-1.0)}), @samp{zero} (division by
+zero), @samp{overflow} (overflow in a floating point operation),
+@samp{underflow} (underflow in a floating point operation),
+@samp{precision} (loss of precision during operation) and @samp{denormal}
+(operation produced a denormal denormal value).
+@end table
+
 @xref{Debugging Options,,Options for Debugging Your Program or GCC,
 gcc,Using the GNU Compiler Collection (GCC)}, for more information on
 debugging options.
@@ -466,8 +538,8 @@ debugging options.
 
 @cindex INCLUDE directive
 @cindex directive, INCLUDE
-There options affect how affect how @command{gfortran} searches
-for files specified via the @code{INCLUDE} directive, and where it searches
+These options affect how @command{gfortran} searches
+for files specified by the @code{INCLUDE} directive and where it searches
 for previously compiled modules.
 
 It also affects the search paths used by @command{cpp} when used to preprocess
@@ -510,6 +582,36 @@ The default is the current directory.
 
 @option{-J} is an alias for @option{-M} to avoid conflicts with existing
 GCC options.
+@end table
+
+@node Runtime Options
+@section Influencing runtime behavior
+@cindex runtime, options
+
+These options affect the runtime behavior of @command{gfortran}.
+@table @gcctabopt
+@cindex -fconvert=@var{conversion} option
+@item -fconvert=@var{conversion}
+Specify the representation of data for unformatted files.  Valid
+values for conversion are: @samp{native}, the default; @samp{swap},
+swap between big- and little-endian; @samp{big-endian}, use big-endian
+representation for unformatted files; @samp{little-endian}, use little-endian
+representation for unformatted files.
+
+@emph{This option has an effect only when used in the main program.
+The @code{CONVERT} specifier and the GFORTRAN_CONVERT_UNIT environment
+variable override the default specified by -fconvert.}
+
+@cindex -frecord-marker=@var{length}
+@item -frecord-marker=@var{length}
+Specify the length of record markers for unformatted files.
+Valid values for @var{length} are 4 and 8.  Default is whatever
+@code{off_t} is specified to be on that particular system.
+Note that specifying @var{length} as 4 limits the record
+length of unformatted files to 2 GB.  This option does not
+extend the maximum possible record length on systems where
+@code{off_t} is a four_byte quantity.
+
 @end table
 
 @node Code Gen Options
@@ -584,10 +686,8 @@ Do not transform names of entities specified in the Fortran
 source file by appending underscores to them.
 
 With @option{-funderscoring} in effect, @command{gfortran} appends one
-underscore to external names with no underscores.
-
-This is done to ensure compatibility with code produced by many
-UNIX Fortran compilers.
+underscore to external names with no underscores.  This is done to ensure
+compatibility with code produced by many UNIX Fortran compilers.
 
 @emph{Caution}: The default behavior of @command{gfortran} is
 incompatible with @command{f2c} and @command{g77}, please use the
@@ -722,6 +822,13 @@ a contiguous block at runtime.
 This should result in faster accesses to the array.  However it can introduce
 significant overhead to the function call, especially  when the passed data
 is discontiguous.
+
+@cindex -fshort-enums
+@item -fshort-enums
+This option is provided for interoperability with C code that was
+compiled with the @command{-fshort-enums} option.  It will make
+@command{gfortran} choose the smallest @code{INTEGER} kind a given
+enumerator set will fit in, and give all its enumerators this kind.
 @end table
 
 @xref{Code Gen Options,,Options for Code Generation Conventions,
@@ -746,4 +853,6 @@ that affect the operation of @command{gcc}.
 gcc,Using the GNU Compiler Collection (GCC)}, for information on environment
 variables.
 
+@xref{Runtime}, for environment variables that affect the
+run-time behavior of @command{gfortran} programs.
 @c man end

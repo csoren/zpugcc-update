@@ -39,8 +39,8 @@ extern int target_flags;
 #define TARGET_CPU_CPP_BUILTINS()               \
   do                                            \
     {                                           \
-      builtin_define ("bfin");                  \
-      builtin_define ("BFIN");                  \
+      builtin_define_std ("bfin");              \
+      builtin_define_std ("BFIN");              \
       if (flag_pic)				\
 	{					\
 	  builtin_define ("__PIC__");		\
@@ -55,67 +55,7 @@ extern int target_flags;
 /* Generate DSP instructions, like DSP halfword loads */
 #define TARGET_DSP			(1)
 
-#define TARGET_DEFAULT (MASK_CSYNC_ANOMALY | MASK_SPECLD_ANOMALY)
-
-/* Don't create frame pointers for leaf functions */
-#define TARGET_OMIT_LEAF_FRAME_POINTER (target_flags & MASK_OMIT_LEAF_FRAME_POINTER)
-#define TARGET_LOW_64K                 (target_flags & MASK_LOW_64K)
-#define TARGET_CSYNC_ANOMALY	       (target_flags & MASK_CSYNC_ANOMALY)
-#define TARGET_SPECLD_ANOMALY	       (target_flags & MASK_SPECLD_ANOMALY)
-#define TARGET_ID_SHARED_LIBRARY       (target_flags & MASK_ID_SHARED_LIBRARY)
-#define TARGET_LONG_CALLS              (target_flags & MASK_LONG_CALLS)
-
-#define MASK_OMIT_LEAF_FRAME_POINTER 0x00000001
-#define MASK_CSYNC_ANOMALY           0x00000002
-#define MASK_LOW_64K           	     0x00000004
-/* Compile using library ID based shared libraries.
- * Set a specific ID using the -mshared-library-id=xxx option.
- */
-#define MASK_ID_SHARED_LIBRARY	     0x00000008
-#define MASK_SPECLD_ANOMALY          0x00000010
-#define MASK_LONG_CALLS              0x00000020
-
-#define TARGET_SWITCHES  {\
-  { "omit-leaf-frame-pointer",	  MASK_OMIT_LEAF_FRAME_POINTER,		\
-    "Omit frame pointer for leaf functions" }, 				\
-  { "no-omit-leaf-frame-pointer",-MASK_OMIT_LEAF_FRAME_POINTER,		\
-    "Use frame pointer for leaf functions"},       			\
-  { "low64k",	                  MASK_LOW_64K,				\
-    "Program is located in low 64K of memory" },			\
-  { "no-low64k",	         -MASK_LOW_64K,				\
-    "Program is not located in low 64K of memory (default)"},		\
-  { "specld-anomaly",		 MASK_SPECLD_ANOMALY,			\
-    "Avoid speculative loads"},						\
-  { "no-specld-anomaly",	-MASK_SPECLD_ANOMALY,			\
-    "Do not generate extra code to avoid speculative loads"},		\
-  { "csync-anomaly",		 MASK_CSYNC_ANOMALY,			\
-    "Avoid CSYNC/SSYNC after conditional jumps"},			\
-  { "no-csync-anomaly",		-MASK_CSYNC_ANOMALY,			\
-    "Do not generate extra code to avoid CSYNC/SSYNC after condjumps"},	\
-  { "long-calls",	         MASK_LONG_CALLS,			\
-    "Don't generate PC-relative calls, use indirection"},		\
-  { "no-cmov",			-MASK_LONG_CALLS,			\
-    "Don't use long calls by default"},					\
-  { "id-shared-library", MASK_ID_SHARED_LIBRARY,			\
-    "Enable ID based shared library" },					\
-  { "no-id-shared-library", -MASK_ID_SHARED_LIBRARY,			\
-    "Disable ID based shared library" },				\
-  { "", TARGET_DEFAULT,							\
-    "default: csync-anomaly, specld-anomaly"}}
-
-/* This macro is similar to `TARGET_SWITCHES' but defines names of
-   command options that have values.  Its definition is an
-   initializer with a subgrouping for each command option.
-
-   Each subgrouping contains a string constant, that defines the
-   fixed part of the option name, and the address of a variable.  The
-   variable, type `char *', is set to the variable part of the given
-   option if the fixed part matches.  The actual option name is made
-   by appending `-m' to the specified name.  */
-#define TARGET_OPTIONS							\
-{ { "shared-library-id=",	&bfin_library_id_string,		\
-    "ID of shared library to build", 0}					\
-}
+#define TARGET_DEFAULT (MASK_SPECLD_ANOMALY | MASK_CSYNC_ANOMALY)
 
 /* Maximum number of library ids we permit */
 #define MAX_LIBRARY_ID 255
@@ -146,11 +86,11 @@ extern const char *bfin_library_id_string;
 
 #define STACK_PUSH_CODE PRE_DEC
 
-/* Define this if the nominal address of the stack frame
+/* Define this to nonzero if the nominal address of the stack frame
    is at the high-address end of the local variables;
    that is, each additional local variable allocated
    goes at a more negative offset in the frame.  */
-#define FRAME_GROWS_DOWNWARD
+#define FRAME_GROWS_DOWNWARD 1
 
 /* We define a dummy ARGP register; the parameters start at offset 0 from
    it. */
@@ -398,7 +338,7 @@ enum reg_class
   BREGS,
   LREGS,
   MREGS,
-  CIRCREGS, /* Circular buffering registers, Ix, Bx, Lx together form. See Automatic Circlur Buffering */
+  CIRCREGS, /* Circular buffering registers, Ix, Bx, Lx together form.  See Automatic Circular Buffering.  */
   DAGREGS,
   EVEN_AREGS,
   ODD_AREGS,
@@ -846,9 +786,6 @@ do {                                              \
 /* Width of a word, in units (bytes).  */
 #define UNITS_PER_WORD 4
 
-/* Size of a vector for autovectorization.  */
-#define UNITS_PER_SIMD_WORD 4
-
 /* Width in bits of a pointer.
    See also the macro `Pmode1' defined below.  */
 #define POINTER_SIZE 32
@@ -1065,23 +1002,6 @@ do {                                              \
 #define EXTRA_CONSTRAINT(VALUE, D) \
     ((D) == 'Q' ? GET_CODE (VALUE) == SYMBOL_REF : 0)
 
-/* `FINALIZE_PIC'
-     By generating position-independent code, when two different
-     programs (A and B) share a common library (libC.a), the text of
-     the library can be shared whether or not the library is linked at
-     the same address for both programs.  In some of these
-     environments, position-independent code requires not only the use
-     of different addressing modes, but also special code to enable the
-     use of these addressing modes.
-
-     The `FINALIZE_PIC' macro serves as a hook to emit these special
-     codes once the function is being compiled into assembly code, but
-     not before.  (It is not done before, because in the case of
-     compiling an inline function, it would lead to multiple PIC
-     prologues being included in functions which used inline functions
-     and were compiled to assembly language.) */
-#define FINALIZE_PIC  do {} while (0)
-
 /* Switch into a generic section.  */
 #define TARGET_ASM_NAMED_SECTION  default_elf_asm_named_section
 
@@ -1134,19 +1054,6 @@ typedef enum directives {
 #define ASM_OUTPUT_LABELREF(FILE,NAME) 	\
     do {  fprintf (FILE, "_%s", NAME); \
         } while (0)
-
-#define ASM_FORMAT_PRIVATE_NAME(OUTPUT, NAME, LABELNO)			\
-  do {									\
-    int len = strlen (NAME);						\
-    char *temp = (char *) alloca (len + 4);				\
-    temp[0] = 'L';							\
-    temp[1] = '_';							\
-    strcpy (&temp[2], (NAME));						\
-    temp[len + 2] = '_';						\
-    temp[len + 3] = 0;							\
-    (OUTPUT) = (char *) alloca (strlen (NAME) + 13);			\
-    sprintf (OUTPUT, "_%s$%d", temp, LABELNO);				\
-  } while (0)
 
 #define ASM_OUTPUT_ADDR_VEC_ELT(FILE, VALUE)    	\
 do { char __buf[256];					\
@@ -1201,11 +1108,13 @@ do { 						\
 
 #define ASM_COMMENT_START "//"
 
-#define FUNCTION_PROFILER(FILE, LABELNO) \
-  do {\
-    fprintf (FILE, "\tP1.l =LP$%d; P1.h =LP$%d; call mcount;\n", \
-       LABELNO, LABELNO);\
+#define FUNCTION_PROFILER(FILE, LABELNO)	\
+  do {						\
+    fprintf (FILE, "\tCALL __mcount;\n");	\
   } while(0)
+
+#undef NO_PROFILE_COUNTERS
+#define NO_PROFILE_COUNTERS 1
 
 #define ASM_OUTPUT_REG_PUSH(FILE, REGNO) fprintf (FILE, "[SP--] = %s;\n", reg_names[REGNO])
 #define ASM_OUTPUT_REG_POP(FILE, REGNO)  fprintf (FILE, "%s = [SP++];\n", reg_names[REGNO])

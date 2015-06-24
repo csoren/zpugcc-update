@@ -43,5 +43,4 @@ contains
   END SUBROUTINE roo
 end program test
 
-
 ! { dg-final { cleanup-modules "global" } }

@@ -25,8 +25,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public
 License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include "libgfortran.h"
@@ -70,7 +70,7 @@ w32_getlogin (void)
 void PREFIX(getlog) (char *, gfc_charlen_type);
 export_proto_np(PREFIX(getlog));
 
-void 
+void
 PREFIX(getlog) (char * login, gfc_charlen_type login_len)
 {
   int p_len;

@@ -1,3 +1,5 @@
+//PR c++/28740
+
 struct A { virtual ~A(); };
 
 struct B : A A {};            // { dg-error "'A'|function|extra" }

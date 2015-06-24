@@ -16,8 +16,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* Statement translators (gfc_trans_*) return a fully translated tree.
    Calls gfc_trans_*.  */
@@ -28,6 +28,7 @@ tree gfc_trans_code (gfc_code *);
 /* trans-expr.c */
 tree gfc_trans_assign (gfc_code *);
 tree gfc_trans_pointer_assign (gfc_code *);
+tree gfc_trans_init_assign (gfc_code *);
 
 /* trans-stmt.c */
 tree gfc_trans_cycle (gfc_code *);
@@ -38,7 +39,7 @@ tree gfc_trans_goto (gfc_code *);
 tree gfc_trans_entry (gfc_code *);
 tree gfc_trans_pause (gfc_code *);
 tree gfc_trans_stop (gfc_code *);
-tree gfc_trans_call (gfc_code *);
+tree gfc_trans_call (gfc_code *, bool);
 tree gfc_trans_return (gfc_code *);
 tree gfc_trans_if (gfc_code *);
 tree gfc_trans_arithmetic_if (gfc_code *);
@@ -61,6 +62,7 @@ tree gfc_trans_backspace (gfc_code *);
 tree gfc_trans_endfile (gfc_code *);
 tree gfc_trans_inquire (gfc_code *);
 tree gfc_trans_rewind (gfc_code *);
+tree gfc_trans_flush (gfc_code *);
 
 tree gfc_trans_transfer (gfc_code *);
 tree gfc_trans_dt_end (gfc_code *);

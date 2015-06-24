@@ -18,8 +18,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.  */
 
 /* Instruction reorganization pass.
 
@@ -133,6 +133,9 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "resource.h"
 #include "except.h"
 #include "params.h"
+#include "timevar.h"
+#include "target.h"
+#include "tree-pass.h"
 
 #ifdef DELAY_SLOTS
 
@@ -384,7 +387,7 @@ find_end_label (void)
       /* If the basic block reorder pass moves the return insn to
 	 some other place try to locate it again and put our
 	 end_of_function_label there.  */
-      while (insn && ! (GET_CODE (insn) == JUMP_INSN
+      while (insn && ! (JUMP_P (insn)
 		        && (GET_CODE (PATTERN (insn)) == RETURN)))
 	insn = PREV_INSN (insn);
       if (insn)
@@ -1931,7 +1934,7 @@ reorg_redirect_jump (rtx jump, rtx nlabel)
    that reference values used in INSN.  If we find one, then we move the
    REG_DEAD note to INSN.
 
-   This is needed to handle the case where an later insn (after INSN) has a
+   This is needed to handle the case where a later insn (after INSN) has a
    REG_DEAD note for a register used by INSN, and this later insn subsequently
    gets moved before a CODE_LABEL because it is a redundant insn.  In this
    case, mark_target_live_regs may be confused into thinking the register
@@ -2864,6 +2867,8 @@ fill_slots_from_thread (rtx insn, rtx condition, rtx thread,
       dest = SET_DEST (pat), src = SET_SRC (pat);
       if ((GET_CODE (src) == PLUS || GET_CODE (src) == MINUS)
 	  && rtx_equal_p (XEXP (src, 0), dest)
+	  && (!FLOAT_MODE_P (GET_MODE (src))
+	      || flag_unsafe_math_optimizations)
 	  && ! reg_overlap_mentioned_p (dest, XEXP (src, 1))
 	  && ! side_effects_p (pat))
 	{
@@ -3583,17 +3588,6 @@ dbr_schedule (rtx first, FILE *file)
 {
   rtx insn, next, epilogue_insn = 0;
   int i;
-#if 0
-  int old_flag_no_peephole = flag_no_peephole;
-
-  /* Execute `final' once in prescan mode to delete any insns that won't be
-     used.  Don't let final try to do any peephole optimization--it will
-     ruin dataflow information for this pass.  */
-
-  flag_no_peephole = 1;
-  final (first, 0, NO_DEBUG, 1, 1);
-  flag_no_peephole = old_flag_no_peephole;
-#endif
 
   /* If the current function has no insns other than the prologue and
      epilogue, then do not try to fill any delay slots.  */
@@ -3821,3 +3815,73 @@ dbr_schedule (rtx first, FILE *file)
 #endif
 }
 #endif /* DELAY_SLOTS */
+
+static bool
+gate_handle_delay_slots (void)
+{
+#ifdef DELAY_SLOTS
+  return flag_delayed_branch;
+#else 
+  return 0;
+#endif
+}
+
+/* Run delay slot optimization.  */
+static void
+rest_of_handle_delay_slots (void)
+{
+#ifdef DELAY_SLOTS
+  dbr_schedule (get_insns (), dump_file);
+#endif
+}   
+
+struct tree_opt_pass pass_delay_slots =
+{
+  "dbr",                                /* name */
+  gate_handle_delay_slots,              /* gate */
+  rest_of_handle_delay_slots,           /* execute */
+  NULL,                                 /* sub */
+  NULL,                                 /* next */
+  0,                                    /* static_pass_number */
+  TV_DBR_SCHED,                         /* tv_id */
+  0,                                    /* properties_required */
+  0,                                    /* properties_provided */
+  0,                                    /* properties_destroyed */
+  0,                                    /* todo_flags_start */
+  TODO_dump_func |
+  TODO_ggc_collect,                     /* todo_flags_finish */
+  'd'                                   /* letter */
+};
+
+/* Machine dependent reorg pass.  */
+static bool
+gate_handle_machine_reorg (void)
+{
+  return targetm.machine_dependent_reorg != 0;
+}
+
+
+static void
+rest_of_handle_machine_reorg (void)
+{
+  targetm.machine_dependent_reorg ();
+}
+
+struct tree_opt_pass pass_machine_reorg =
+{
+  "mach",                               /* name */
+  gate_handle_machine_reorg,            /* gate */
+  rest_of_handle_machine_reorg,         /* execute */
+  NULL,                                 /* sub */
+  NULL,                                 /* next */
+  0,                                    /* static_pass_number */
+  TV_MACH_DEP,                          /* tv_id */
+  0,                                    /* properties_required */
+  0,                                    /* properties_provided */
+  0,                                    /* properties_destroyed */
+  0,                                    /* todo_flags_start */
+  TODO_dump_func |
+  TODO_ggc_collect,                     /* todo_flags_finish */
+  'M'                                   /* letter */
+};
+

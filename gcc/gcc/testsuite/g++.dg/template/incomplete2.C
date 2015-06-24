@@ -5,7 +5,7 @@ struct A;
 
 template<A&> void foo();
 
-A a;  // { dg-error "incomplete type|storage size" }
+A a;  // { dg-error "incomplete type" }
 
 void bar()
 {
