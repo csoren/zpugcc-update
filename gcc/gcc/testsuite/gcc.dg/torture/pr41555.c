@@ -1,6 +1,5 @@
 /* { dg-do run } */
 /* { dg-options "-std=c99" } */
-/* { dg-require-effective-target stdint_types } */
 
 #include <stdint.h>
 #include <limits.h>

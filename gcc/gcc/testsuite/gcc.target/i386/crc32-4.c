@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -mno-sse4.2" } */
+/* { dg-options "-O2 -mno-sse4.2 -mno-crc32" } */
 /* { dg-final { scan-assembler "__builtin_ia32_crc32di" } } */
 
 unsigned long long

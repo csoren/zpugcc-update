@@ -8,5 +8,4 @@ main(void)
   return 0;
 }
 
-/* { dg-final { cleanup-coverage-files } } */
 /* { dg-final { cleanup-tree-dump "tree_profile" } } */

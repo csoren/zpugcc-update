@@ -5,6 +5,13 @@
 
 static void avx_test (void);
 
+static void
+__attribute__ ((noinline))
+do_test (void)
+{
+  avx_test ();
+}
+
 int
 main ()
 {
@@ -17,7 +24,7 @@ main ()
   if (((ecx & (bit_AVX | bit_OSXSAVE)) == (bit_AVX | bit_OSXSAVE))
       && avx_os_support ())
     {
-      avx_test ();
+      do_test ();
 #ifdef DEBUG
       printf ("PASSED\n");
 #endif

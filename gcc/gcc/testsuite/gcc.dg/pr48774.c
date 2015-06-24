@@ -11,7 +11,7 @@ struct { int n; unsigned long *e[12]; } g
 	    &s[16], &s[18], &s[20], &s[22] } };
 int c[12];
 
-__attribute__((noinline)) void
+__attribute__((noinline, noclone)) void
 foo (void)
 {
   int i, j;

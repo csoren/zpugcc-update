@@ -16,11 +16,16 @@ struct A {};
 one foo(const A&) {return one();}
 two foo(A&&)      {return two();}
 
-A&& source() {static A a; return a;}
+template<typename _Tp>
+inline _Tp&&
+movel(_Tp& __t)
+{ return static_cast<_Tp&&>(__t); }
+
+A&& source() {static A a; return movel(a);}
 
 int test1()
 {
-  sa<sizeof(foo(source())) == 2 * sizeof(long)> t1;
+    sa<sizeof(foo(source())) == 2 * sizeof(long)> t1;
     return 0;
 }
 

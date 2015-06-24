@@ -18,7 +18,7 @@ two foo(A&&)      {return two();}
 
 int test1(A&& a)
 {
-  sa<sizeof(foo(a)) == 1 * sizeof(long)> t1;
+    sa<sizeof(foo(a)) == 1 * sizeof(long)> t1;
     return 0;
 }
 

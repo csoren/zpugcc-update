@@ -1,4 +1,5 @@
-/* Copyright (C) 2002, 2003, 2005, 2007, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -26,6 +27,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* Implement the non-IOLENGTH variant of the INQUIRY statement */
 
 #include "io.h"
+#include "unix.h"
 
 
 static const char undefined[] = "UNDEFINED";

@@ -1,30 +1,41 @@
-2012-03-13  Release Manager
+2012-07-02  Release Manager
 
-	* GCC 4.4.7 released.
+	* GCC 4.5.4 released.
 
-2011-04-16  Release Manager
+2011-04-28  Release Manager
 
-	* GCC 4.4.6 released.
+	* GCC 4.5.3 released.
 
-2010-10-01  Release Manager
+2010-12-16  Release Manager
 
-	* GCC 4.4.5 released.
+	* GCC 4.5.2 released.
 
-2010-04-29  Release Manager
+2010-07-31  Release Manager
 
-	* GCC 4.4.4 released.
+	* GCC 4.5.1 released.
 
-2010-01-21  Release Manager
+2010-04-14  Release Manager
 
-	* GCC 4.4.3 released.
+	* GCC 4.5.0 released.
 
-2009-10-15  Release Manager
+2010-01-09  Simon Wright  <simon@pushface.org>
 
-	* GCC 4.4.2 released.
+	PR ada/42659
+	* configure.ac (powerpc|*86-*-darwin*): Extend to *-*-darwin*.
+	* configure: Regenerate.
 
-2009-07-22  Release Manager
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-	* GCC 4.4.1 released.
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (AUTOCONF, configure_deps): New variables.
+	($(srcdir)/configure): Use them.
 
 2009-05-18  Bechir Zalila  <bechir.zalila@gmail.com>
 
@@ -32,9 +43,9 @@
 	* Makefile.in (TOOLS_TARGET_PAIRS): Use the correct path to the
 	target specific sources.
 
-2009-04-21  Release Manager
+2009-04-10  Arnaud Charlet  <charlet@adacore.com>
 
-	* GCC 4.4.0 released.
+	* Makefile.in (stamp-tools): Add handling of snames.ad[sb].
 
 2009-04-09  Jakub Jelinek  <jakub@redhat.com>
 

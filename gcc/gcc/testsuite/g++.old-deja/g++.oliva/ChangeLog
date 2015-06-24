@@ -1,34 +1,22 @@
-2012-03-13  Release Manager
+2012-07-02  Release Manager
 
-	* GCC 4.4.7 released.
+	* GCC 4.5.4 released.
 
-2011-04-16  Release Manager
+2011-04-28  Release Manager
 
-	* GCC 4.4.6 released.
+	* GCC 4.5.3 released.
 
-2010-10-01  Release Manager
+2010-12-16  Release Manager
 
-	* GCC 4.4.5 released.
+	* GCC 4.5.2 released.
 
-2010-04-29  Release Manager
+2010-07-31  Release Manager
 
-	* GCC 4.4.4 released.
+	* GCC 4.5.1 released.
 
-2010-01-21  Release Manager
+2010-04-14  Release Manager
 
-	* GCC 4.4.3 released.
-
-2009-10-15  Release Manager
-
-	* GCC 4.4.2 released.
-
-2009-07-22  Release Manager
-
-	* GCC 4.4.1 released.
-
-2009-04-21  Release Manager
-
-	* GCC 4.4.0 released.
+	* GCC 4.5.0 released.
 
 2005-04-03  Alexandre Oliva  <aoliva@redhat.com>
 
@@ -151,3 +139,9 @@
 
 	* template1.C: New test.
 
+
+Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

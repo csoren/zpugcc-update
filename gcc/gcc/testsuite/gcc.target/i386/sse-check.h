@@ -5,6 +5,13 @@
 
 static void sse_test (void);
 
+static void
+__attribute__ ((noinline))
+do_test (void)
+{
+  sse_test ();
+}
+
 int
 main ()
 {
@@ -15,7 +22,7 @@ main ()
 
   /* Run SSE test only if host has SSE support.  */
   if ((edx & bit_SSE) && sse_os_support ())
-    sse_test ();
+    do_test ();
 
   return 0;
 }

@@ -1,6 +1,6 @@
 /* PR tree-optimization/46491 */
 /* { dg-do run } */
-/* { dg-options "-O2 -fno-ipa-reference" } */
+/* { dg-options "-O2" } */
 
 extern void abort (void);
 

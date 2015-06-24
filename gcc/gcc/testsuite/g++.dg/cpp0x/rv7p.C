@@ -1,6 +1,6 @@
 // I, Howard Hinnant, hereby place this code in the public domain.
 
-// Test overlaod resolution among referece types
+// Test overload resolution among reference types
 
 // { dg-do compile }
 // { dg-options "-std=c++0x" }
@@ -145,7 +145,6 @@ int test7_1235678()
     sa<sizeof(sink_7_1235678(a))           == 1 * sizeof(long)> t1;
     sa<sizeof(sink_7_1235678(ca))          == 2 * sizeof(long)> t2;
     sa<sizeof(sink_7_1235678(va))          == 3 * sizeof(long)> t3;
-    sa<sizeof(sink_7_1235678(cva))         == 8 * sizeof(long)> t4;
     sa<sizeof(sink_7_1235678(source()))    == 5 * sizeof(long)> t5;
     sa<sizeof(sink_7_1235678(c_source()))  == 6 * sizeof(long)> t6;
     sa<sizeof(sink_7_1235678(v_source()))  == 7 * sizeof(long)> t7;

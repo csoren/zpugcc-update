@@ -1,5 +1,5 @@
 ;; GCC machine description for MMX and 3dNOW! instructions
-;; Copyright (C) 2005, 2007, 2008
+;; Copyright (C) 2005, 2007, 2008, 2009
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
@@ -63,6 +63,7 @@
   DONE;
 })
 
+;; movd instead of movq is required to handle broken assemblers.
 (define_insn "*mov<mode>_internal_rex64"
   [(set (match_operand:MMXMODEI8 0 "nonimmediate_operand"
 				"=rm,r,!?y,!?y ,m  ,!y,*Y2,x,x ,m,r,Yi")
@@ -81,10 +82,16 @@
     %vpxor\t%0, %d0
     %vmovq\t{%1, %0|%0, %1}
     %vmovq\t{%1, %0|%0, %1}
-    %vmovq\t{%1, %0|%0, %1}
-    %vmovq\t{%1, %0|%0, %1}"
+    %vmovd\t{%1, %0|%0, %1}
+    %vmovd\t{%1, %0|%0, %1}"
   [(set_attr "type" "imov,imov,mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,ssemov,ssemov")
    (set_attr "unit" "*,*,*,*,*,mmx,mmx,*,*,*,*,*")
+   (set_attr "prefix_rep" "*,*,*,*,*,1,1,*,1,*,*,*")
+   (set_attr "prefix_data16" "*,*,*,*,*,*,*,*,*,1,1,1")
+   (set (attr "prefix_rex")
+     (if_then_else (eq_attr "alternative" "8,9")
+       (symbol_ref "x86_extended_reg_mentioned_p (insn)")
+       (const_string "*")))
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "7,8,9,10,11")
        (const_string "maybe_vex")
@@ -111,6 +118,7 @@
     #"
   [(set_attr "type" "mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,*,*")
    (set_attr "unit" "*,*,*,mmx,mmx,*,*,*,*,*")
+   (set_attr "prefix_rep" "*,*,*,1,1,*,*,*,*,*")
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "5,6,7")
        (const_string "vex")
@@ -141,6 +149,8 @@
     #"
   [(set_attr "type" "mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,sselog1,ssemov,ssemov,ssemov,*,*")
    (set_attr "unit" "*,*,*,mmx,mmx,*,*,*,*,*,*,*,*,*")
+   (set_attr "prefix_rep" "*,*,*,1,1,*,1,*,*,*,*,*,*,*")
+   (set_attr "prefix_data16" "*,*,*,*,*,*,*,1,*,*,*,*,*,*")
    (set_attr "mode" "DI,DI,DI,DI,DI,TI,DI,DI,V4SF,V4SF,V2SF,V2SF,DI,DI")])
 
 (define_expand "movv2sf"
@@ -175,12 +185,15 @@
     vmovq\t{%1, %0|%0, %1}"
   [(set_attr "type" "imov,imov,mmx,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,sselog1,ssemov,ssemov,ssemov,ssemov")
    (set_attr "unit" "*,*,*,*,*,mmx,mmx,*,*,*,*,*,*")
+   (set_attr "prefix_rep" "*,*,*,*,*,1,1,*,*,*,*,*,*")
+   (set_attr "length_vex" "*,*,*,*,*,*,*,*,*,*,*,4,4")
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "7,8,9,10,11,12")
        (const_string "vex")
        (const_string "orig")))
    (set_attr "mode" "DI,DI,DI,DI,DI,DI,DI,V4SF,V4SF,V2SF,V2SF,DI,DI")])
 
+;; movd instead of movq is required to handle broken assemblers.
 (define_insn "*movv2sf_internal_rex64"
   [(set (match_operand:V2SF 0 "nonimmediate_operand"
 				"=rm,r ,!?y,!?y ,m ,!y,*Y2,x,x,x,m,r,Yi")
@@ -204,6 +217,7 @@
     movd\t{%1, %0|%0, %1}"
   [(set_attr "type" "imov,imov,mmx,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,sselog1,ssemov,ssemov,ssemov,ssemov")
    (set_attr "unit" "*,*,*,*,*,mmx,mmx,*,*,*,*,*,*")
+   (set_attr "prefix_rep" "*,*,*,*,*,1,1,*,*,*,*,*,*")
    (set_attr "mode" "DI,DI,DI,DI,DI,DI,DI,V4SF,V4SF,V2SF,V2SF,DI,DI")])
 
 (define_insn "*movv2sf_internal_avx"
@@ -227,6 +241,7 @@
     #"
   [(set_attr "type" "mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,ssemov,*,*")
    (set_attr "unit" "*,*,*,mmx,mmx,*,*,*,*,*,*")
+   (set_attr "prefix_rep" "*,*,*,1,1,*,*,*,*,*,*")
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "5,6,7,8")
        (const_string "vex")
@@ -254,6 +269,7 @@
     #"
   [(set_attr "type" "mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,ssemov,*,*")
    (set_attr "unit" "*,*,*,mmx,mmx,*,*,*,*,*,*")
+   (set_attr "prefix_rep" "*,*,*,1,1,*,*,*,*,*,*")
    (set_attr "mode" "DI,DI,DI,DI,DI,V4SF,V4SF,V2SF,V2SF,DI,DI")])
 
 ;; %%% This multiword shite has got to go.
@@ -313,6 +329,7 @@
   "TARGET_3DNOW && ix86_binary_operator_ok (PLUS, V2SFmode, operands)"
   "pfadd\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_expand "mmx_subv2sf3"
@@ -338,6 +355,7 @@
    pfsub\t{%2, %0|%0, %2}
    pfsubr\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_expand "mmx_mulv2sf3"
@@ -354,6 +372,7 @@
   "TARGET_3DNOW && ix86_binary_operator_ok (MULT, V2SFmode, operands)"
   "pfmul\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxmul")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 ;; ??? For !flag_finite_math_only, the representation with SMIN/SMAX
@@ -381,6 +400,7 @@
    && ix86_binary_operator_ok (<CODE>, V2SFmode, operands)"
   "pf<maxminfprefix>\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "*mmx_<code>v2sf3"
@@ -391,6 +411,7 @@
   "TARGET_3DNOW"
   "pf<maxminfprefix>\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_rcpv2sf2"
@@ -400,6 +421,7 @@
   "TARGET_3DNOW"
   "pfrcp\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmx")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_rcpit1v2sf3"
@@ -410,6 +432,7 @@
   "TARGET_3DNOW"
   "pfrcpit1\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmx")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_rcpit2v2sf3"
@@ -420,6 +443,7 @@
   "TARGET_3DNOW"
   "pfrcpit2\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmx")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_rsqrtv2sf2"
@@ -429,6 +453,7 @@
   "TARGET_3DNOW"
   "pfrsqrt\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmx")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_rsqit1v2sf3"
@@ -439,6 +464,7 @@
   "TARGET_3DNOW"
   "pfrsqit1\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmx")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_haddv2sf3"
@@ -457,6 +483,7 @@
   "TARGET_3DNOW"
   "pfacc\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_hsubv2sf3"
@@ -475,6 +502,7 @@
   "TARGET_3DNOW_A"
   "pfnacc\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_addsubv2sf3"
@@ -488,6 +516,7 @@
   "TARGET_3DNOW_A"
   "pfpnacc\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -510,6 +539,7 @@
   "TARGET_3DNOW && ix86_binary_operator_ok (EQ, V2SFmode, operands)"
   "pfcmpeq\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxcmp")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_gtv2sf3"
@@ -519,6 +549,7 @@
   "TARGET_3DNOW"
   "pfcmpgt\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxcmp")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_gev2sf3"
@@ -528,6 +559,7 @@
   "TARGET_3DNOW"
   "pfcmpge\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxcmp")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -542,6 +574,7 @@
   "TARGET_3DNOW"
   "pf2id\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_pf2iw"
@@ -553,6 +586,7 @@
   "TARGET_3DNOW_A"
   "pf2iw\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_pi2fw"
@@ -564,6 +598,7 @@
   "TARGET_3DNOW_A"
   "pi2fw\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "mmx_floatv2si2"
@@ -572,6 +607,7 @@
   "TARGET_3DNOW"
   "pi2fd\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -587,6 +623,7 @@
   "TARGET_3DNOW_A"
   "pswapd\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "V2SF")])
 
 (define_insn "*vec_dupv2sf"
@@ -887,6 +924,7 @@
   "TARGET_3DNOW && ix86_binary_operator_ok (MULT, V4HImode, operands)"
   "pmulhrw\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxmul")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "DI")])
 
 (define_expand "sse2_umulv1siv1di3"
@@ -965,6 +1003,10 @@
   "TARGET_MMX"
   "psra<mmxvecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxshft")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "DI")])
 
 (define_insn "mmx_lshr<mode>3"
@@ -975,6 +1017,10 @@
   "TARGET_MMX"
   "psrl<mmxvecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxshft")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "DI")])
 
 (define_insn "mmx_ashl<mode>3"
@@ -985,6 +1031,10 @@
   "TARGET_MMX"
   "psll<mmxvecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxshft")
+   (set (attr "length_immediate")
+     (if_then_else (match_operand 2 "const_int_operand" "")
+       (const_string "1")
+       (const_string "0")))
    (set_attr "mode" "DI")])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1039,7 +1089,7 @@
 
 (define_expand "mmx_<code><mode>3"
   [(set (match_operand:MMXMODEI 0 "register_operand" "")
-	(plogic:MMXMODEI
+	(any_logic:MMXMODEI
 	  (match_operand:MMXMODEI 1 "nonimmediate_operand" "")
 	  (match_operand:MMXMODEI 2 "nonimmediate_operand" "")))]
   "TARGET_MMX"
@@ -1047,11 +1097,11 @@
 
 (define_insn "*mmx_<code><mode>3"
   [(set (match_operand:MMXMODEI 0 "register_operand" "=y")
-        (plogic:MMXMODEI
+        (any_logic:MMXMODEI
 	  (match_operand:MMXMODEI 1 "nonimmediate_operand" "%0")
 	  (match_operand:MMXMODEI 2 "nonimmediate_operand" "ym")))]
   "TARGET_MMX && ix86_binary_operator_ok (<CODE>, <MODE>mode, operands)"
-  "p<plogicprefix>\t{%2, %0|%0, %2}"
+  "p<logicprefix>\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
    (set_attr "mode" "DI")])
 
@@ -1208,6 +1258,7 @@
     return "pinsrw\t{%3, %k2, %0|%0, %k2, %3}";
 }
   [(set_attr "type" "mmxcvt")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "DI")])
 
 (define_insn "mmx_pextrw"
@@ -1219,6 +1270,7 @@
   "TARGET_SSE || TARGET_3DNOW_A"
   "pextrw\t{%2, %1, %0|%0, %1, %2}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "DI")])
 
 (define_expand "mmx_pshufw"
@@ -1256,6 +1308,7 @@
   return "pshufw\t{%2, %1, %0|%0, %1, %2}";
 }
   [(set_attr "type" "mmxcvt")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "DI")])
 
 (define_insn "mmx_pswapdv2si2"
@@ -1266,6 +1319,7 @@
   "TARGET_3DNOW_A"
   "pswapd\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "prefix_extra" "1")
    (set_attr "mode" "DI")])
 
 (define_insn "*vec_dupv4hi"
@@ -1276,6 +1330,7 @@
   "TARGET_SSE || TARGET_3DNOW_A"
   "pshufw\t{$0, %0, %0|%0, %0, 0}"
   [(set_attr "type" "mmxcvt")
+   (set_attr "length_immediate" "1")
    (set_attr "mode" "DI")])
 
 (define_insn "*vec_dupv2si"
@@ -1348,6 +1403,7 @@
    #
    #"
   [(set_attr "type" "mmxcvt,sselog1,sselog1,sselog1,mmxmov,ssemov,imov")
+   (set_attr "length_immediate" "*,*,1,*,*,*,*")
    (set_attr "mode" "DI,TI,TI,V4SF,SI,SI,SI")])
 
 (define_split
@@ -1495,6 +1551,11 @@
     return "pavgusb\t{%2, %0|%0, %2}";
 }
   [(set_attr "type" "mmxshft")
+   (set (attr "prefix_extra")
+     (if_then_else
+       (eq (symbol_ref "(TARGET_SSE || TARGET_3DNOW_A)") (const_int 0))
+       (const_string "1")
+       (const_string "*")))
    (set_attr "mode" "DI")])
 
 (define_expand "mmx_uavgv4hi3"
@@ -1584,48 +1645,68 @@
   [(set_attr "type" "mmxcvt")
    (set_attr "mode" "DI")])
 
-(define_insn "mmx_emms"
-  [(unspec_volatile [(const_int 0)] UNSPECV_EMMS)
-   (clobber (reg:XF ST0_REG))
-   (clobber (reg:XF ST1_REG))
-   (clobber (reg:XF ST2_REG))
-   (clobber (reg:XF ST3_REG))
-   (clobber (reg:XF ST4_REG))
-   (clobber (reg:XF ST5_REG))
-   (clobber (reg:XF ST6_REG))
-   (clobber (reg:XF ST7_REG))
-   (clobber (reg:DI MM0_REG))
-   (clobber (reg:DI MM1_REG))
-   (clobber (reg:DI MM2_REG))
-   (clobber (reg:DI MM3_REG))
-   (clobber (reg:DI MM4_REG))
-   (clobber (reg:DI MM5_REG))
-   (clobber (reg:DI MM6_REG))
-   (clobber (reg:DI MM7_REG))]
+(define_expand "mmx_emms"
+  [(match_par_dup 0 [(const_int 0)])]
+  "TARGET_MMX"
+{
+  int regno;
+
+  operands[0] = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (17));
+
+  XVECEXP (operands[0], 0, 0)
+    = gen_rtx_UNSPEC_VOLATILE (VOIDmode, gen_rtvec (1, const0_rtx),
+			       UNSPECV_EMMS);
+
+  for (regno = 0; regno < 8; regno++)
+    {
+      XVECEXP (operands[0], 0, regno + 1)
+	= gen_rtx_CLOBBER (VOIDmode,
+			   gen_rtx_REG (XFmode, FIRST_STACK_REG + regno));
+
+      XVECEXP (operands[0], 0, regno + 9)
+	= gen_rtx_CLOBBER (VOIDmode,
+			   gen_rtx_REG (DImode, FIRST_MMX_REG + regno));
+    }
+})
+
+(define_insn "*mmx_emms"
+  [(match_parallel 0 "emms_operation"
+    [(unspec_volatile [(const_int 0)] UNSPECV_EMMS)])]
   "TARGET_MMX"
   "emms"
   [(set_attr "type" "mmx")
-   (set_attr "memory" "unknown")])
+   (set_attr "modrm" "0")
+   (set_attr "memory" "none")])
 
-(define_insn "mmx_femms"
-  [(unspec_volatile [(const_int 0)] UNSPECV_FEMMS)
-   (clobber (reg:XF ST0_REG))
-   (clobber (reg:XF ST1_REG))
-   (clobber (reg:XF ST2_REG))
-   (clobber (reg:XF ST3_REG))
-   (clobber (reg:XF ST4_REG))
-   (clobber (reg:XF ST5_REG))
-   (clobber (reg:XF ST6_REG))
-   (clobber (reg:XF ST7_REG))
-   (clobber (reg:DI MM0_REG))
-   (clobber (reg:DI MM1_REG))
-   (clobber (reg:DI MM2_REG))
-   (clobber (reg:DI MM3_REG))
-   (clobber (reg:DI MM4_REG))
-   (clobber (reg:DI MM5_REG))
-   (clobber (reg:DI MM6_REG))
-   (clobber (reg:DI MM7_REG))]
+(define_expand "mmx_femms"
+  [(match_par_dup 0 [(const_int 0)])]
+  "TARGET_3DNOW"
+{
+  int regno;
+
+  operands[0] = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (17));
+
+  XVECEXP (operands[0], 0, 0)
+    = gen_rtx_UNSPEC_VOLATILE (VOIDmode, gen_rtvec (1, const0_rtx),
+			       UNSPECV_FEMMS);
+
+  for (regno = 0; regno < 8; regno++)
+    {
+      XVECEXP (operands[0], 0, regno + 1)
+	= gen_rtx_CLOBBER (VOIDmode,
+			   gen_rtx_REG (XFmode, FIRST_STACK_REG + regno));
+
+      XVECEXP (operands[0], 0, regno + 9)
+	= gen_rtx_CLOBBER (VOIDmode,
+			   gen_rtx_REG (DImode, FIRST_MMX_REG + regno));
+    }
+})
+
+(define_insn "*mmx_femms"
+  [(match_parallel 0 "emms_operation"
+    [(unspec_volatile [(const_int 0)] UNSPECV_FEMMS)])]
   "TARGET_3DNOW"
   "femms"
   [(set_attr "type" "mmx")
+   (set_attr "modrm" "0")
    (set_attr "memory" "none")])

@@ -1,7 +1,7 @@
 /* hppa-signal.h - Catch runtime signals and turn them into exceptions,
    on a HP-UX 11 PA system.  */
 
-/* Copyright (C) 2006  Free Software Foundation
+/* Copyright (C) 2006, 2009  Free Software Foundation
 
    This file is part of libgcj.
 

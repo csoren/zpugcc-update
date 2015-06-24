@@ -1,6 +1,6 @@
 /* { dg-do run } */
 /* { dg-options "-O1" } */
-/* { dg-options "-mieee -O1" { target alpha*-*-* sh*-*-* } } */
+/* { dg-add-options ieee } */
 #include <math.h>
 
 extern void abort (void);

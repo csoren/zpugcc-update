@@ -459,7 +459,7 @@ _Jv_makeUtf8Const (jstring string)
 
 
 
-#ifdef DEBUG
+#ifdef __GCJ_DEBUG
 void
 _Jv_Abort (const char *function, const char *file, int line,
 	   const char *message)
@@ -468,7 +468,7 @@ void
 _Jv_Abort (const char *, const char *, int, const char *message)
 #endif
 {
-#ifdef DEBUG
+#ifdef __GCJ_DEBUG
   fprintf (stderr,
 	   "libgcj failure: %s\n   in function %s, file %s, line %d\n",
 	   message, function, file, line);

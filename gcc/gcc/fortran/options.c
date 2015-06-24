@@ -1,5 +1,6 @@
 /* Parse and display command line options.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -32,6 +33,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "target.h"
 #include "cpp.h"
+#include "toplev.h"
+#include "tm.h"
 
 gfc_option_t gfc_option;
 
@@ -91,6 +94,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.flag_default_real = 0;
   gfc_option.flag_dollar_ok = 0;
   gfc_option.flag_underscoring = 1;
+  gfc_option.flag_whole_file = 0;
   gfc_option.flag_f2c = 0;
   gfc_option.flag_second_underscore = -1;
   gfc_option.flag_implicit_none = 0;
@@ -106,7 +110,6 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.flag_backslash = 0;
   gfc_option.flag_module_private = 0;
   gfc_option.flag_backtrace = 0;
-  gfc_option.flag_check_array_temporaries = 0;
   gfc_option.flag_allow_leading_underscore = 0;
   gfc_option.flag_dump_core = 0;
   gfc_option.flag_external_blas = 0;
@@ -123,8 +126,10 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.flag_init_character = GFC_INIT_CHARACTER_OFF;
   gfc_option.flag_init_character_value = (char)0;
   gfc_option.flag_align_commons = 1;
+  gfc_option.flag_protect_parens = 1;
   
   gfc_option.fpe = 0;
+  gfc_option.rtcheck = 0;
 
   /* Argument pointers cannot point to anything but their argument.  */
   flag_argument_noalias = 3;
@@ -134,7 +139,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   set_default_std_flags ();
 
   /* -fshort-enums can be default on some targets.  */
-  gfc_option.fshort_enums = targetm.default_short_enums ();
+  flag_short_enums = targetm.default_short_enums ();
 
   /* Initialize cpp-related options.  */
   gfc_cpp_init_options(argc, argv);
@@ -228,9 +233,27 @@ gfc_post_options (const char **pfilename)
   char *source_path;
   int i;
 
-  /* Issue an error if -fwhole-program was used.  */
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  if (flag_excess_precision_cmdline == EXCESS_PRECISION_STANDARD
+      && TARGET_FLT_EVAL_METHOD_NON_DEFAULT)
+    sorry ("-fexcess-precision=standard for Fortran");
+  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
+
+  /* Whole program needs whole file mode.  */
   if (flag_whole_program)
-    gfc_fatal_error ("Option -fwhole-program is not supported for Fortran");
+    gfc_option.flag_whole_file = 1;
+
+  /* Enable whole-file mode if LTO is in effect.  */
+  if (flag_lto || flag_whopr)
+    gfc_option.flag_whole_file = 1;
+
+  /* -fbounds-check is equivalent to -fcheck=bounds */
+  if (flag_bounds_check)
+    gfc_option.rtcheck |= GFC_RTCHECK_BOUNDS;
+
+  if (flag_compare_debug)
+    gfc_option.dump_parse_tree = 0;
 
   /* Verify the input file name.  */
   if (!filename || strcmp (filename, "-") == 0)
@@ -332,17 +355,21 @@ gfc_post_options (const char **pfilename)
 		     "implied by -fopenmp", 
 		     gfc_option.flag_max_stack_var_size);
 
-  /* Implied -frecursive; implemented as -fmax-stack-var-size=-1.  */
-  if (gfc_option.flag_max_stack_var_size == -2 && gfc_option.flag_openmp)
+  /* Implement -frecursive as -fmax-stack-var-size=-1.  */
+  if (gfc_option.flag_recursive)
     gfc_option.flag_max_stack_var_size = -1;
+
+  /* Implied -frecursive; implemented as -fmax-stack-var-size=-1.  */
+  if (gfc_option.flag_max_stack_var_size == -2 && gfc_option.flag_openmp
+      && gfc_option.flag_automatic)
+    {
+      gfc_option.flag_recursive = 1;
+      gfc_option.flag_max_stack_var_size = -1;
+    }
 
   /* Set default.  */
   if (gfc_option.flag_max_stack_var_size == -2)
     gfc_option.flag_max_stack_var_size = 32768;
-
-  /* Implement -frecursive as -fmax-stack-var-size=-1.  */
-  if (gfc_option.flag_recursive)
-    gfc_option.flag_max_stack_var_size = -1;
 
   /* Implement -fno-automatic as -fmax-stack-var-size=0.  */
   if (!gfc_option.flag_automatic)
@@ -353,6 +380,9 @@ gfc_post_options (const char **pfilename)
       gfc_option.warn_ampersand = 1;
       gfc_option.warn_tabs = 0;
     }
+
+  if (pedantic && gfc_option.flag_whole_file)
+    gfc_option.flag_whole_file = 2;
 
   gfc_cpp_post_options ();
 
@@ -449,6 +479,45 @@ gfc_handle_fpe_trap_option (const char *arg)
 }
 
 
+static void
+gfc_handle_runtime_check_option (const char *arg)
+{
+  int result, pos = 0, n;
+  static const char * const optname[] = { "all", "bounds", "array-temps",
+					  "recursion", "do", "pointer",
+					  "mem", NULL };
+  static const int optmask[] = { GFC_RTCHECK_ALL, GFC_RTCHECK_BOUNDS,
+				 GFC_RTCHECK_ARRAY_TEMPS,
+				 GFC_RTCHECK_RECURSION, GFC_RTCHECK_DO,
+				 GFC_RTCHECK_POINTER, GFC_RTCHECK_MEM,
+				 0 };
+ 
+  while (*arg)
+    {
+      while (*arg == ',')
+	arg++;
+
+      while (arg[pos] && arg[pos] != ',')
+	pos++;
+
+      result = 0;
+      for (n = 0; optname[n] != NULL; n++)
+	{
+	  if (optname[n] && strncmp (optname[n], arg, pos) == 0)
+	    {
+	      gfc_option.rtcheck |= optmask[n];
+	      arg += pos;
+	      pos = 0;
+	      result = 1;
+	      break;
+	    }
+	}
+      if (!result)
+	gfc_fatal_error ("Argument to -fcheck is not valid: %s", arg);
+    }
+}
+
+
 /* Handle command-line options.  Returns 0 if unrecognized, 1 if
    recognized and handled.  */
 
@@ -497,6 +566,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_Wimplicit_interface:
       gfc_option.warn_implicit_interface = value;
+      break;
+
+    case OPT_Wimplicit_procedure:
+      gfc_option.warn_implicit_procedure = value;
       break;
 
     case OPT_Wline_truncation:
@@ -548,7 +621,7 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
       
     case OPT_fcheck_array_temporaries:
-      gfc_option.flag_check_array_temporaries = value;
+      gfc_option.rtcheck |= GFC_RTCHECK_ARRAY_TEMPS;
       break;
       
     case OPT_fdump_core:
@@ -621,6 +694,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_funderscoring:
       gfc_option.flag_underscoring = value;
+      break;
+
+    case OPT_fwhole_file:
+      gfc_option.flag_whole_file = 1;
       break;
 
     case OPT_fsecond_underscore:
@@ -718,6 +795,8 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 	gfc_option.flag_init_real = GFC_INIT_REAL_ZERO;
       else if (!strcasecmp (arg, "nan"))
 	gfc_option.flag_init_real = GFC_INIT_REAL_NAN;
+      else if (!strcasecmp (arg, "snan"))
+	gfc_option.flag_init_real = GFC_INIT_REAL_SNAN;
       else if (!strcasecmp (arg, "inf"))
 	gfc_option.flag_init_real = GFC_INIT_REAL_INF;
       else if (!strcasecmp (arg, "-inf"))
@@ -801,7 +880,7 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fshort_enums:
-      gfc_option.fshort_enums = 1;
+      flag_short_enums = 1;
       break;
 
     case OPT_fconvert_little_endian:
@@ -843,6 +922,15 @@ gfc_handle_option (size_t scode, const char *arg, int value)
     case OPT_falign_commons:
       gfc_option.flag_align_commons = value;
       break;
+
+    case OPT_fprotect_parens:
+      gfc_option.flag_protect_parens = value;
+      break;
+
+    case OPT_fcheck_:
+      gfc_handle_runtime_check_option (arg);
+      break;
+
     }
 
   return result;

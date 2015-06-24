@@ -1,4 +1,5 @@
-# Copyright (c) 1999, 2000, 2001, 2002, 2003, 2006 by Red Hat, Inc. All rights reserved.
+# Copyright (c) 1999, 2000, 2001, 2002, 2003, 2006, 2010 by Red Hat, Inc.
+# All rights reserved.
 # Copyright 2004 Nathanael Nerode
 # 
 # THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED
@@ -15,7 +16,7 @@
 
 dnl Process this file with autoconf to produce configure.
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
 AC_INIT
 AC_CONFIG_SRCDIR(gcj_mlc.c)
 # This works around the fact that libtool configuration may change LD
@@ -49,7 +50,7 @@ m4_rename([_AC_ARG_VAR_PRECIOUS],[real_PRECIOUS])
 m4_define([_AC_ARG_VAR_PRECIOUS],[])
 AC_PROG_CC
 AC_PROG_CXX
-m4_rename([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+m4_rename_force([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
 
 AM_PROG_CC_C_O
 
@@ -179,13 +180,22 @@ case "$THREADS" in
 	AM_CPPFLAGS="$AM_CPPFLAGS -pthread"
 	THREADLIBS=-pthread
       	;;
-     *-*-solaris*)
+     *-*-solaris2.8*)
 	AC_DEFINE(GC_SOLARIS_PTHREADS,1,[support for Solaris pthreads])
 	# Need to use alternate thread library, otherwise gctest hangs
 	# on Solaris 8.
 	multi_os_directory=`$CC -print-multi-os-directory`
 	THREADLIBS="-L/usr/lib/lwp/$multi_os_directory \
 		    -R/usr/lib/lwp/$multi_os_directory -lpthread -lthread -lrt"
+	;;
+     *-*-solaris2*)
+	AC_DEFINE(GC_SOLARIS_PTHREADS,1,[support for Solaris pthreads])
+	# The alternate thread library was only introduced in Solaris 8 and
+	# became the default in Solaris 9, so no need for the special code
+	# above otherwise.
+	# nanosleep, sched_yield, and sem_* only live in librt before
+	# Solaris 11.
+	THREADLIBS="-lpthread -lrt"
 	;;
      *-*-irix*)
 	AC_DEFINE(GC_IRIX_THREADS,1,[support for Irix pthreads])

@@ -5,6 +5,13 @@
 
 static void sse2_test (void);
 
+static void
+__attribute__ ((noinline))
+do_test (void)
+{
+  sse2_test ();
+}
+
 int
 main ()
 {
@@ -15,7 +22,7 @@ main ()
 
   /* Run SSE2 test only if host has SSE2 support.  */
   if ((edx & bit_SSE2) && sse_os_support ())
-    sse2_test ();
+    do_test ();
 
   return 0;
 }

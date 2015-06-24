@@ -4,6 +4,7 @@
 // { dg-require-effective-target sse }
 // Ignore warning on some powerpc-linux configurations.
 // { dg-prune-output "non-standard ABI extension" }
+// { dg-prune-output "mangled name" }
 
 #define vector __attribute__((vector_size(16)))
 

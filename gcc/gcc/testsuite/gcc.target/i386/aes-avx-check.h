@@ -7,6 +7,13 @@
 
 static void aes_avx_test (void);
 
+static void
+__attribute__ ((noinline))
+do_test (void)
+{
+  aes_avx_test ();
+}
+
 int
 main ()
 {
@@ -20,7 +27,7 @@ main ()
        == (bit_AVX | bit_OSXSAVE | bit_AES))
       && avx_os_support ())
     {
-      aes_avx_test ();
+      do_test ();
 #ifdef DEBUG
       printf ("PASSED\n");
 #endif

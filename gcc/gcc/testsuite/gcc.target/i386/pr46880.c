@@ -6,7 +6,7 @@
 typedef double __m128d __attribute__ ((__vector_size__ (16), __may_alias__));
 typedef double (*T)[2];
 
-static __attribute__ ((noinline)) __m128d
+static __attribute__ ((noinline, noclone)) __m128d
 foo (__m128d c, __m128d d)
 {
   T cp = (T) &c;

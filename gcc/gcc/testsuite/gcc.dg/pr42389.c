@@ -1,5 +1,5 @@
 /* { dg-do compile { target powerpc*-*-* ia64-*-* x86_64-*-* } } */
-/* { dg-options "-O2 -fselective-scheduling -fsel-sched-pipelining" } */
+/* { dg-options "-O2 -fselective-scheduling -fsel-sched-pipelining -fsched-pressure" } */
 
 struct s_linked_f_pointer
 {

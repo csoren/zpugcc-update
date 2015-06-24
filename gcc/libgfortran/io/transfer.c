@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Namelist transfer functions contributed by Paul Thomas
@@ -29,6 +29,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* transfer.c -- Top level handling of data transfer statements.  */
 
 #include "io.h"
+#include "fbuf.h"
+#include "format.h"
+#include "unix.h"
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -98,6 +101,16 @@ static const st_option advance_opt[] = {
 static const st_option decimal_opt[] = {
   {"point", DECIMAL_POINT},
   {"comma", DECIMAL_COMMA},
+  {NULL, 0}
+};
+
+static const st_option round_opt[] = {
+  {"up", ROUND_UP},
+  {"down", ROUND_DOWN},
+  {"zero", ROUND_ZERO},
+  {"nearest", ROUND_NEAREST},
+  {"compatible", ROUND_COMPATIBLE},
+  {"processor_defined", ROUND_PROCDEFINED},
   {NULL, 0}
 };
 
@@ -185,6 +198,7 @@ read_sf_internal (st_parameter_dt *dtp, int * length)
   char *base;
   int lorig;
 
+  /* Zero size array gives internal unit len of 0.  Nothing to read. */
   if (dtp->internal_unit_len == 0
       && dtp->u.p.current_unit->pad_status == PAD_NO)
     hit_eof (dtp);
@@ -226,12 +240,12 @@ read_sf (st_parameter_dt *dtp, int * length)
   int n, lorig, seen_comma;
 
   /* If we have seen an eor previously, return a length of 0.  The
-     caller is responsible for correctly padding the input field.  */
+ *      caller is responsible for correctly padding the input field.  */
   if (dtp->u.p.sf_seen_eor)
     {
       *length = 0;
       /* Just return something that isn't a NULL pointer, otherwise the
-         caller thinks an error occured.  */
+ *          caller thinks an error occured.  */
       return (char*) empty_string;
     }
 
@@ -251,7 +265,7 @@ read_sf (st_parameter_dt *dtp, int * length)
 	  dtp->u.p.sf_seen_eor = 1;
 
 	  /* If we see an EOR during non-advancing I/O, we need to skip
-	     the rest of the I/O statement.  Set the corresponding flag.  */
+ * 	     the rest of the I/O statement.  Set the corresponding flag.  */
 	  if (dtp->u.p.advance_status == ADVANCE_NO || dtp->u.p.seen_dollar)
 	    dtp->u.p.eor_condition = 1;
 	    
@@ -267,8 +281,8 @@ read_sf (st_parameter_dt *dtp, int * length)
 	    }
 
 	  /* Without padding, terminate the I/O statement without assigning
-	     the value.  With padding, the value still needs to be assigned,
-	     so we can just continue with a short read.  */
+ * 	     the value.  With padding, the value still needs to be assigned,
+ * 	     	     so we can just continue with a short read.  */
 	  if (dtp->u.p.current_unit->pad_status == PAD_NO)
 	    {
 	      generate_error (&dtp->common, LIBERROR_EOR, NULL);
@@ -279,12 +293,12 @@ read_sf (st_parameter_dt *dtp, int * length)
 	  goto done;
 	}
       /*  Short circuit the read if a comma is found during numeric input.
-	  The flag is set to zero during character reads so that commas in
-	  strings are not ignored  */
+ *  	  The flag is set to zero during character reads so that commas in
+ *  	  	  strings are not ignored  */
       else if (q == ',')
 	if (dtp->u.p.sf_read_comma == 1)
 	  {
-	    seen_comma = 1;
+            seen_comma = 1;
 	    notify_std (&dtp->common, GFC_STD_GNU,
 			"Comma in formatted numeric read.");
 	    break;
@@ -295,7 +309,7 @@ read_sf (st_parameter_dt *dtp, int * length)
   *length = n;
 
   /* A short read implies we hit EOF, unless we hit EOR, a comma, or
-     some other stuff. Set the relevant flags.  */
+ *      some other stuff. Set the relevant flags.  */
   if (lorig > *length && !dtp->u.p.sf_seen_eor && !seen_comma)
     {
       if (n > 0)
@@ -331,9 +345,9 @@ read_sf (st_parameter_dt *dtp, int * length)
     dtp->u.p.size_used += (GFC_IO_INT) n;
 
   /* We can't call fbuf_getptr before the loop doing fbuf_getc, because
-     fbuf_getc might reallocate the buffer.  So return current pointer
-     minus all the advances, which is n plus up to two characters
-     of newline or comma.  */
+ *      fbuf_getc might reallocate the buffer.  So return current pointer
+ *           minus all the advances, which is n plus up to two characters
+ *                of newline or comma.  */
   return fbuf_getptr (dtp->u.p.current_unit)
 	 - n - dtp->u.p.sf_seen_eor - seen_comma;
 }
@@ -933,8 +947,9 @@ require_type (st_parameter_dt *dtp, bt expected, bt actual, const fnode *f)
   if (actual == expected)
     return 0;
 
+  /* Adjust item_count before emitting error message.  */
   sprintf (buffer, "Expected %s for item %d in formatted transfer, got %s",
-	   type_name (expected), dtp->u.p.item_count, type_name (actual));
+	   type_name (expected), dtp->u.p.item_count - 1, type_name (actual));
 
   format_error (dtp, f, buffer);
   return 1;
@@ -1235,6 +1250,36 @@ formatted_transfer_scalar_read (st_parameter_dt *dtp, bt type, void *p, int kind
 	case FMT_DP:
 	  consume_data_flag = 0;
 	  dtp->u.p.current_unit->decimal_status = DECIMAL_POINT;
+	  break;
+	
+	case FMT_RC:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_COMPATIBLE;
+	  break;
+
+	case FMT_RD:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_DOWN;
+	  break;
+
+	case FMT_RN:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_NEAREST;
+	  break;
+
+	case FMT_RP:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_PROCDEFINED;
+	  break;
+
+	case FMT_RU:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_UP;
+	  break;
+
+	case FMT_RZ:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_ZERO;
 	  break;
 
 	case FMT_P:
@@ -1600,6 +1645,36 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
 	  dtp->u.p.current_unit->decimal_status = DECIMAL_POINT;
 	  break;
 
+	case FMT_RC:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_COMPATIBLE;
+	  break;
+
+	case FMT_RD:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_DOWN;
+	  break;
+
+	case FMT_RN:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_NEAREST;
+	  break;
+
+	case FMT_RP:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_PROCDEFINED;
+	  break;
+
+	case FMT_RU:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_UP;
+	  break;
+
+	case FMT_RZ:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->round_status = ROUND_ZERO;
+	  break;
+
 	case FMT_P:
 	  consume_data_flag = 0;
 	  dtp->u.p.scale_factor = f->u.k;
@@ -1651,6 +1726,12 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
   unget_format (dtp, f);
 }
 
+  /* This function is first called from data_init_transfer to initiate the loop
+     over each item in the format, transferring data as required.  Subsequent
+     calls to this function occur for each data item foound in the READ/WRITE
+     statement.  The item_count is incremented for each call.  Since the first
+     call is from data_transfer_init, the item_count is always one greater than
+     the actual count number of the item being transferred.  */
 
 static void
 formatted_transfer (st_parameter_dt *dtp, bt type, void *p, int kind,
@@ -1817,10 +1898,8 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      stride[n] = iotype == BT_CHARACTER ?
-		  desc->dim[n].stride * GFC_SIZE_OF_CHAR_KIND(kind) :
-		  desc->dim[n].stride;
-      extent[n] = desc->dim[n].ubound + 1 - desc->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(desc,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(desc,n);
 
       /* If the extent of even one dimension is zero, then the entire
 	 array section contains zero elements, so we return after writing
@@ -1836,9 +1915,9 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 
   stride0 = stride[0];
 
-  /* If the innermost dimension has stride 1, we can do the transfer
+  /* If the innermost dimension has a stride of 1, we can do the transfer
      in contiguous chunks.  */
-  if (stride0 == 1)
+  if (stride0 == size)
     tsize = extent[0];
   else
     tsize = 1;
@@ -1848,13 +1927,13 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   while (data)
     {
       dtp->u.p.transfer (dtp, iotype, data, kind, size, tsize);
-      data += stride0 * size * tsize;
+      data += stride0 * tsize;
       count[0] += tsize;
       n = 0;
       while (count[n] == extent[n])
 	{
 	  count[n] = 0;
-	  data -= stride[n] * extent[n] * size;
+	  data -= stride[n] * extent[n];
 	  n++;
 	  if (n == rank)
 	    {
@@ -1864,7 +1943,7 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
 	  else
 	    {
 	      count[n]++;
-	      data += stride[n] * size;
+	      data += stride[n];
 	    }
 	}
     }
@@ -2059,7 +2138,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 	close_unit (dtp->u.p.current_unit);
 	dtp->u.p.current_unit = NULL;
 	generate_error (&dtp->common, LIBERROR_BAD_OPTION,
-			"Bad unit number in OPEN statement");
+			"Bad unit number in statement");
 	return;
       }
     memset (&u_flags, '\0', sizeof (u_flags));
@@ -2287,6 +2366,16 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 
   if (dtp->u.p.current_unit->decimal_status == DECIMAL_UNSPECIFIED)
 	dtp->u.p.current_unit->decimal_status = dtp->u.p.current_unit->flags.decimal;
+
+  /* Check the round mode.  */
+  dtp->u.p.current_unit->round_status
+	= !(cf & IOPARM_DT_HAS_ROUND) ? ROUND_UNSPECIFIED :
+	  find_option (&dtp->common, dtp->round, dtp->round_len,
+			round_opt, "Bad ROUND parameter in data transfer "
+			"statement");
+
+  if (dtp->u.p.current_unit->round_status == ROUND_UNSPECIFIED)
+	dtp->u.p.current_unit->round_status = dtp->u.p.current_unit->flags.round;
 
   /* Check the sign mode. */
   dtp->u.p.sign_status
@@ -2530,23 +2619,24 @@ init_loop_spec (gfc_array_char *desc, array_loop_spec *ls,
 
   for (i=0; i<rank; i++)
     {
-      ls[i].idx = desc->dim[i].lbound;
-      ls[i].start = desc->dim[i].lbound;
-      ls[i].end = desc->dim[i].ubound;
-      ls[i].step = desc->dim[i].stride;
-      empty = empty || (desc->dim[i].ubound < desc->dim[i].lbound);
+      ls[i].idx = GFC_DESCRIPTOR_LBOUND(desc,i);
+      ls[i].start = GFC_DESCRIPTOR_LBOUND(desc,i);
+      ls[i].end = GFC_DESCRIPTOR_UBOUND(desc,i);
+      ls[i].step = GFC_DESCRIPTOR_STRIDE(desc,i);
+      empty = empty || (GFC_DESCRIPTOR_UBOUND(desc,i) 
+			< GFC_DESCRIPTOR_LBOUND(desc,i));
 
-      if (desc->dim[i].stride > 0)
+      if (GFC_DESCRIPTOR_STRIDE(desc,i) > 0)
 	{
-	  index += (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
+	  index += (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
 	}
       else
 	{
-	  index -= (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
-	  *start_record -= (desc->dim[i].ubound - desc->dim[i].lbound)
-	    * desc->dim[i].stride;
+	  index -= (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
+	  *start_record -= (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
+	    * GFC_DESCRIPTOR_STRIDE(desc,i);
 	}
     }
 
@@ -3305,7 +3395,8 @@ void
 st_read_done (st_parameter_dt *dtp)
 {
   finalize_transfer (dtp);
-  free_format_data (dtp);
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
+    free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
     unlock_unit (dtp->u.p.current_unit);
@@ -3356,7 +3447,8 @@ st_write_done (st_parameter_dt *dtp)
 	break;
       }
 
-  free_format_data (dtp);
+  if (is_internal_unit (dtp) || dtp->u.p.format_not_saved)
+    free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
     unlock_unit (dtp->u.p.current_unit);
@@ -3451,9 +3543,7 @@ st_set_nml_var_dim (st_parameter_dt *dtp, GFC_INTEGER_4 n_dim,
 
   for (nml = dtp->u.p.ionml; nml->next; nml = nml->next);
 
-  nml->dim[n].stride = stride;
-  nml->dim[n].lbound = lbound;
-  nml->dim[n].ubound = ubound;
+  GFC_DIMENSION_SET(nml->dim[n],lbound,ubound,stride);
 }
 
 /* Reverse memcpy - used for byte swapping.  */

@@ -22,6 +22,7 @@ f0 ()
   __builtin_offsetof(struct B, p[0]); // OK
   __builtin_offsetof(struct B, p[9]); // OK
   __builtin_offsetof(struct B, p[10]); // OK
+  __builtin_offsetof(struct B, p[11]); // { dg-warning "greater than size" }
   __builtin_offsetof(struct B, a.p); // OK
   __builtin_offsetof(struct B, p[0]); // OK
   __builtin_offsetof(struct B, a.p[0]); // { dg-error "non constant address" }

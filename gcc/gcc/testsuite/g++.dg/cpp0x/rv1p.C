@@ -1,6 +1,6 @@
 // I, Howard Hinnant, hereby place this code in the public domain.
 
-// Test overlaod resolution among referece types
+// Test overload resolution among reference types
 
 // { dg-do compile }
 // { dg-options "-std=c++0x" }
@@ -93,7 +93,6 @@ int test1_5()
     const          A ca = a;
           volatile A va;
     const volatile A cva = a;
-    sa<sizeof(sink_1_5(a))           == 5 * sizeof(long)> t1;
     sa<sizeof(sink_1_5(source()))    == 5 * sizeof(long)> t5;
     return 0;
 }
@@ -106,8 +105,6 @@ int test1_6()
     const          A ca = a;
           volatile A va;
     const volatile A cva = a;
-    sa<sizeof(sink_1_6(a))           == 6 * sizeof(long)> t1;
-    sa<sizeof(sink_1_6(ca))          == 6 * sizeof(long)> t2;
     sa<sizeof(sink_1_6(source()))    == 6 * sizeof(long)> t5;
     sa<sizeof(sink_1_6(c_source()))  == 6 * sizeof(long)> t6;
     return 0;
@@ -121,8 +118,6 @@ int test1_7()
     const          A ca = a;
           volatile A va;
     const volatile A cva = a;
-    sa<sizeof(sink_1_7(a))           == 7 * sizeof(long)> t1;
-    sa<sizeof(sink_1_7(va))          == 7 * sizeof(long)> t3;
     sa<sizeof(sink_1_7(source()))    == 7 * sizeof(long)> t5;
     sa<sizeof(sink_1_7(v_source()))  == 7 * sizeof(long)> t7;
     return 0;
@@ -136,10 +131,6 @@ int test1_8()
     const          A ca = a;
           volatile A va;
     const volatile A cva = a;
-    sa<sizeof(sink_1_8(a))           == 8 * sizeof(long)> t1;
-    sa<sizeof(sink_1_8(ca))          == 8 * sizeof(long)> t2;
-    sa<sizeof(sink_1_8(va))          == 8 * sizeof(long)> t3;
-    sa<sizeof(sink_1_8(cva))         == 8 * sizeof(long)> t4;
     sa<sizeof(sink_1_8(source()))    == 8 * sizeof(long)> t5;
     sa<sizeof(sink_1_8(c_source()))  == 8 * sizeof(long)> t6;
     sa<sizeof(sink_1_8(v_source()))  == 8 * sizeof(long)> t7;

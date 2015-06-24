@@ -1,5 +1,6 @@
 /* DWARF2 EH unwinding support for SH Linux.
-   Copyright (C) 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2009, 2012 Free Software Foundation,
+   Inc.
 
 This file is part of GCC.
 
@@ -24,7 +25,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 
 /* Do code reading to identify a signal frame, and set the frame
-   state data appropriately.  See unwind-dw2.c for the structs.  */
+   state data appropriately.  See unwind-dw2.c for the structs.
+   Don't use this at all if inhibit_libc is used.  */
+
+#ifndef inhibit_libc
 
 #include <signal.h>
 #include <sys/ucontext.h>
@@ -77,9 +81,9 @@ shmedia_fallback_frame_state (struct _Unwind_Context *context,
 	   && (*(unsigned long *) (pc+11)  == 0x6ff0fff0))
     {
       struct rt_sigframe {
-	struct siginfo *pinfo;
+	siginfo_t *pinfo;
 	void *puc;
-	struct siginfo info;
+	siginfo_t info;
 	struct ucontext uc;
       } *rt_ = context->cfa;
       /* The void * cast is necessary to avoid an aliasing warning.
@@ -176,7 +180,7 @@ sh_fallback_frame_state (struct _Unwind_Context *context,
 		&& (*(unsigned short *) (pc+14)  == 0x00ad))))
     {
       struct rt_sigframe {
-	struct siginfo info;
+	siginfo_t info;
 	struct ucontext uc;
       } *rt_ = context->cfa;
       /* The void * cast is necessary to avoid an aliasing warning.
@@ -248,3 +252,5 @@ sh_fallback_frame_state (struct _Unwind_Context *context,
   return _URC_NO_REASON;
 }
 #endif /* defined (__SH5__) */
+
+#endif /* inhibit_libc */

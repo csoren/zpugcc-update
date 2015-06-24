@@ -1,6 +1,6 @@
 // pa-signal.h - Catch runtime signals and turn them into exceptions.
 
-/* Copyright (C) 1998, 1999, 2000  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2009  Free Software Foundation
 
    This file is part of libgcj.
 

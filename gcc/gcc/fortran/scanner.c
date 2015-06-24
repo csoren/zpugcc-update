@@ -63,9 +63,10 @@ static gfc_directorylist *include_dirs, *intrinsic_modules_dirs;
 
 static gfc_file *file_head, *current_file;
 
-static int continue_flag, end_flag, openmp_flag;
+static int continue_flag, end_flag, openmp_flag, gcc_attribute_flag;
 static int continue_count, continue_line;
 static locus openmp_locus;
+static locus gcc_attribute_locus;
 
 gfc_source_form gfc_current_form;
 static gfc_linebuf *line_head, *line_tail;
@@ -628,7 +629,7 @@ next_char (void)
 
 /* Skip a comment.  When we come here the parse pointer is positioned
    immediately after the comment character.  If we ever implement
-   compiler directives withing comments, here is where we parse the
+   compiler directives within comments, here is where we parse the
    directive.  */
 
 static void
@@ -678,6 +679,34 @@ gfc_define_undef_line (void)
 }
 
 
+/* Return true if GCC$ was matched.  */
+static bool
+skip_gcc_attribute (locus start)
+{
+  bool r = false;
+  char c;
+  locus old_loc = gfc_current_locus;
+
+  if ((c = next_char ()) == 'g' || c == 'G')
+    if ((c = next_char ()) == 'c' || c == 'C')
+      if ((c = next_char ()) == 'c' || c == 'C')
+	if ((c = next_char ()) == '$')
+	  r = true;
+
+  if (r == false)
+    gfc_current_locus = old_loc;
+  else
+   {
+      gcc_attribute_flag = 1;
+      gcc_attribute_locus = old_loc;
+      gfc_current_locus = start;
+   }
+
+  return r;
+}
+
+
+
 /* Comment lines are null lines, lines containing only blanks or lines
    on which the first nonblank line is a '!'.
    Return true if !$ openmp conditional compilation sentinel was
@@ -709,6 +738,10 @@ skip_free_comments (void)
 
       if (c == '!')
 	{
+	  /* Keep the !GCC$ line.  */
+		  if (at_bol && skip_gcc_attribute (start))
+	    return false;
+
 	  /* If -fopenmp, we need to handle here 2 things:
 	     1) don't treat !$omp as comments, but directives
 	     2) handle OpenMP conditional compilation, where
@@ -767,6 +800,8 @@ skip_free_comments (void)
 
   if (openmp_flag && at_bol)
     openmp_flag = 0;
+
+  gcc_attribute_flag = 0;
   gfc_current_locus = start;
   return false;
 }
@@ -821,6 +856,13 @@ skip_fixed_comments (void)
 
       if (c == '!' || c == 'c' || c == 'C' || c == '*')
 	{
+	  if (skip_gcc_attribute (start))
+	    {
+	      /* Canonicalize to *$omp.  */
+	      *start.nextc = '*';
+	      return;
+	    }
+
 	  /* If -fopenmp, we need to handle here 2 things:
 	     1) don't treat !$omp|c$omp|*$omp as comments, but directives
 	     2) handle OpenMP conditional compilation, where
@@ -932,6 +974,7 @@ skip_fixed_comments (void)
     }
 
   openmp_flag = 0;
+  gcc_attribute_flag = 0;
   gfc_current_locus = start;
 }
 
@@ -978,6 +1021,11 @@ restart:
 
       if (!in_string && c == '!')
 	{
+	  if (gcc_attribute_flag
+	      && memcmp (&gfc_current_locus, &gcc_attribute_locus,
+		 sizeof (gfc_current_locus)) == 0)
+	    goto done;
+
 	  if (openmp_flag
 	      && memcmp (&gfc_current_locus, &openmp_locus,
 		 sizeof (gfc_current_locus)) == 0)
@@ -1047,6 +1095,17 @@ restart:
 	    }
 	}
 
+      /* Check to see if the continuation line was truncated.  */
+      if (gfc_option.warn_line_truncation && gfc_current_locus.lb != NULL
+	  && gfc_current_locus.lb->truncated)
+	{
+	  int maxlen = gfc_option.free_line_length;
+	  gfc_current_locus.lb->truncated = 0;
+	  gfc_current_locus.nextc += maxlen;
+	  gfc_warning_now ("Line truncated at %L", &gfc_current_locus);
+	  gfc_current_locus.nextc -= maxlen;
+	}
+
       /* Now find where it continues. First eat any comment lines.  */
       openmp_cond_flag = skip_free_comments ();
 
@@ -1106,7 +1165,7 @@ restart:
 	    }
 	}
     }
-  else
+  else /* Fixed form.  */
     {
       /* Fixed form continuation.  */
       if (!in_string && c == '!')
@@ -1124,6 +1183,14 @@ restart:
 
       if (c != '\n')
 	goto done;
+
+      /* Check to see if the continuation line was truncated.  */
+      if (gfc_option.warn_line_truncation && gfc_current_locus.lb != NULL
+	  && gfc_current_locus.lb->truncated)
+	{
+	  gfc_current_locus.lb->truncated = 0;
+	  gfc_warning_now ("Line truncated at %L", &gfc_current_locus);
+	}
 
       prev_openmp_flag = openmp_flag;
       continue_flag = 1;
@@ -1419,7 +1486,10 @@ load_line (FILE *input, gfc_char_t **pbuf, int *pbuflen, const int *first_char)
       if (c == '&')
 	{
 	  if (seen_ampersand)
-	    seen_ampersand = 0;
+	    {
+	      seen_ampersand = 0;
+	      seen_printable = 1;
+	    }
 	  else
 	    seen_ampersand = 1;
 	}
@@ -1771,7 +1841,7 @@ include_line (gfc_char_t *line)
 
   filename = gfc_widechar_to_char (begin, -1);
   if (load_file (filename, NULL, false) == FAILURE)
-    exit (1);
+    exit (FATAL_EXIT_CODE);
 
   gfc_free (filename);
   return true;
@@ -1975,7 +2045,7 @@ gfc_new_file (void)
     printf ("%s:%3d %s\n", LOCATION_FILE (line_head->location),
 	    LOCATION_LINE (line_head->location), line_head->line);
 
-  exit (0);
+  exit (SUCCESS_EXIT_CODE);
 #endif
 
   return result;

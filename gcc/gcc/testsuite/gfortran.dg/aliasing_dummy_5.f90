@@ -37,7 +37,7 @@ CONTAINS
     INTEGER, TARGET :: arg(:)
     arr(1) = 5
     arg(1) = 6
-!    if (arr(1) == 5) stop '2' ! FIXME: This does not work with GCC 4.4
+    if (arr(1) == 5) call abort()
   END SUBROUTINE foobar
 END MODULE m2
 subroutine test

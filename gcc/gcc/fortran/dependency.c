@@ -1,5 +1,5 @@
 /* Dependency analysis
-   Copyright (C) 2000, 2001, 2002, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
@@ -467,7 +467,7 @@ gfc_check_argument_var_dependency (gfc_expr *var, sym_intent intent,
       /* In case of elemental subroutines, there is no dependency 
          between two same-range array references.  */
       if (gfc_ref_needs_temporary_p (expr->ref)
-	  || gfc_check_dependency (var, expr, !elemental))
+	  || gfc_check_dependency (var, expr, elemental == NOT_ELEMENTAL))
 	{
 	  if (elemental == ELEM_DONT_CHECK_VARIABLE)
 	    {
@@ -677,6 +677,78 @@ gfc_are_equivalenced_arrays (gfc_expr *e1, gfc_expr *e2)
 }
 
 
+/* Return true if there is no possibility of aliasing because of a type
+   mismatch between all the possible pointer references and the
+   potential target.  Note that this function is asymmetric in the
+   arguments and so must be called twice with the arguments exchanged.  */
+
+static bool
+check_data_pointer_types (gfc_expr *expr1, gfc_expr *expr2)
+{
+  gfc_component *cm1;
+  gfc_symbol *sym1;
+  gfc_symbol *sym2;
+  gfc_ref *ref1;
+  bool seen_component_ref;
+
+  if (expr1->expr_type != EXPR_VARIABLE
+	|| expr1->expr_type != EXPR_VARIABLE)
+    return false;
+
+  sym1 = expr1->symtree->n.sym;
+  sym2 = expr2->symtree->n.sym;
+
+  /* Keep it simple for now.  */
+  if (sym1->ts.type == BT_DERIVED && sym2->ts.type == BT_DERIVED)
+    return false;
+
+  if (sym1->attr.pointer)
+    {
+      if (gfc_compare_types (&sym1->ts, &sym2->ts))
+	return false;
+    }
+
+  /* This is a conservative check on the components of the derived type
+     if no component references have been seen.  Since we will not dig
+     into the components of derived type components, we play it safe by
+     returning false.  First we check the reference chain and then, if
+     no component references have been seen, the components.  */
+  seen_component_ref = false;
+  if (sym1->ts.type == BT_DERIVED)
+    {
+      for (ref1 = expr1->ref; ref1; ref1 = ref1->next)
+	{
+	  if (ref1->type != REF_COMPONENT)
+	    continue;
+
+	  if (ref1->u.c.component->ts.type == BT_DERIVED)
+	    return false;
+
+	  if ((sym2->attr.pointer || ref1->u.c.component->attr.pointer)
+		&& gfc_compare_types (&ref1->u.c.component->ts, &sym2->ts))
+	    return false;
+
+	  seen_component_ref = true;
+	}
+    }
+
+  if (sym1->ts.type == BT_DERIVED && !seen_component_ref)
+    {
+      for (cm1 = sym1->ts.u.derived->components; cm1; cm1 = cm1->next)
+	{
+	  if (cm1->ts.type == BT_DERIVED)
+	    return false;
+
+	  if ((sym2->attr.pointer || cm1->attr.pointer)
+		&& gfc_compare_types (&cm1->ts, &sym2->ts))
+	    return false;
+	}
+    }
+
+  return true;
+}
+
+
 /* Return true if the statement body redefines the condition.  Returns
    true if expr2 depends on expr1.  expr1 should be a single term
    suitable for the lhs of an assignment.  The IDENTICAL flag indicates
@@ -726,7 +798,13 @@ gfc_check_dependency (gfc_expr *expr1, gfc_expr *expr2, bool identical)
 	  /* If either variable is a pointer, assume the worst.  */
 	  /* TODO: -fassume-no-pointer-aliasing */
 	  if (gfc_is_data_pointer (expr1) || gfc_is_data_pointer (expr2))
-	    return 1;
+	    {
+	      if (check_data_pointer_types (expr1, expr2)
+		    && check_data_pointer_types (expr2, expr1))
+		return 0;
+
+	      return 1;
+	    }
 	  else
 	    {
 	      gfc_symbol *sym1 = expr1->symtree->n.sym;
@@ -1207,6 +1285,7 @@ bool
 gfc_full_array_ref_p (gfc_ref *ref, bool *contiguous)
 {
   int i;
+  int n;
   bool lbound_OK = true;
   bool ubound_OK = true;
 
@@ -1215,12 +1294,14 @@ gfc_full_array_ref_p (gfc_ref *ref, bool *contiguous)
 
   if (ref->type != REF_ARRAY)
     return false;
+
   if (ref->u.ar.type == AR_FULL)
     {
       if (contiguous)
 	*contiguous = true;
       return true;
     }
+
   if (ref->u.ar.type != AR_SECTION)
     return false;
   if (ref->next)
@@ -1228,14 +1309,21 @@ gfc_full_array_ref_p (gfc_ref *ref, bool *contiguous)
 
   for (i = 0; i < ref->u.ar.dimen; i++)
     {
-      /* If we have a single element in the reference, we need to check
-	 that the array has a single element and that we actually reference
-	 the correct element.  */
+      /* If we have a single element in the reference, for the reference
+	 to be full, we need to ascertain that the array has a single
+	 element in this dimension and that we actually reference the
+	 correct element.  */
       if (ref->u.ar.dimen_type[i] == DIMEN_ELEMENT)
 	{
-	  /* This is a contiguous reference.  */
+	  /* This is unconditionally a contiguous reference if all the
+	     remaining dimensions are elements.  */
 	  if (contiguous)
-	    *contiguous = (i + 1 == ref->u.ar.dimen);
+	    {
+	      *contiguous = true;
+	      for (n = i + 1; n < ref->u.ar.dimen; n++)
+		if (ref->u.ar.dimen_type[n] != DIMEN_ELEMENT)
+		  *contiguous = false;
+	    }
 
 	  if (!ref->u.ar.as
 	      || !ref->u.ar.as->lower[i]
@@ -1265,14 +1353,86 @@ gfc_full_array_ref_p (gfc_ref *ref, bool *contiguous)
 				       ref->u.ar.as->upper[i])))
 	ubound_OK = false;
       /* Check the stride.  */
+      if (ref->u.ar.stride[i]
+	    && !gfc_expr_is_one (ref->u.ar.stride[i], 0))
+	return false;
+
+      /* This is unconditionally a contiguous reference as long as all
+	 the subsequent dimensions are elements.  */
+      if (contiguous)
+	{
+	  *contiguous = true;
+	  for (n = i + 1; n < ref->u.ar.dimen; n++)
+	    if (ref->u.ar.dimen_type[n] != DIMEN_ELEMENT)
+	      *contiguous = false;
+	}
+
+      if (!lbound_OK || !ubound_OK)
+	return false;
+    }
+  return true;
+}
+
+
+/* Determine if a full array is the same as an array section with one
+   variable limit.  For this to be so, the strides must both be unity
+   and one of either start == lower or end == upper must be true.  */
+
+static bool
+ref_same_as_full_array (gfc_ref *full_ref, gfc_ref *ref)
+{
+  int i;
+  bool upper_or_lower;
+
+  if (full_ref->type != REF_ARRAY)
+    return false;
+  if (full_ref->u.ar.type != AR_FULL)
+    return false;
+  if (ref->type != REF_ARRAY)
+    return false;
+  if (ref->u.ar.type != AR_SECTION)
+    return false;
+
+  for (i = 0; i < ref->u.ar.dimen; i++)
+    {
+      /* If we have a single element in the reference, we need to check
+	 that the array has a single element and that we actually reference
+	 the correct element.  */
+      if (ref->u.ar.dimen_type[i] == DIMEN_ELEMENT)
+	{
+	  if (!full_ref->u.ar.as
+	      || !full_ref->u.ar.as->lower[i]
+	      || !full_ref->u.ar.as->upper[i]
+	      || gfc_dep_compare_expr (full_ref->u.ar.as->lower[i],
+				       full_ref->u.ar.as->upper[i])
+	      || !ref->u.ar.start[i]
+	      || gfc_dep_compare_expr (ref->u.ar.start[i],
+				       full_ref->u.ar.as->lower[i]))
+	    return false;
+	}
+
+      /* Check the strides.  */
+      if (full_ref->u.ar.stride[i] && !gfc_expr_is_one (full_ref->u.ar.stride[i], 0))
+	return false;
       if (ref->u.ar.stride[i] && !gfc_expr_is_one (ref->u.ar.stride[i], 0))
 	return false;
 
-      /* This is a contiguous reference.  */
-      if (contiguous)
-	*contiguous = (i + 1 == ref->u.ar.dimen);
-
-      if (!lbound_OK || !ubound_OK)
+      upper_or_lower = false;
+      /* Check the lower bound.  */
+      if (ref->u.ar.start[i]
+	  && (ref->u.ar.as
+	        && full_ref->u.ar.as->lower[i]
+	        && gfc_dep_compare_expr (ref->u.ar.start[i],
+				         full_ref->u.ar.as->lower[i]) == 0))
+	upper_or_lower =  true;
+      /* Check the upper bound.  */
+      if (ref->u.ar.end[i]
+	  && (ref->u.ar.as
+	        && full_ref->u.ar.as->upper[i]
+	        && gfc_dep_compare_expr (ref->u.ar.end[i],
+				         full_ref->u.ar.as->upper[i]) == 0))
+	upper_or_lower =  true;
+      if (!upper_or_lower)
 	return false;
     }
   return true;
@@ -1316,6 +1476,13 @@ gfc_dep_resolver (gfc_ref *lref, gfc_ref *rref)
 	  return (fin_dep == GFC_DEP_OVERLAP) ? 1 : 0;
 	
 	case REF_ARRAY:
+
+	  if (ref_same_as_full_array (lref, rref))
+	    return 0;
+
+	  if (ref_same_as_full_array (rref, lref))
+	    return 0;
+
 	  if (lref->u.ar.dimen != rref->u.ar.dimen)
 	    {
 	      if (lref->u.ar.type == AR_FULL)

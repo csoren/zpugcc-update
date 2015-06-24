@@ -71,6 +71,9 @@ extern void darwin_pragma_ms_struct (struct cpp_reader *);
 extern void darwin_file_start (void);
 extern void darwin_file_end (void);
 
+extern void darwin_asm_lto_start (void);
+extern void darwin_asm_lto_end (void);
+
 extern void darwin_mark_decl_preserved (const char *);
 
 extern tree darwin_handle_kext_attribute (tree *, tree, tree, int, bool *);
@@ -90,3 +93,4 @@ extern void darwin_asm_output_anchor (rtx symbol);
 extern bool darwin_kextabi_p (void);
 extern void darwin_override_options (void);
 extern void darwin_patch_builtins (void);
+extern void darwin_rename_builtins (void);

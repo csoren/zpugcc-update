@@ -3,7 +3,7 @@
 extern int ilogbl(long double);
 extern int printf(const char *format, ...);
 
-__attribute__((noinline))
+__attribute__((noinline, noclone))
 int foo(long double x)
 {
   return ilogbl(x);
