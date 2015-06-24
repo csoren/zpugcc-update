@@ -73,7 +73,8 @@
 #endif
 
 #if defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
-        || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__)
+        || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+	|| defined(__ARM_ARCH_7EM__)
 # undef __ARM_ARCH__
 # define __ARM_ARCH__ 7
 #endif
@@ -300,3 +301,6 @@ ARM_FUNC_START ffi_closure_SYSV
 	UNWIND .fnend
         .size    CNAME(ffi_closure_SYSV),.ffi_closure_SYSV_end-CNAME(ffi_closure_SYSV)
 
+#if defined __ELF__ && defined __linux__
+	.section	.note.GNU-stack,"",%progbits
+#endif

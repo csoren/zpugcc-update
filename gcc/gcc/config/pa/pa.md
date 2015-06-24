@@ -1,6 +1,6 @@
 ;;- Machine description for HP PA-RISC architecture for GCC compiler
 ;;   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-;;   2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+;;   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 ;;   Contributed by the Center for Software Science at the University
 ;;   of Utah.
 
@@ -63,6 +63,16 @@
   [(MAX_12BIT_OFFSET     8184)	; 12-bit branch
    (MAX_17BIT_OFFSET   262100)	; 17-bit branch
   ])
+
+;; Mode and code iterators
+
+;; This mode iterator allows :P to be used for patterns that operate on
+;; pointer-sized quantities.  Exactly one of the two alternatives will match.
+(define_mode_iterator P [(SI "Pmode == SImode") (DI "Pmode == DImode")])
+
+;; This attribute defines the condition prefix for word and double word
+;; add, compare, subtract and logical instructions.
+(define_mode_attr dwc [(SI "") (DI "*")])
 
 ;; Insn type.  Used to default other attribute values.
 
@@ -988,7 +998,7 @@
 			 (match_operand:DI 3 "arith11_operand" "rI"))
 		 (match_operand:DI 1 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub%I3,* %3,%2,%%r0\;add,dc %%r0,%1,%0"
+  "sub%I3 %3,%2,%%r0\;add,dc %%r0,%1,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1010,7 +1020,7 @@
 			 (match_operand:DI 3 "register_operand" "r"))
 		 (match_operand:DI 1 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub,* %2,%3,%%r0\;add,dc %%r0,%1,%0"
+  "sub %2,%3,%%r0\;add,dc %%r0,%1,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1033,7 +1043,7 @@
 			 (match_operand:DI 3 "int11_operand" "I"))
 		 (match_operand:DI 1 "register_operand" "r")))]
   "TARGET_64BIT"
-  "addi,* %k3,%2,%%r0\;add,dc %%r0,%1,%0"
+  "addi %k3,%2,%%r0\;add,dc %%r0,%1,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1079,7 +1089,7 @@
 		  (gtu:DI (match_operand:DI 2 "register_operand" "r")
 			  (match_operand:DI 3 "arith11_operand" "rI"))))]
   "TARGET_64BIT"
-  "sub%I3,* %3,%2,%%r0\;sub,db %1,%%r0,%0"
+  "sub%I3 %3,%2,%%r0\;sub,db %1,%%r0,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1101,7 +1111,7 @@
 				    (match_operand:DI 3 "arith11_operand" "rI")))
 		  (match_operand:DI 4 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub%I3,* %3,%2,%%r0\;sub,db %1,%4,%0"
+  "sub%I3 %3,%2,%%r0\;sub,db %1,%4,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1123,7 +1133,7 @@
 		  (ltu:DI (match_operand:DI 2 "register_operand" "r")
 			  (match_operand:DI 3 "register_operand" "r"))))]
   "TARGET_64BIT"
-  "sub,* %2,%3,%%r0\;sub,db %1,%%r0,%0"
+  "sub %2,%3,%%r0\;sub,db %1,%%r0,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1145,7 +1155,7 @@
 				    (match_operand:DI 3 "register_operand" "r")))
 		  (match_operand:DI 4 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub,* %2,%3,%%r0\;sub,db %1,%4,%0"
+  "sub %2,%3,%%r0\;sub,db %1,%4,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1168,7 +1178,7 @@
 		  (leu:DI (match_operand:DI 2 "register_operand" "r")
 			  (match_operand:DI 3 "int11_operand" "I"))))]
   "TARGET_64BIT"
-  "addi,* %k3,%2,%%r0\;sub,db %1,%%r0,%0"
+  "addi %k3,%2,%%r0\;sub,db %1,%%r0,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1190,7 +1200,7 @@
 				    (match_operand:DI 3 "int11_operand" "I")))
 		  (match_operand:DI 4 "register_operand" "r")))]
   "TARGET_64BIT"
-  "addi,* %k3,%2,%%r0\;sub,db %1,%4,%0"
+  "addi %k3,%2,%%r0\;sub,db %1,%4,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -3545,7 +3555,7 @@
     FAIL;
 
   /* This does happen, but not often enough to worry much about.  */
-  if (size / align < MOVE_RATIO)
+  if (size / align < MOVE_RATIO (optimize_insn_for_speed_p ()))
     FAIL;
   
   /* Fall through means we're going to use our block move pattern.  */
@@ -3733,7 +3743,7 @@
     FAIL;
 
   /* This does happen, but not often enough to worry much about.  */
-  if (size / align < MOVE_RATIO)
+  if (size / align < MOVE_RATIO (optimize_insn_for_speed_p ()))
     FAIL;
   
   /* Fall through means we're going to use our block move pattern.  */
@@ -3900,7 +3910,7 @@
     FAIL;
 
   /* This does happen, but not often enough to worry much about.  */
-  if (size / align < MOVE_RATIO)
+  if (size / align < MOVE_RATIO (optimize_insn_for_speed_p ()))
     FAIL;
   
   /* Fall through means we're going to use our block clear pattern.  */
@@ -4014,7 +4024,7 @@
     FAIL;
 
   /* This does happen, but not often enough to worry much about.  */
-  if (size / align < MOVE_RATIO)
+  if (size / align < MOVE_RATIO (optimize_insn_for_speed_p ()))
     FAIL;
   
   /* Fall through means we're going to use our block clear pattern.  */
@@ -6126,7 +6136,7 @@
 (define_expand "iordi3"
   [(set (match_operand:DI 0 "register_operand" "")
 	(ior:DI (match_operand:DI 1 "register_operand" "")
-		(match_operand:DI 2 "ior_operand" "")))]
+		(match_operand:DI 2 "reg_or_cint_ior_operand" "")))]
   ""
   "
 {
@@ -6147,7 +6157,7 @@
 (define_insn ""
   [(set (match_operand:DI 0 "register_operand" "=r,r")
 	(ior:DI (match_operand:DI 1 "register_operand" "0,0")
-		(match_operand:DI 2 "ior_operand" "M,i")))]
+		(match_operand:DI 2 "cint_ior_operand" "M,i")))]
   "TARGET_64BIT"
   "* return output_64bit_ior (operands); "
   [(set_attr "type" "binary,shift")
@@ -6166,19 +6176,14 @@
 (define_expand "iorsi3"
   [(set (match_operand:SI 0 "register_operand" "")
 	(ior:SI (match_operand:SI 1 "register_operand" "")
-		(match_operand:SI 2 "arith32_operand" "")))]
+		(match_operand:SI 2 "reg_or_cint_ior_operand" "")))]
   ""
-  "
-{
-  if (! (ior_operand (operands[2], SImode)
-         || register_operand (operands[2], SImode)))
-    operands[2] = force_reg (SImode, operands[2]);
-}")
+  "")
 
 (define_insn ""
   [(set (match_operand:SI 0 "register_operand" "=r,r")
 	(ior:SI (match_operand:SI 1 "register_operand" "0,0")
-		(match_operand:SI 2 "ior_operand" "M,i")))]
+		(match_operand:SI 2 "cint_ior_operand" "M,i")))]
   ""
   "* return output_ior (operands); "
   [(set_attr "type" "binary,shift")
@@ -6416,27 +6421,41 @@
 ;; Processors prior to PA 2.0 don't have a fneg instruction.  Fast
 ;; negation can be done by subtracting from plus zero.  However, this
 ;; violates the IEEE standard when negating plus and minus zero.
+;; The slow path toggles the sign bit in the general registers.
 (define_expand "negdf2"
-  [(parallel [(set (match_operand:DF 0 "register_operand" "")
-		   (neg:DF (match_operand:DF 1 "register_operand" "")))
-	      (use (match_dup 2))])]
-  "! TARGET_SOFT_FLOAT"
+  [(set (match_operand:DF 0 "register_operand" "")
+	(neg:DF (match_operand:DF 1 "register_operand" "")))]
+  "!TARGET_SOFT_FLOAT"
 {
   if (TARGET_PA_20 || flag_unsafe_math_optimizations)
     emit_insn (gen_negdf2_fast (operands[0], operands[1]));
   else
-    {
-      operands[2] = force_reg (DFmode,
-	CONST_DOUBLE_FROM_REAL_VALUE (dconstm1, DFmode));
-      emit_insn (gen_muldf3 (operands[0], operands[1], operands[2]));
-    }
+    emit_insn (gen_negdf2_slow (operands[0], operands[1]));
   DONE;
 })
+
+(define_insn "negdf2_slow"
+  [(set (match_operand:DF 0 "register_operand" "=r")
+	(neg:DF (match_operand:DF 1 "register_operand" "r")))]
+  "!TARGET_SOFT_FLOAT && !TARGET_PA_20"
+  "*
+{
+  if (rtx_equal_p (operands[0], operands[1]))
+    return \"and,< %1,%1,%0\;depi,tr 1,0,1,%0\;depi 0,0,1,%0\";
+  else
+    return \"and,< %1,%1,%0\;depi,tr 1,0,1,%0\;depi 0,0,1,%0\;copy %R1,%R0\";
+}"
+  [(set_attr "type" "multi")
+   (set (attr "length")
+	(if_then_else (ne (symbol_ref "rtx_equal_p (operands[0], operands[1])")
+			  (const_int 0))
+	    (const_int 12)
+	    (const_int 16)))])
 
 (define_insn "negdf2_fast"
   [(set (match_operand:DF 0 "register_operand" "=f")
 	(neg:DF (match_operand:DF 1 "register_operand" "f")))]
-  "! TARGET_SOFT_FLOAT && (TARGET_PA_20 || flag_unsafe_math_optimizations)"
+  "!TARGET_SOFT_FLOAT"
   "*
 {
   if (TARGET_PA_20)
@@ -6448,26 +6467,29 @@
    (set_attr "length" "4")])
 
 (define_expand "negsf2"
-  [(parallel [(set (match_operand:SF 0 "register_operand" "")
-		   (neg:SF (match_operand:SF 1 "register_operand" "")))
-	      (use (match_dup 2))])]
-  "! TARGET_SOFT_FLOAT"
+  [(set (match_operand:SF 0 "register_operand" "")
+	(neg:SF (match_operand:SF 1 "register_operand" "")))]
+  "!TARGET_SOFT_FLOAT"
 {
   if (TARGET_PA_20 || flag_unsafe_math_optimizations)
     emit_insn (gen_negsf2_fast (operands[0], operands[1]));
   else
-    {
-      operands[2] = force_reg (SFmode,
-	CONST_DOUBLE_FROM_REAL_VALUE (dconstm1, SFmode));
-      emit_insn (gen_mulsf3 (operands[0], operands[1], operands[2]));
-    }
+    emit_insn (gen_negsf2_slow (operands[0], operands[1]));
   DONE;
 })
+
+(define_insn "negsf2_slow"
+  [(set (match_operand:SF 0 "register_operand" "=r")
+	(neg:SF (match_operand:SF 1 "register_operand" "r")))]
+  "!TARGET_SOFT_FLOAT && !TARGET_PA_20"
+  "and,< %1,%1,%0\;depi,tr 1,0,1,%0\;depi 0,0,1,%0"
+  [(set_attr "type" "multi")
+   (set_attr "length" "12")])
 
 (define_insn "negsf2_fast"
   [(set (match_operand:SF 0 "register_operand" "=f")
 	(neg:SF (match_operand:SF 1 "register_operand" "f")))]
-  "! TARGET_SOFT_FLOAT && (TARGET_PA_20 || flag_unsafe_math_optimizations)"
+  "!TARGET_SOFT_FLOAT"
   "*
 {
   if (TARGET_PA_20)
@@ -6989,7 +7011,7 @@
   ""
   "*
 {
-  int x = INTVAL (operands[1]);
+  unsigned HOST_WIDE_INT x = UINTVAL (operands[1]);
   operands[2] = GEN_INT (4 + exact_log2 ((x >> 4) + 1));
   operands[1] = GEN_INT ((x & 0xf) - 0x10);
   return \"{zvdepi %1,%2,%0|depwi,z %1,%%sar,%2,%0}\";
@@ -7007,7 +7029,7 @@
   "exact_log2 (INTVAL (operands[1]) + 1) > 0"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 (x + 1));
   return \"{vdepi -1,%2,%0|depwi -1,%%sar,%2,%0}\";
 }"
@@ -7024,7 +7046,7 @@
   "INTVAL (operands[1]) == -2"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 ((~x) + 1));
   return \"{vdepi 0,%2,%0|depwi 0,%%sar,%2,%0}\";
 }"
@@ -7088,7 +7110,7 @@
   "TARGET_64BIT"
   "*
 {
-  int x = INTVAL (operands[1]);
+  unsigned HOST_WIDE_INT x = UINTVAL (operands[1]);
   operands[2] = GEN_INT (4 + exact_log2 ((x >> 4) + 1));
   operands[1] = GEN_INT ((x & 0x1f) - 0x20);
   return \"depdi,z %1,%%sar,%2,%0\";
@@ -7106,7 +7128,7 @@
   "TARGET_64BIT && exact_log2 (INTVAL (operands[1]) + 1) > 0"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 (x + 1));
   return \"depdi -1,%%sar,%2,%0\";
 }"
@@ -7123,7 +7145,7 @@
   "TARGET_64BIT && INTVAL (operands[1]) == -2"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 ((~x) + 1));
   return \"depdi 0,%%sar,%2,%0\";
 }"
@@ -7333,7 +7355,7 @@
    (use (reg:SI 2))]
   "!TARGET_NO_SPACE_REGS
    && !TARGET_PA_20
-   && flag_pic && current_function_calls_eh_return"
+   && flag_pic && crtl->calls_eh_return"
   "ldsid (%%sr0,%%r2),%%r1\;mtsp %%r1,%%sr0\;be%* 0(%%sr0,%%r2)"
   [(set_attr "type" "branch")
    (set_attr "length" "12")])
@@ -7375,7 +7397,7 @@
 	 using space registers.  */
       if (!TARGET_NO_SPACE_REGS
 	  && !TARGET_PA_20
-	  && flag_pic && current_function_calls_eh_return)
+	  && flag_pic && crtl->calls_eh_return)
 	x = gen_return_external_pic ();
       else
 	x = gen_return_internal ();
@@ -7490,12 +7512,8 @@
 
   lab = copy_to_reg (lab);
 
-  emit_insn (gen_rtx_CLOBBER (VOIDmode,
-			      gen_rtx_MEM (BLKmode,
-					   gen_rtx_SCRATCH (VOIDmode))));
-  emit_insn (gen_rtx_CLOBBER (VOIDmode,
-			      gen_rtx_MEM (BLKmode,
-					   hard_frame_pointer_rtx)));
+  emit_clobber (gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode)));
+  emit_clobber (gen_rtx_MEM (BLKmode, hard_frame_pointer_rtx));
 
   /* Restore the frame pointer.  The virtual_stack_vars_rtx is saved
      instead of the hard_frame_pointer_rtx in the save area.  As a
@@ -7507,8 +7525,8 @@
 
   emit_stack_restore (SAVE_NONLOCAL, stack, NULL_RTX);
 
-  emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
-  emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+  emit_use (hard_frame_pointer_rtx);
+  emit_use (stack_pointer_rtx);
 
   /* Nonlocal goto jumps are only used between functions in the same
      translation unit.  Thus, we can avoid the extra overhead of an
@@ -7558,7 +7576,7 @@
     {
       rtx index = gen_reg_rtx (SImode);
 
-      operands[1] = GEN_INT (-INTVAL (operands[1]));
+      operands[1] = gen_int_mode (-INTVAL (operands[1]), SImode);
       if (!INT_14_BITS (operands[1]))
 	operands[1] = force_reg (SImode, operands[1]);
       emit_insn (gen_addsi3 (index, operands[0], operands[1]));
@@ -7695,7 +7713,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	     the only method that we have for doing DImode multiplication
 	     is with a libcall.  This could be trouble if we haven't
 	     allocated enough space for the outgoing arguments.  */
-	  gcc_assert (INTVAL (nb) <= current_function_outgoing_args_size);
+	  gcc_assert (INTVAL (nb) <= crtl->outgoing_args_size);
 
 	  emit_move_insn (arg_pointer_rtx,
 			  gen_rtx_PLUS (word_mode, stack_pointer_rtx,
@@ -7730,19 +7748,20 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
      need to have a use of the PIC register in the return pattern and
      the final save/restore operation is not needed.
      
-     I elected to just clobber %r4 in the PIC patterns and use it instead
+     I elected to just use register %r4 in the PIC patterns instead
      of trying to force hppa_pic_save_rtx () to a callee saved register.
      This might have required a new register class and constraint.  It
      was also simpler to just handle the restore from a register than a
      generic pseudo.  */
   if (TARGET_64BIT)
     {
+      rtx r4 = gen_rtx_REG (word_mode, 4);
       if (GET_CODE (op) == SYMBOL_REF)
-	call_insn = emit_call_insn (gen_call_symref_64bit (op, nb));
+	call_insn = emit_call_insn (gen_call_symref_64bit (op, nb, r4));
       else
 	{
 	  op = force_reg (word_mode, op);
-	  call_insn = emit_call_insn (gen_call_reg_64bit (op, nb));
+	  call_insn = emit_call_insn (gen_call_reg_64bit (op, nb, r4));
 	}
     }
   else
@@ -7750,17 +7769,22 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
       if (GET_CODE (op) == SYMBOL_REF)
 	{
 	  if (flag_pic)
-	    call_insn = emit_call_insn (gen_call_symref_pic (op, nb));
+	    {
+	      rtx r4 = gen_rtx_REG (word_mode, 4);
+	      call_insn = emit_call_insn (gen_call_symref_pic (op, nb, r4));
+	    }
 	  else
 	    call_insn = emit_call_insn (gen_call_symref (op, nb));
 	}
       else
 	{
 	  rtx tmpreg = gen_rtx_REG (word_mode, 22);
-
 	  emit_move_insn (tmpreg, force_reg (word_mode, op));
 	  if (flag_pic)
-	    call_insn = emit_call_insn (gen_call_reg_pic (nb));
+	    {
+	      rtx r4 = gen_rtx_REG (word_mode, 4);
+	      call_insn = emit_call_insn (gen_call_reg_pic (nb, r4));
+	    }
 	  else
 	    call_insn = emit_call_insn (gen_call_reg (nb));
 	}
@@ -7815,69 +7839,64 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
    (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
 
 (define_insn "call_symref_pic"
-  [(call (mem:SI (match_operand 0 "call_operand_address" ""))
+  [(set (match_operand:SI 2 "register_operand" "=&r") (reg:SI 19))
+   (call (mem:SI (match_operand 0 "call_operand_address" ""))
 	 (match_operand 1 "" "i"))
    (clobber (reg:SI 1))
    (clobber (reg:SI 2))
-   (clobber (reg:SI 4))
+   (use (match_dup 2))
    (use (reg:SI 19))
    (use (const_int 0))]
   "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT"
-  "*
-{
-  output_arg_descriptor (insn);
-  return output_call (insn, operands[0], 0);
-}"
-  [(set_attr "type" "call")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_call (insn, 0)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(call (mem:SI (match_operand 0 "call_operand_address" ""))
+  [(parallel [(set (match_operand:SI 2 "register_operand" "") (reg:SI 19))
+	      (call (mem:SI (match_operand 0 "call_operand_address" ""))
 		    (match_operand 1 "" ""))
 	      (clobber (reg:SI 1))
 	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
+	      (use (match_dup 2))
 	      (use (reg:SI 19))
 	      (use (const_int 0))])]
-  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:SI 4) (reg:SI 19))
+  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 2) (reg:SI 19))
+   (parallel [(call (mem:SI (match_dup 0))
+		    (match_dup 1))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (reg:SI 19))
+	      (use (const_int 0))])]
+  "")
+
+(define_split
+  [(parallel [(set (match_operand:SI 2 "register_operand" "") (reg:SI 19))
+	      (call (mem:SI (match_operand 0 "call_operand_address" ""))
+		    (match_operand 1 "" ""))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (match_dup 2))
+	      (use (reg:SI 19))
+	      (use (const_int 0))])]
+  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT && reload_completed"
+  [(set (match_dup 2) (reg:SI 19))
    (parallel [(call (mem:SI (match_dup 0))
 		    (match_dup 1))
 	      (clobber (reg:SI 1))
 	      (clobber (reg:SI 2))
 	      (use (reg:SI 19))
 	      (use (const_int 0))])
-   (set (reg:SI 19) (reg:SI 4))]
-  "")
-
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(call (mem:SI (match_operand 0 "call_operand_address" ""))
-		    (match_operand 1 "" ""))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
-	      (use (reg:SI 19))
-	      (use (const_int 0))])]
-  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT && reload_completed"
-  [(parallel [(call (mem:SI (match_dup 0))
-		    (match_dup 1))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (use (reg:SI 19))
-	      (use (const_int 0))])]
+   (set (reg:SI 19) (match_dup 2))]
   "")
 
 (define_insn "*call_symref_pic_post_reload"
@@ -7899,44 +7918,61 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
 (define_insn "call_symref_64bit"
-  [(call (mem:SI (match_operand 0 "call_operand_address" ""))
+  [(set (match_operand:DI 2 "register_operand" "=&r") (reg:DI 27))
+   (call (mem:SI (match_operand 0 "call_operand_address" ""))
 	 (match_operand 1 "" "i"))
    (clobber (reg:DI 1))
    (clobber (reg:DI 2))
-   (clobber (reg:DI 4))
+   (use (match_dup 2))
    (use (reg:DI 27))
    (use (reg:DI 29))
    (use (const_int 0))]
   "TARGET_64BIT"
-  "*
-{
-  output_arg_descriptor (insn);
-  return output_call (insn, operands[0], 0);
-}"
-  [(set_attr "type" "call")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_call (insn, 0)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(call (mem:SI (match_operand 0 "call_operand_address" ""))
+  [(parallel [(set (match_operand:DI 2 "register_operand" "") (reg:DI 27))
+	      (call (mem:SI (match_operand 0 "call_operand_address" ""))
 		    (match_operand 1 "" ""))
 	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
+	      (use (match_dup 2))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 0))])]
-  "TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:DI 4) (reg:DI 27))
+  "TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 2) (reg:DI 27))
+   (parallel [(call (mem:SI (match_dup 0))
+		    (match_dup 1))
+	      (clobber (reg:DI 1))
+	      (clobber (reg:DI 2))
+	      (use (reg:DI 27))
+	      (use (reg:DI 29))
+	      (use (const_int 0))])]
+  "")
+
+(define_split
+  [(parallel [(set (match_operand:DI 2 "register_operand" "") (reg:DI 27))
+	      (call (mem:SI (match_operand 0 "call_operand_address" ""))
+		    (match_operand 1 "" ""))
+	      (clobber (reg:DI 1))
+	      (clobber (reg:DI 2))
+	      (use (match_dup 2))
+	      (use (reg:DI 27))
+	      (use (reg:DI 29))
+	      (use (const_int 0))])]
+  "TARGET_64BIT && reload_completed"
+  [(set (match_dup 2) (reg:DI 27))
    (parallel [(call (mem:SI (match_dup 0))
 		    (match_dup 1))
 	      (clobber (reg:DI 1))
@@ -7944,29 +7980,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 0))])
-   (set (reg:DI 27) (reg:DI 4))]
-  "")
-
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(call (mem:SI (match_operand 0 "call_operand_address" ""))
-		    (match_operand 1 "" ""))
-	      (clobber (reg:DI 1))
-	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
-	      (use (reg:DI 27))
-	      (use (reg:DI 29))
-	      (use (const_int 0))])]
-  "TARGET_64BIT && reload_completed"
-  [(parallel [(call (mem:SI (match_dup 0))
-		    (match_dup 1))
-	      (clobber (reg:DI 1))
-	      (clobber (reg:DI 2))
-	      (use (reg:DI 27))
-	      (use (reg:DI 29))
-	      (use (const_int 0))])]
+   (set (reg:DI 27) (match_dup 2))]
   "")
 
 (define_insn "*call_symref_64bit_post_reload"
@@ -8003,68 +8017,64 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
 (define_insn "call_reg_pic"
-  [(call (mem:SI (reg:SI 22))
+  [(set (match_operand:SI 1 "register_operand" "=&r") (reg:SI 19))
+   (call (mem:SI (reg:SI 22))
 	 (match_operand 0 "" "i"))
    (clobber (reg:SI 1))
    (clobber (reg:SI 2))
-   (clobber (reg:SI 4))
+   (use (match_dup 1))
    (use (reg:SI 19))
    (use (const_int 1))]
   "!TARGET_64BIT"
-  "*
-{
-  return output_indirect_call (insn, gen_rtx_REG (word_mode, 22));
-}"
-  [(set_attr "type" "dyncall")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_indirect_call (insn)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(call (mem:SI (reg:SI 22))
+  [(parallel [(set (match_operand:SI 1 "register_operand" "") (reg:SI 19))
+	      (call (mem:SI (reg:SI 22))
 		    (match_operand 0 "" ""))
 	      (clobber (reg:SI 1))
 	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
+	      (use (match_dup 1))
 	      (use (reg:SI 19))
 	      (use (const_int 1))])]
-  "!TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:SI 4) (reg:SI 19))
+  "!TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 1) (reg:SI 19))
+   (parallel [(call (mem:SI (reg:SI 22))
+		    (match_dup 0))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (reg:SI 19))
+	      (use (const_int 1))])]
+  "")
+
+(define_split
+  [(parallel [(set (match_operand:SI 1 "register_operand" "") (reg:SI 19))
+	      (call (mem:SI (reg:SI 22))
+		    (match_operand 0 "" ""))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (match_dup 1))
+	      (use (reg:SI 19))
+	      (use (const_int 1))])]
+  "!TARGET_64BIT && reload_completed"
+  [(set (match_dup 1) (reg:SI 19))
    (parallel [(call (mem:SI (reg:SI 22))
 		    (match_dup 0))
 	      (clobber (reg:SI 1))
 	      (clobber (reg:SI 2))
 	      (use (reg:SI 19))
 	      (use (const_int 1))])
-   (set (reg:SI 19) (reg:SI 4))]
-  "")
-
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(call (mem:SI (reg:SI 22))
-		    (match_operand 0 "" ""))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
-	      (use (reg:SI 19))
-	      (use (const_int 1))])]
-  "!TARGET_64BIT && reload_completed"
-  [(parallel [(call (mem:SI (reg:SI 22))
-		    (match_dup 0))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (use (reg:SI 19))
-	      (use (const_int 1))])]
+   (set (reg:SI 19) (match_dup 1))]
   "")
 
 (define_insn "*call_reg_pic_post_reload"
@@ -8085,73 +8095,75 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
 (define_insn "call_reg_64bit"
-  [(call (mem:SI (match_operand:DI 0 "register_operand" "r"))
+  [(set (match_operand:DI 2 "register_operand" "=&r") (reg:DI 27))
+   (call (mem:SI (match_operand:DI 0 "register_operand" "r"))
 	 (match_operand 1 "" "i"))
+   (clobber (reg:DI 1))
    (clobber (reg:DI 2))
-   (clobber (reg:DI 4))
+   (use (match_dup 2))
    (use (reg:DI 27))
    (use (reg:DI 29))
    (use (const_int 1))]
   "TARGET_64BIT"
-  "*
-{
-  return output_indirect_call (insn, operands[0]);
-}"
-  [(set_attr "type" "dyncall")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_indirect_call (insn)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(call (mem:SI (match_operand 0 "register_operand" ""))
+  [(parallel [(set (match_operand:DI 2 "register_operand" "") (reg:DI 27))
+	      (call (mem:SI (match_operand 0 "register_operand" ""))
 		    (match_operand 1 "" ""))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
+	      (use (match_dup 2))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 1))])]
-  "TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:DI 4) (reg:DI 27))
+  "TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 2) (reg:DI 27))
    (parallel [(call (mem:SI (match_dup 0))
 		    (match_dup 1))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
-	      (use (const_int 1))])
-   (set (reg:DI 27) (reg:DI 4))]
+	      (use (const_int 1))])]
   "")
 
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(call (mem:SI (match_operand 0 "register_operand" ""))
+(define_split
+  [(parallel [(set (match_operand:DI 2 "register_operand" "") (reg:DI 27))
+	      (call (mem:SI (match_operand 0 "register_operand" ""))
 		    (match_operand 1 "" ""))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
+	      (use (match_dup 2))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 1))])]
   "TARGET_64BIT && reload_completed"
-  [(parallel [(call (mem:SI (match_dup 0))
+  [(set (match_dup 2) (reg:DI 27))
+   (parallel [(call (mem:SI (match_dup 0))
 		    (match_dup 1))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
-	      (use (const_int 1))])]
+	      (use (const_int 1))])
+   (set (reg:DI 27) (match_dup 2))]
   "")
 
 (define_insn "*call_reg_64bit_post_reload"
   [(call (mem:SI (match_operand:DI 0 "register_operand" "r"))
 	 (match_operand 1 "" "i"))
+   (clobber (reg:DI 1))
    (clobber (reg:DI 2))
    (use (reg:DI 27))
    (use (reg:DI 29))
@@ -8194,7 +8206,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	     the only method that we have for doing DImode multiplication
 	     is with a libcall.  This could be trouble if we haven't
 	     allocated enough space for the outgoing arguments.  */
-	  gcc_assert (INTVAL (nb) <= current_function_outgoing_args_size);
+	  gcc_assert (INTVAL (nb) <= crtl->outgoing_args_size);
 
 	  emit_move_insn (arg_pointer_rtx,
 			  gen_rtx_PLUS (word_mode, stack_pointer_rtx,
@@ -8229,19 +8241,22 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
      need to have a use of the PIC register in the return pattern and
      the final save/restore operation is not needed.
      
-     I elected to just clobber %r4 in the PIC patterns and use it instead
+     I elected to just use register %r4 in the PIC patterns instead
      of trying to force hppa_pic_save_rtx () to a callee saved register.
      This might have required a new register class and constraint.  It
      was also simpler to just handle the restore from a register than a
      generic pseudo.  */
   if (TARGET_64BIT)
     {
+      rtx r4 = gen_rtx_REG (word_mode, 4);
       if (GET_CODE (op) == SYMBOL_REF)
-	call_insn = emit_call_insn (gen_call_val_symref_64bit (dst, op, nb));
+	call_insn
+	  = emit_call_insn (gen_call_val_symref_64bit (dst, op, nb, r4));
       else
 	{
 	  op = force_reg (word_mode, op);
-	  call_insn = emit_call_insn (gen_call_val_reg_64bit (dst, op, nb));
+	  call_insn
+	    = emit_call_insn (gen_call_val_reg_64bit (dst, op, nb, r4));
 	}
     }
   else
@@ -8249,17 +8264,23 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
       if (GET_CODE (op) == SYMBOL_REF)
 	{
 	  if (flag_pic)
-	    call_insn = emit_call_insn (gen_call_val_symref_pic (dst, op, nb));
+	    {
+	      rtx r4 = gen_rtx_REG (word_mode, 4);
+	      call_insn
+		= emit_call_insn (gen_call_val_symref_pic (dst, op, nb, r4));
+	    }
 	  else
 	    call_insn = emit_call_insn (gen_call_val_symref (dst, op, nb));
 	}
       else
 	{
 	  rtx tmpreg = gen_rtx_REG (word_mode, 22);
-
 	  emit_move_insn (tmpreg, force_reg (word_mode, op));
 	  if (flag_pic)
-	    call_insn = emit_call_insn (gen_call_val_reg_pic (dst, nb));
+	    {
+	      rtx r4 = gen_rtx_REG (word_mode, 4);
+	      call_insn = emit_call_insn (gen_call_val_reg_pic (dst, nb, r4));
+	    }
 	  else
 	    call_insn = emit_call_insn (gen_call_val_reg (dst, nb));
 	}
@@ -8285,44 +8306,61 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
    (set (attr "length") (symbol_ref "attr_length_call (insn, 0)"))])
 
 (define_insn "call_val_symref_pic"
-  [(set (match_operand 0 "" "")
+  [(set (match_operand:SI 3 "register_operand" "=&r") (reg:SI 19))
+   (set (match_operand 0 "" "")
 	(call (mem:SI (match_operand 1 "call_operand_address" ""))
 	      (match_operand 2 "" "i")))
    (clobber (reg:SI 1))
    (clobber (reg:SI 2))
-   (clobber (reg:SI 4))
+   (use (match_dup 3))
    (use (reg:SI 19))
    (use (const_int 0))]
   "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT"
-  "*
-{
-  output_arg_descriptor (insn);
-  return output_call (insn, operands[1], 0);
-}"
-  [(set_attr "type" "call")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_call (insn, 0)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(set (match_operand 0 "" "")
+  [(parallel [(set (match_operand:SI 3 "register_operand" "") (reg:SI 19))
+	      (set (match_operand 0 "" "")
 	      (call (mem:SI (match_operand 1 "call_operand_address" ""))
 		    (match_operand 2 "" "")))
 	      (clobber (reg:SI 1))
 	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
+	      (use (match_dup 3))
 	      (use (reg:SI 19))
 	      (use (const_int 0))])]
-  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:SI 4) (reg:SI 19))
+  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 3) (reg:SI 19))
+   (parallel [(set (match_dup 0)
+	      (call (mem:SI (match_dup 1))
+		    (match_dup 2)))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (reg:SI 19))
+	      (use (const_int 0))])]
+  "")
+
+(define_split
+  [(parallel [(set (match_operand:SI 3 "register_operand" "") (reg:SI 19))
+	      (set (match_operand 0 "" "")
+	      (call (mem:SI (match_operand 1 "call_operand_address" ""))
+		    (match_operand 2 "" "")))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (match_dup 3))
+	      (use (reg:SI 19))
+	      (use (const_int 0))])]
+  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT && reload_completed"
+  [(set (match_dup 3) (reg:SI 19))
    (parallel [(set (match_dup 0)
 	      (call (mem:SI (match_dup 1))
 		    (match_dup 2)))
@@ -8330,29 +8368,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	      (clobber (reg:SI 2))
 	      (use (reg:SI 19))
 	      (use (const_int 0))])
-   (set (reg:SI 19) (reg:SI 4))]
-  "")
-
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(set (match_operand 0 "" "")
-	      (call (mem:SI (match_operand 1 "call_operand_address" ""))
-		    (match_operand 2 "" "")))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
-	      (use (reg:SI 19))
-	      (use (const_int 0))])]
-  "!TARGET_PORTABLE_RUNTIME && !TARGET_64BIT && reload_completed"
-  [(parallel [(set (match_dup 0)
-	      (call (mem:SI (match_dup 1))
-		    (match_dup 2)))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (use (reg:SI 19))
-	      (use (const_int 0))])]
+   (set (reg:SI 19) (match_dup 3))]
   "")
 
 (define_insn "*call_val_symref_pic_post_reload"
@@ -8375,46 +8391,65 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
 (define_insn "call_val_symref_64bit"
-  [(set (match_operand 0 "" "")
+  [(set (match_operand:DI 3 "register_operand" "=&r") (reg:DI 27))
+   (set (match_operand 0 "" "")
 	(call (mem:SI (match_operand 1 "call_operand_address" ""))
 	      (match_operand 2 "" "i")))
    (clobber (reg:DI 1))
    (clobber (reg:DI 2))
-   (clobber (reg:DI 4))
+   (use (match_dup 3))
    (use (reg:DI 27))
    (use (reg:DI 29))
    (use (const_int 0))]
   "TARGET_64BIT"
-  "*
-{
-  output_arg_descriptor (insn);
-  return output_call (insn, operands[1], 0);
-}"
-  [(set_attr "type" "call")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_call (insn, 0)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(set (match_operand 0 "" "")
+  [(parallel [(set (match_operand:DI 3 "register_operand" "") (reg:DI 27))
+	      (set (match_operand 0 "" "")
 	      (call (mem:SI (match_operand 1 "call_operand_address" ""))
 		    (match_operand 2 "" "")))
 	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
+	      (use (match_dup 3))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 0))])]
-  "TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:DI 4) (reg:DI 27))
+  "TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 3) (reg:DI 27))
+   (parallel [(set (match_dup 0)
+	      (call (mem:SI (match_dup 1))
+		    (match_dup 2)))
+	      (clobber (reg:DI 1))
+	      (clobber (reg:DI 2))
+	      (use (reg:DI 27))
+	      (use (reg:DI 29))
+	      (use (const_int 0))])]
+  "")
+
+(define_split
+  [(parallel [(set (match_operand:DI 3 "register_operand" "") (reg:DI 27))
+	      (set (match_operand 0 "" "")
+	      (call (mem:SI (match_operand 1 "call_operand_address" ""))
+		    (match_operand 2 "" "")))
+	      (clobber (reg:DI 1))
+	      (clobber (reg:DI 2))
+	      (use (match_dup 3))
+	      (use (reg:DI 27))
+	      (use (reg:DI 29))
+	      (use (const_int 0))])]
+  "TARGET_64BIT && reload_completed"
+  [(set (match_dup 3) (reg:DI 27))
    (parallel [(set (match_dup 0)
 	      (call (mem:SI (match_dup 1))
 		    (match_dup 2)))
@@ -8423,31 +8458,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 0))])
-   (set (reg:DI 27) (reg:DI 4))]
-  "")
-
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(set (match_operand 0 "" "")
-	      (call (mem:SI (match_operand 1 "call_operand_address" ""))
-		    (match_operand 2 "" "")))
-	      (clobber (reg:DI 1))
-	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
-	      (use (reg:DI 27))
-	      (use (reg:DI 29))
-	      (use (const_int 0))])]
-  "TARGET_64BIT && reload_completed"
-  [(parallel [(set (match_dup 0)
-	      (call (mem:SI (match_dup 1))
-		    (match_dup 2)))
-	      (clobber (reg:DI 1))
-	      (clobber (reg:DI 2))
-	      (use (reg:DI 27))
-	      (use (reg:DI 29))
-	      (use (const_int 0))])]
+   (set (reg:DI 27) (match_dup 3))]
   "")
 
 (define_insn "*call_val_symref_64bit_post_reload"
@@ -8486,43 +8497,61 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
 (define_insn "call_val_reg_pic"
-  [(set (match_operand 0 "" "")
+  [(set (match_operand:SI 2 "register_operand" "=&r") (reg:SI 19))
+   (set (match_operand 0 "" "")
 	(call (mem:SI (reg:SI 22))
 	      (match_operand 1 "" "i")))
    (clobber (reg:SI 1))
    (clobber (reg:SI 2))
-   (clobber (reg:SI 4))
+   (use (match_dup 2))
    (use (reg:SI 19))
    (use (const_int 1))]
   "!TARGET_64BIT"
-  "*
-{
-  return output_indirect_call (insn, gen_rtx_REG (word_mode, 22));
-}"
-  [(set_attr "type" "dyncall")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_indirect_call (insn)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(set (match_operand 0 "" "")
+  [(parallel [(set (match_operand:SI 2 "register_operand" "") (reg:SI 19))
+	      (set (match_operand 0 "" "")
 		   (call (mem:SI (reg:SI 22))
 			 (match_operand 1 "" "")))
 	      (clobber (reg:SI 1))
 	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
+	      (use (match_dup 2))
 	      (use (reg:SI 19))
 	      (use (const_int 1))])]
-  "!TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:SI 4) (reg:SI 19))
+  "!TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 2) (reg:SI 19))
+   (parallel [(set (match_dup 0)
+		   (call (mem:SI (reg:SI 22))
+			 (match_dup 1)))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (reg:SI 19))
+	      (use (const_int 1))])]
+  "")
+
+(define_split
+  [(parallel [(set (match_operand:SI 2 "register_operand" "") (reg:SI 19))
+	      (set (match_operand 0 "" "")
+		   (call (mem:SI (reg:SI 22))
+			 (match_operand 1 "" "")))
+	      (clobber (reg:SI 1))
+	      (clobber (reg:SI 2))
+	      (use (match_dup 2))
+	      (use (reg:SI 19))
+	      (use (const_int 1))])]
+  "!TARGET_64BIT && reload_completed"
+  [(set (match_dup 2) (reg:SI 19))
    (parallel [(set (match_dup 0)
 		   (call (mem:SI (reg:SI 22))
 			 (match_dup 1)))
@@ -8530,29 +8559,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	      (clobber (reg:SI 2))
 	      (use (reg:SI 19))
 	      (use (const_int 1))])
-   (set (reg:SI 19) (reg:SI 4))]
-  "")
-
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(set (match_operand 0 "" "")
-		   (call (mem:SI (reg:SI 22))
-			 (match_operand 1 "" "")))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (clobber (reg:SI 4))
-	      (use (reg:SI 19))
-	      (use (const_int 1))])]
-  "!TARGET_64BIT && reload_completed"
-  [(parallel [(set (match_dup 0)
-		   (call (mem:SI (reg:SI 22))
-			 (match_dup 1)))
-	      (clobber (reg:SI 1))
-	      (clobber (reg:SI 2))
-	      (use (reg:SI 19))
-	      (use (const_int 1))])]
+   (set (reg:SI 19) (match_dup 2))]
   "")
 
 (define_insn "*call_val_reg_pic_post_reload"
@@ -8574,79 +8581,81 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 ;; This pattern is split if it is necessary to save and restore the
 ;; PIC register.
 (define_insn "call_val_reg_64bit"
-  [(set (match_operand 0 "" "")
+  [(set (match_operand:DI 3 "register_operand" "=&r") (reg:DI 27))
+   (set (match_operand 0 "" "")
 	(call (mem:SI (match_operand:DI 1 "register_operand" "r"))
 	      (match_operand 2 "" "i")))
+   (clobber (reg:DI 1))
    (clobber (reg:DI 2))
-   (clobber (reg:DI 4))
+   (use (match_dup 3))
    (use (reg:DI 27))
    (use (reg:DI 29))
    (use (const_int 1))]
   "TARGET_64BIT"
-  "*
-{
-  return output_indirect_call (insn, operands[1]);
-}"
-  [(set_attr "type" "dyncall")
-   (set (attr "length")
-	(plus (symbol_ref "attr_length_indirect_call (insn)")
-	      (symbol_ref "attr_length_save_restore_dltp (insn)")))])
+  "#")
 
-;; Split out the PIC register save and restore after reload.  This is
-;; done only if the function returns.  As the split is done after reload,
-;; there are some situations in which we unnecessarily save and restore
-;; %r4.  This happens when there is a single call and the PIC register
-;; is "dead" after the call.  This isn't easy to fix as the usage of
-;; the PIC register isn't completely determined until the reload pass.
+;; Split out the PIC register save and restore after reload.  As the
+;; split is done after reload, there are some situations in which we
+;; unnecessarily save and restore %r4.  This happens when there is a
+;; single call and the PIC register is not used after the call.
+;;
+;; The split has to be done since call_from_call_insn () can't handle
+;; the pattern as is.  Noreturn calls are special because they have to
+;; terminate the basic block.  The split has to contain more than one
+;; insn.
 (define_split
-  [(parallel [(set (match_operand 0 "" "")
+  [(parallel [(set (match_operand:DI 3 "register_operand" "") (reg:DI 27))
+	      (set (match_operand 0 "" "")
 		   (call (mem:SI (match_operand:DI 1 "register_operand" ""))
 			 (match_operand 2 "" "")))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
+	      (use (match_dup 3))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 1))])]
-  "TARGET_64BIT
-   && reload_completed
-   && !find_reg_note (insn, REG_NORETURN, NULL_RTX)"
-  [(set (reg:DI 4) (reg:DI 27))
+  "TARGET_64BIT && reload_completed
+   && find_reg_note (insn, REG_NORETURN, NULL_RTX)"
+  [(set (match_dup 3) (reg:DI 27))
    (parallel [(set (match_dup 0)
 		   (call (mem:SI (match_dup 1))
 			 (match_dup 2)))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
-	      (use (const_int 1))])
-   (set (reg:DI 27) (reg:DI 4))]
+	      (use (const_int 1))])]
   "")
 
-;; Remove the clobber of register 4 when optimizing.  This has to be
-;; done with a peephole optimization rather than a split because the
-;; split sequence for a call must be longer than one instruction.
-(define_peephole2
-  [(parallel [(set (match_operand 0 "" "")
+(define_split
+  [(parallel [(set (match_operand:DI 3 "register_operand" "") (reg:DI 27))
+	      (set (match_operand 0 "" "")
 		   (call (mem:SI (match_operand:DI 1 "register_operand" ""))
 			 (match_operand 2 "" "")))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
-	      (clobber (reg:DI 4))
+	      (use (match_dup 3))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
 	      (use (const_int 1))])]
   "TARGET_64BIT && reload_completed"
-  [(parallel [(set (match_dup 0)
+  [(set (match_dup 3) (reg:DI 27))
+   (parallel [(set (match_dup 0)
 		   (call (mem:SI (match_dup 1))
 			 (match_dup 2)))
+	      (clobber (reg:DI 1))
 	      (clobber (reg:DI 2))
 	      (use (reg:DI 27))
 	      (use (reg:DI 29))
-	      (use (const_int 1))])]
+	      (use (const_int 1))])
+   (set (reg:DI 27) (match_dup 3))]
   "")
 
 (define_insn "*call_val_reg_64bit_post_reload"
   [(set (match_operand 0 "" "")
 	(call (mem:SI (match_operand:DI 1 "register_operand" "r"))
 	      (match_operand 2 "" "i")))
+   (clobber (reg:DI 1))
    (clobber (reg:DI 2))
    (use (reg:DI 27))
    (use (reg:DI 29))
@@ -8712,7 +8721,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	     the only method that we have for doing DImode multiplication
 	     is with a libcall.  This could be trouble if we haven't
 	     allocated enough space for the outgoing arguments.  */
-	  gcc_assert (INTVAL (nb) <= current_function_outgoing_args_size);
+	  gcc_assert (INTVAL (nb) <= crtl->outgoing_args_size);
 
 	  emit_move_insn (arg_pointer_rtx,
 			  gen_rtx_PLUS (word_mode, stack_pointer_rtx,
@@ -8793,7 +8802,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 	     the only method that we have for doing DImode multiplication
 	     is with a libcall.  This could be trouble if we haven't
 	     allocated enough space for the outgoing arguments.  */
-	  gcc_assert (INTVAL (nb) <= current_function_outgoing_args_size);
+	  gcc_assert (INTVAL (nb) <= crtl->outgoing_args_size);
 
 	  emit_move_insn (arg_pointer_rtx,
 			  gen_rtx_PLUS (word_mode, stack_pointer_rtx,
@@ -8949,12 +8958,8 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 			   (POINTER_SIZE * 2) / BITS_PER_UNIT));
   rtx pv = gen_rtx_REG (Pmode, 1);
 
-  emit_insn (gen_rtx_CLOBBER (VOIDmode,
-			      gen_rtx_MEM (BLKmode,
-					   gen_rtx_SCRATCH (VOIDmode))));
-  emit_insn (gen_rtx_CLOBBER (VOIDmode,
-			      gen_rtx_MEM (BLKmode,
-					   hard_frame_pointer_rtx)));
+  emit_clobber (gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode)));
+  emit_clobber (gen_rtx_MEM (BLKmode, hard_frame_pointer_rtx));
 
   /* Restore the frame pointer.  The virtual_stack_vars_rtx is saved
      instead of the hard_frame_pointer_rtx in the save area.  We need
@@ -8970,8 +8975,8 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
 
   /* This bit is the same as expand_builtin_longjmp.  */
   emit_stack_restore (SAVE_NONLOCAL, stack, NULL_RTX);
-  emit_insn (gen_rtx_USE (VOIDmode, hard_frame_pointer_rtx));
-  emit_insn (gen_rtx_USE (VOIDmode, stack_pointer_rtx));
+  emit_use (hard_frame_pointer_rtx);
+  emit_use (stack_pointer_rtx);
 
   /* Load the label we are jumping through into r1 so that we know
      where to look for it when we get back to setjmp's function for
@@ -9677,42 +9682,34 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   [(set_attr "type" "fpalu")
    (set_attr "length" "4")])
 
-;; Flush the I and D cache lines from the start address (operand0)
-;; to the end address (operand1).  No lines are flushed if the end
-;; address is less than the start address (unsigned).
+;; The following two patterns are used by the trampoline code for nested
+;; functions.  They flush the I and D cache lines from the start address
+;; (operand0) to the end address (operand1).  No lines are flushed if the
+;; end address is less than the start address (unsigned).
 ;;
-;; Because the range of memory flushed is variable and the size of
-;; a MEM can only be a CONST_INT, the patterns specify that they
-;; perform an unspecified volatile operation on all memory.
+;; Because the range of memory flushed is variable and the size of a MEM
+;; can only be a CONST_INT, the patterns specify that they perform an
+;; unspecified volatile operation on all memory.
 ;;
 ;; The address range for an icache flush must lie within a single
 ;; space on targets with non-equivalent space registers.
 ;;
-;; This is used by the trampoline code for nested functions.
-;;
 ;; Operand 0 contains the start address.
 ;; Operand 1 contains the end address.
 ;; Operand 2 contains the line length to use.
-;; Operands 3 and 4 (icacheflush) are clobbered scratch registers.
-(define_insn "dcacheflush"
+(define_insn "dcacheflush<P:mode>"
   [(const_int 1)
    (unspec_volatile [(mem:BLK (scratch))] UNSPECV_DCACHE)
    (use (match_operand 0 "pmode_register_operand" "r"))
    (use (match_operand 1 "pmode_register_operand" "r"))
    (use (match_operand 2 "pmode_register_operand" "r"))
-   (clobber (match_scratch 3 "=&0"))]
+   (clobber (match_scratch:P 3 "=&0"))]
   ""
-  "*
-{
-  if (TARGET_64BIT)
-    return \"cmpb,*<<=,n %3,%1,.\;fdc,m %2(%3)\;sync\";
-  else
-    return \"cmpb,<<=,n %3,%1,.\;fdc,m %2(%3)\;sync\";
-}"
+  "cmpb,<dwc><<=,n %3,%1,.\;fdc,m %2(%3)\;sync"
   [(set_attr "type" "multi")
    (set_attr "length" "12")])
 
-(define_insn "icacheflush"
+(define_insn "icacheflush<P:mode>"
   [(const_int 2)
    (unspec_volatile [(mem:BLK (scratch))] UNSPECV_ICACHE)
    (use (match_operand 0 "pmode_register_operand" "r"))
@@ -9720,15 +9717,9 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
    (use (match_operand 2 "pmode_register_operand" "r"))
    (clobber (match_operand 3 "pmode_register_operand" "=&r"))
    (clobber (match_operand 4 "pmode_register_operand" "=&r"))
-   (clobber (match_scratch 5 "=&0"))]
+   (clobber (match_scratch:P 5 "=&0"))]
   ""
-  "*
-{
-  if (TARGET_64BIT)
-    return \"mfsp %%sr0,%4\;ldsid (%5),%3\;mtsp %3,%%sr0\;cmpb,*<<=,n %5,%1,.\;fic,m %2(%%sr0,%5)\;sync\;mtsp %4,%%sr0\;nop\;nop\;nop\;nop\;nop\;nop\";
-  else
-    return \"mfsp %%sr0,%4\;ldsid (%5),%3\;mtsp %3,%%sr0\;cmpb,<<=,n %5,%1,.\;fic,m %2(%%sr0,%5)\;sync\;mtsp %4,%%sr0\;nop\;nop\;nop\;nop\;nop\;nop\";
-}"
+  "mfsp %%sr0,%4\;ldsid (%5),%3\;mtsp %3,%%sr0\;cmpb,<dwc><<=,n %5,%1,.\;fic,m %2(%%sr0,%5)\;sync\;mtsp %4,%%sr0\;nop\;nop\;nop\;nop\;nop\;nop"
   [(set_attr "type" "multi")
    (set_attr "length" "52")])
 
@@ -9744,8 +9735,7 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   ""
   "*
 {
-  extern int frame_pointer_needed;
-
+ 
   /* We need two different versions depending on whether or not we
      need a frame pointer.   Also note that we return to the instruction
      immediately after the branch rather than two instructions after the
@@ -9797,7 +9787,6 @@ add,l %2,%3,%3\;bv,n %%r0(%3)"
   ""
   "*
 {
-  extern int frame_pointer_needed;
 
   /* We need two different versions depending on whether or not we
      need a frame pointer.   Also note that we return to the instruction

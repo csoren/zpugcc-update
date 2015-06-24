@@ -5,7 +5,7 @@ LIBGCCSTUB_OBJS = rfi-stub.o dfi-stub.o jvrc-stub.o cxaf-stub.o \
 	pthread_mutex_lock-stub.o \
 	pthread_mutex_unlock-stub.o \
 	pthread_once-stub.o
-
+  
 stublib.c: $(srcdir)/config/pa/stublib.c
 	rm -f stublib.c
 	cp $(srcdir)/config/pa/stublib.c .

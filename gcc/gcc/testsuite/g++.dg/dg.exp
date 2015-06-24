@@ -43,9 +43,14 @@ set tests [prune $tests $srcdir/$subdir/vect/*]
 set tests [prune $tests $srcdir/$subdir/gomp/*]
 set tests [prune $tests $srcdir/$subdir/tree-prof/*]
 set tests [prune $tests $srcdir/$subdir/torture/*]
+set tests [prune $tests $srcdir/$subdir/graphite/*]
 
 # Main loop.
 dg-runtest $tests "" $DEFAULT_CXXFLAGS
+
+# C/C++ common tests.
+dg-runtest [lsort [glob -nocomplain $srcdir/c-c++-common/*.\[cSi\]]] \
+       "" ""
 
 # All done.
 dg-finish

@@ -1,8 +1,8 @@
 /* Test floating-point conversions.  __float128 type with TImode.  */
 /* Origin: Joseph Myers <joseph@codesourcery.com> */
-/* { dg-do run { target { ia64-*-* || { { i?86-*-* x86_64-*-*} && lp64 } } } } */
-/* { dg-xfail-if "" { ia64-*-linux* } { "*" } { "" } } */
+/* { dg-do run { target i?86-*-* x86_64-*-* ia64-*-* } } */
 /* { dg-options "" } */
+/* { dg-skip-if "No 128-bit long double" { i?86-*-solaris2* } { "*" } { "" } } */
 
 #include "fp-int-convert.h"
 

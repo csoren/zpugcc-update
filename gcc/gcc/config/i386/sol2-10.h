@@ -1,5 +1,5 @@
 /* Solaris 10 configuration.
-   Copyright (C) 2004, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC.
 
 This file is part of GCC.
@@ -39,6 +39,15 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef HAVE_AS_IX86_DIFF_SECT_DELTA
 #undef JUMP_TABLES_IN_TEXT_SECTION
 #define JUMP_TABLES_IN_TEXT_SECTION 1
+
+/* The native Solaris assembler cannot handle the SYMBOL-. syntax, but
+   requires SYMBOL@rel/@rel64 instead.  */
+#define ASM_OUTPUT_DWARF_PCREL(FILE, SIZE, LABEL)	\
+  do {							\
+    fputs (integer_asm_op (SIZE, FALSE), FILE);		\
+    assemble_name (FILE, LABEL);			\
+    fputs (SIZE == 8 ? "@rel64" : "@rel", FILE);	\
+  } while (0)
 #endif
 
 #undef NO_PROFILE_COUNTERS
@@ -95,7 +104,18 @@ along with GCC; see the file COPYING3.  If not see
 #define LINK_ARCH64_SPEC LINK_ARCH64_SPEC_BASE
 
 #ifdef TARGET_GNU_LD
-#define TARGET_LD_EMULATION "%{m64:-m elf_x86_64}%{!m64:-m elf_i386} "
+/* Since binutils 2.21, GNU ld supports new *_sol2 emulations to strictly
+   follow the Solaris 2 ABI.  Prefer them if present.  */
+#ifdef HAVE_LD_SOL2_EMULATION
+#define I386_EMULATION "elf_i386_sol2"
+#define X86_64_EMULATION "elf_x86_64_sol2"
+#else
+#define I386_EMULATION "elf_i386"
+#define X86_64_EMULATION "elf_x86_64"
+#endif
+
+#define TARGET_LD_EMULATION "%{m64:-m " X86_64_EMULATION "}" \
+			    "%{!m64:-m " I386_EMULATION "} "
 #else
 #define TARGET_LD_EMULATION ""
 #endif
@@ -109,6 +129,3 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION i386_solaris_elf_named_section
-
-#undef RETURN_IN_MEMORY
-#define RETURN_IN_MEMORY ix86_sol10_return_in_memory

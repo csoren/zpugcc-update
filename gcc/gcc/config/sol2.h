@@ -1,6 +1,6 @@
 /* Operating system specific defines to be used when targeting GCC for any
    Solaris 2 system.
-   Copyright 2002, 2003, 2004, 2007 Free Software Foundation, Inc.
+   Copyright 2002, 2003, 2004, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -221,6 +221,10 @@ __enable_execute_stack (void *addr)					\
   { "init",      0, 0, true,  false,  false, NULL },			\
   { "fini",      0, 0, true,  false,  false, NULL }
 
+/* Solaris/x86 as and gas support the common ELF .section/.pushsection
+   syntax.  */
+#define PUSHSECTION_FORMAT	"\t.pushsection\t%s\n"
+
 /* This is how to declare the size of a function.  For Solaris, we output
    any .init or .fini entries here.  */
 #undef ASM_DECLARE_FUNCTION_SIZE
@@ -232,9 +236,6 @@ __enable_execute_stack (void *addr)					\
       solaris_output_init_fini (FILE, DECL);			\
     }								\
   while (0)
-
-/* Register the Solaris-specific #pragma directives.  */
-#define REGISTER_TARGET_PRAGMAS() solaris_register_pragmas ()
 
 extern GTY(()) tree solaris_pending_aligns;
 extern GTY(()) tree solaris_pending_inits;

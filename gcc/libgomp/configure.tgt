@@ -35,6 +35,10 @@ if test $enable_linux_futex = yes; then
 	config_path="linux/ia64 linux posix"
 	;;
 
+    mips*-*-linux*)
+	config_path="linux/mips linux posix"
+	;;
+
     powerpc*-*-linux*)
 	config_path="linux/powerpc linux posix"
 	;;
@@ -107,6 +111,14 @@ case "${target}" in
 	XLDFLAGS="${XLDFLAGS} -lposix4"
 	;;
 
+  *-*-darwin*)
+	config_path="bsd posix"
+	;;
+
+  mips-sgi-irix6*)
+	# Need to link with -lpthread so libgomp.so is self-contained.
+	XLDFLAGS="${XLDFLAGS} -lpthread"
+	;;
   *)
 	;;
 

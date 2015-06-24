@@ -160,6 +160,11 @@ proc gcj_jni_test_one {file} {
 	lappend cxxflaglist "-lstdc++"
     }
 
+    # ARM C++ emits an ABI warning for varargs.
+    if { [istarget "arm*"] } {
+	lappend cxxflaglist "-Wno-abi"
+    }
+    
     set cxxflags [join $cxxflaglist]
   }
 
@@ -260,8 +265,10 @@ proc gcj_jni_get_cxxflags_invocation {} {
     lappend cxxflags -shared-libgcc -lgcj -liconv
   }
 
+  # Make sure libgcc unwinder is used on 64-bit Solaris 10+/x86 rather than
+  # the libc one.
   if { [istarget "*-*-solaris*"] } {
-    lappend cxxflags "-lsocket"
+    lappend cxxflags "-shared-libgcc"
   }
 
   return $cxxflags

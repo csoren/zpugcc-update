@@ -1,4 +1,4 @@
-# Copyright (C) 1997, 2004, 2007 Free Software Foundation, Inc.
+# Copyright (C) 1997, 2004, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -64,8 +64,11 @@ if  [istarget "powerpc-*paired*"]  {
 } elseif { [istarget  "spu-*-*"] } {
    set dg-do-what-default run
 } elseif { [istarget "i?86-*-*"] || [istarget "x86_64-*-*"] } {
+    if { ![check_effective_target_sse2] } then {
+	return
+    }
     lappend DEFAULT_VECTCFLAGS "-msse2"
-    if [check_sse2_hw_available] {
+    if { [check_sse2_hw_available] && [check_sse_os_support_available] } {
 	set dg-do-what-default run
     } else {
 	set dg-do-what-default compile
@@ -112,8 +115,8 @@ if  [istarget "powerpc-*paired*"]  {
 dg-init
 
 # Main loop.
-gfortran-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/vect-*.\[fF\]{,90,95,03} ]] $DEFAULT_VECTCFLAGS
-gfortran-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[fF\]{,90,95,03} ]] $DEFAULT_VECTCFLAGS
+gfortran-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/vect-*.\[fF\]{,90,95,03,08} ]] $DEFAULT_VECTCFLAGS
+gfortran-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[fF\]{,90,95,03,08} ]] $DEFAULT_VECTCFLAGS
 
 #### Tests with special options
 global SAVED_DEFAULT_VECTCFLAGS
@@ -122,19 +125,19 @@ set SAVED_DEFAULT_VECTCFLAGS $DEFAULT_VECTCFLAGS
 # -ffast-math tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-ffast-math"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/fast-math-*.\[fF\]{,90,95,03} ]]  \
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/fast-math-*.\[fF\]{,90,95,03,08} ]]  \
         "" $DEFAULT_VECTCFLAGS
 
 # -fvect-cost-model tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fvect-cost-model"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cost-model-*.\[fF\]{,90,95,03} ]]  \
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/cost-model-*.\[fF\]{,90,95,03,08} ]]  \
         "" $DEFAULT_VECTCFLAGS
 
 # --param vect-max-version-for-alias-checks=0 tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "--param" "vect-max-version-for-alias-checks=0"
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-vfa-*.\[fF\]{,90,95,03} ]]  \
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-vfa-*.\[fF\]{,90,95,03,08} ]]  \
         "" $DEFAULT_VECTCFLAGS
 
 # With -O3
